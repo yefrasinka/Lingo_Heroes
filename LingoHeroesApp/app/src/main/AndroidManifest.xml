@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.lingoheroesapp">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LingoHeroesApp"
+        tools:targetApi="31">
+
+        <!-- MainActivity: Главная активность -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- LoginActivity: Активность для входа -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true">
+            <!-- Здесь можно добавить intent-filter, если требуется -->
+        </activity>
+
+        <!-- RegisterActivity: Активность для регистрации -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="true">
+            <!-- Здесь можно добавить intent-filter, если требуется -->
+        </activity>
+
+        <!-- TestActivity: Активность с тестом -->
+        <activity
+            android:name=".TestActivity"
+            android:exported="true">
+            <!-- Здесь можно добавить intent-filter, если требуется -->
+        </activity>
+
+        <!-- ResultActivity: Активность для показа результата -->
+        <activity
+            android:name=".ResultActivity"
+            android:exported="true">
+            <!-- Здесь можно добавить intent-filter, если требуется -->
+        </activity>
+
+        <!-- MainMenuActivity: Активность для главного меню -->
+        <activity
+            android:name=".MainMenuActivity"
+            android:exported="true">
+            <!-- Здесь можно добавить intent-filter, если требуется -->
+        </activity>
+
+    </application>
+
+</manifest>

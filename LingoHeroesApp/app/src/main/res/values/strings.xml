@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Lingo Heroes</string>
+    <string name="app_logo">Logo</string>
+    <string name="hint_login">Wpisz swój login</string>
+    <string name="hint_email">Wpisz swój email</string>
+    <string name="hint_password">Wpisz swoje hasło</string>
+    <string name="hint_confirm_password">Potwierdź swoje hasło</string>
+    <string name="button_login">Zaloguj się</string>
+    <string name="button_register">Zarejestruj się</string>
+    <string name="register_link">Nie masz konta? Zarejestruj się</string>
+    <string name="login_link">Masz już konto? Zaloguj się</string>
+
+    <string name="title_learning">Nauka</string>
+    <string name="title_mini_games">Gry</string>
+    <string name="title_duels">Pojedynki</string>
+    <string name="title_shop">Sklep</string>
+    <string name="main_title">Poziomy nauki</string>
+
+    <string-array name="main_topics">
+        <item>Zwierzęta</item>
+        <item>Jedzenie</item>
+        <item>Rodzina i Przyjaciele</item>
+    </string-array>
+</resources>
