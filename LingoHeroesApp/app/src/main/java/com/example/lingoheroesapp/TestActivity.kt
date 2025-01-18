@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 
 class TestActivity : AppCompatActivity() {
 
@@ -88,7 +89,7 @@ class TestActivity : AppCompatActivity() {
             imageRes = R.drawable.ic_breakfast2,
             options = listOf("I'm full, thank you.", "I'm hungry.", "It's time for lunch.", "I'm going to bed."),
             correctAnswerIndex = 0
-        )
+        ),
     )
 
     private var currentQuestionIndex = 0
@@ -104,6 +105,11 @@ class TestActivity : AppCompatActivity() {
         findViewById<Button>(R.id.option2Button).setOnClickListener { checkAnswer(1) }
         findViewById<Button>(R.id.option3Button).setOnClickListener { checkAnswer(2) }
         findViewById<Button>(R.id.option4Button).setOnClickListener { checkAnswer(3) }
+
+        // Обработчик кнопки закрытия теста
+        findViewById<ImageView>(R.id.closeButton).setOnClickListener {
+            showExitConfirmationDialog()
+        }
     }
 
     private fun showQuestion() {
@@ -159,6 +165,24 @@ class TestActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+    }
+
+    private fun showExitConfirmationDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("Czy na pewno chcesz zakończyć test?")
+            .setCancelable(false)
+            .setPositiveButton("Tak") { _, _ ->
+                // Переход в главное меню
+                val intent = Intent(this, MainMenuActivity::class.java)
+                startActivity(intent)
+                finish() // Закрыть текущий экран (тест)
+            }
+            .setNegativeButton("Nie") { dialog, _ ->
+                dialog.dismiss() // Закрыть диалог без выхода
+            }
+
+        val alert = builder.create()
+        alert.show()
     }
 }
 

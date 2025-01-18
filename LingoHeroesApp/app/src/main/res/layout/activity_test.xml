@@ -1,21 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:padding="16dp"
     android:background="#1D6750A3">
+
+    <!-- Кнопка выхода из теста -->
+    <ImageView
+        android:id="@+id/closeButton"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="Wróć do głównego menu"
+        android:src="@drawable/ic_close"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:layout_margin="8dp"/>
 
     <!-- Задание -->
     <TextView
         android:id="@+id/taskTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_margin="8dp"
+        android:layout_marginStart="45dp"
+        android:layout_marginEnd="37dp"
+        android:layout_marginBottom="16dp"
+        android:layout_toStartOf="@+id/closeButton"
         android:text="Przetłumacz słowo"
-        android:textStyle="bold"
-        android:textSize="26sp"
         android:textColor="@color/purple_dark"
-        android:layout_marginBottom="16dp" />
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
     <!-- Слово -->
     <TextView
@@ -26,15 +41,17 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:layout_below="@id/taskTextView" />
 
     <!-- Картинка -->
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="400dp"
         android:layout_height="400dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:layout_below="@id/wordTextView" />
 
     <!-- Варианты -->
     <Button
@@ -43,7 +60,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:textSize="20dp"
-        android:contentDescription="Opcja 1" />
+        android:contentDescription="Opcja 1"
+        android:layout_below="@id/imageView" />
 
     <Button
         android:id="@+id/option2Button"
@@ -51,7 +69,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:textSize="20dp"
-        android:contentDescription="Opcja 2" />
+        android:contentDescription="Opcja 2"
+        android:layout_below="@id/option1Button" />
 
     <Button
         android:id="@+id/option3Button"
@@ -59,7 +78,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:textSize="20dp"
-        android:contentDescription="Opcja 3" />
+        android:contentDescription="Opcja 3"
+        android:layout_below="@id/option2Button" />
 
     <Button
         android:id="@+id/option4Button"
@@ -67,6 +87,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:textSize="20dp"
-        android:contentDescription="Opcja 4" />
+        android:contentDescription="Opcja 4"
+        android:layout_below="@id/option3Button" />
 
-</LinearLayout>
+</RelativeLayout>
