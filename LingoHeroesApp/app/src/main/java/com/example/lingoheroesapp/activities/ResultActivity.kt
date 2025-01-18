@@ -1,4 +1,4 @@
-package com.example.lingoheroesapp
+package com.example.lingoheroesapp.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.lingoheroesapp.R
 
 class ResultActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

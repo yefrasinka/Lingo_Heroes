@@ -1,4 +1,4 @@
-package com.example.lingoheroesapp
+package com.example.lingoheroesapp.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,6 +6,8 @@ import android.widget.Button
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
+import com.example.lingoheroesapp.R
+import com.example.lingoheroesapp.TestActivity
 
 class LanguageLevelActivity : AppCompatActivity() {
 

@@ -26,13 +26,13 @@
 
         <!-- LoginActivity: Активность для входа -->
         <activity
-            android:name=".LoginActivity"
+            android:name=".activities.LoginActivity"
             android:exported="true">
         </activity>
 
         <!-- RegisterActivity: Активность для регистрации -->
         <activity
-            android:name=".RegisterActivity"
+            android:name=".activities.RegisterActivity"
             android:exported="true">
         </activity>
 
@@ -44,44 +44,44 @@
 
         <!-- ResultActivity: Активность для показа результата -->
         <activity
-            android:name=".ResultActivity"
+            android:name=".activities.ResultActivity"
             android:exported="true">
         </activity>
 
         <!-- MainMenuActivity: Активность для главного меню -->
         <activity
-            android:name=".MainMenuActivity"
+            android:name=".activities.MainMenuActivity"
             android:exported="true">
         </activity>
 
         <!-- AccountActivity: Активность для аккаунта -->
         <activity
-            android:name=".AccountActivity"
+            android:name=".activities.AccountActivity"
             android:exported="true">
         </activity>
 
         <!-- MinigamesActivity: Активность для миниигр -->
         <activity
-            android:name=".MinigamesActivity"
+            android:name=".activities.MinigamesActivity"
             android:exported="true">
         </activity>
 
 
         <!-- DuelsActivity: Активность для дуэлей -->
         <activity
-            android:name=".DuelsActivity"
+            android:name=".activities.DuelsActivity"
             android:exported="true">
         </activity>
 
         <!-- StoreActivity: Активность для магазина -->
         <activity
-            android:name=".StoreActivity"
+            android:name=".activities.StoreActivity"
             android:exported="true">
         </activity>
 
         <!-- LanguageLevelActivity: Активность для магазина -->
         <activity
-            android:name=".LanguageLevelActivity"
+            android:name=".activities.LanguageLevelActivity"
             android:exported="true">
         </activity>
 

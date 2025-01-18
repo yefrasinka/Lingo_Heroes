@@ -5,101 +5,221 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import com.example.lingoheroesapp.activities.MainMenuActivity
+import com.example.lingoheroesapp.activities.ResultActivity
+import com.example.lingoheroesapp.models.Task
+import com.google.firebase.database.FirebaseDatabase
 
 class TestActivity : AppCompatActivity() {
 
-    // Вопросы с вариантами ответов
+    // Pytania z opcjami odpowiedzi
     private val questions = listOf(
-        // Грамматическое задание
-        Question(
-            task = "Choose the correct form:",
-            word = "I usually ___ breakfast at 8 AM.",
-            imageRes = R.drawable.ic_breakfast,
+        // Gramatyczne zadanie
+        Task(
+            taskId = "1",
+            title = "Choose the correct form:",
+            description = "I usually ___ breakfast at 8 AM.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "I usually ___ breakfast at 8 AM.",
             options = listOf("ate", "eats", "eating", "eat"),
-            correctAnswerIndex = 3
+            correctAnswer = "eat",
+            rewardXp = 10,
+            rewardCoins = 5,
+            topicId = "breakfast",
+            subtopicId = "verb_forms",
+            mediaUrl = null
         ),
-        // Задание на подбор фразы
-        Question(
-            task = "How do you say it in English?",
-            word = "Śniadanie",
-            imageRes = R.drawable.ic_breakfast1,
+        // Zadanie na dobór frazy
+        Task(
+            taskId = "2",
+            title = "How do you say it in English?",
+            description = "Śniadanie",
+            difficulty = "easy",
+            type = "vocabulary",
+            question = "Śniadanie",
             options = listOf("Lunch", "Dinner", "Breakfast", "Snack"),
-            correctAnswerIndex = 2
+            correctAnswer = "Breakfast",
+            rewardXp = 5,
+            rewardCoins = 3,
+            topicId = "meals",
+            subtopicId = "vocabulary",
+            mediaUrl = null
         ),
-        // Перевод
-        Question(
-            task = "Translate the sentence:",
-            word = "Jem owsiankę na śniadanie.",
-            imageRes = R.drawable.ic_oatmeal,
+        // Tłumaczenie
+        Task(
+            taskId = "3",
+            title = "Translate the sentence:",
+            description = "Jem owsiankę na śniadanie.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "Jem owsiankę na śniadanie.",
             options = listOf("I drink tea for breakfast.", "I eat oatmeal for breakfast.", "I eat pancakes for breakfast.", "I make coffee in the morning."),
-            correctAnswerIndex = 1
+            correctAnswer = "I eat oatmeal for breakfast.",
+            rewardXp = 15,
+            rewardCoins = 8,
+            topicId = "breakfast",
+            subtopicId = "translations",
+            mediaUrl = null
         ),
-        // Задание на выбор
-        Question(
-            task = "Choose the correct form of the verb:",
-            word = "She ___ eggs for breakfast.",
-            imageRes = R.drawable.ic_egg,
+        // Wybór odpowiedniej formy czasownika
+        Task(
+            taskId = "4",
+            title = "Choose the correct form of the verb:",
+            description = "She ___ eggs for breakfast.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "She ___ eggs for breakfast.",
             options = listOf("cook", "cooked", "cooks", "cooking"),
-            correctAnswerIndex = 2
+            correctAnswer = "cooks",
+            rewardXp = 12,
+            rewardCoins = 6,
+            topicId = "breakfast",
+            subtopicId = "verb_forms",
+            mediaUrl = null
         ),
-        // Понимание предложения
-        Question(
-            task = "Answer the question.",
-            word = "What do you have for breakfast?",
-            imageRes = R.drawable.ic_toast,
+        // Rozumienie pytania
+        Task(
+            taskId = "5",
+            title = "Answer the Task.",
+            description = "What do you have for breakfast?",
+            difficulty = "easy",
+            type = "reading",
+            question = "What do you have for breakfast?",
             options = listOf("I have lunch.", "I have toast and coffee.", "I go to work.", "I sleep."),
-            correctAnswerIndex = 1
+            correctAnswer = "I have toast and coffee.",
+            rewardXp = 8,
+            rewardCoins = 4,
+            topicId = "breakfast",
+            subtopicId = "comprehension",
+            mediaUrl = null
         ),
-        // Заполнение пропуска
-        Question(
-            task = "Fill in the blank: ",
-            word = "I ____ bread and butter in the morning.",
-            imageRes = R.drawable.ic_bread,
+        // Wypełnianie luk
+        Task(
+            taskId = "6",
+            title = "Fill in the blank:",
+            description = "I ____ bread and butter in the morning.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "I ____ bread and butter in the morning.",
             options = listOf("eating", "eats", "ate", "eat"),
-            correctAnswerIndex = 3
+            correctAnswer = "eat",
+            rewardXp = 10,
+            rewardCoins = 5,
+            topicId = "breakfast",
+            subtopicId = "verb_forms",
+            mediaUrl = null
         ),
-        // Вопрос с выбором правильного варианта
-        Question(
-            task = "Answer the question.",
-            word = "Which of these is usually eaten for breakfast?",
-            imageRes = R.drawable.ic_cereal,
+        // Wybór poprawnego wariantu
+        Task(
+            taskId = "7",
+            title = "Answer the Task.",
+            description = "Which of these is usually eaten for breakfast?",
+            difficulty = "easy",
+            type = "vocabulary",
+            question = "Which of these is usually eaten for breakfast?",
             options = listOf("Cereal", "Pizza", "Spaghetti", "Burger"),
-            correctAnswerIndex = 0
+            correctAnswer = "Cereal",
+            rewardXp = 5,
+            rewardCoins = 3,
+            topicId = "meals",
+            subtopicId = "vocabulary",
+            mediaUrl = null
         ),
-        // Перевод предложения
-        Question(
-            task = "Translate the sentence:",
-            word = "Lubię jeść jajka na miękko.",
-            imageRes = R.drawable.ic_egg1,
+        // Tłumaczenie zdania
+        Task(
+            taskId = "8",
+            title = "Translate the sentence:",
+            description = "Lubię jeść jajka na miękko.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "Lubię jeść jajka na miękko.",
             options = listOf("I like to eat fried eggs.", "I eat scrambled eggs.", "I like to eat soft-boiled eggs.", "I like to eat bread."),
-            correctAnswerIndex = 2
+            correctAnswer = "I like to eat soft-boiled eggs.",
+            rewardXp = 15,
+            rewardCoins = 7,
+            topicId = "breakfast",
+            subtopicId = "translations",
+            mediaUrl = null
         ),
-        // Задание на согласование времен
-        Question(
-            task = "Choose the correct option:",
-            word = "They ___ coffee every morning.",
-            imageRes = R.drawable.ic_coffee,
+        // Zadanie na zgodność czasów
+        Task(
+            taskId = "9",
+            title = "Choose the correct option:",
+            description = "They ___ coffee every morning.",
+            difficulty = "medium",
+            type = "grammar",
+            question = "They ___ coffee every morning.",
             options = listOf("drinks", "drink", "drank", "drinking"),
-            correctAnswerIndex = 1
+            correctAnswer = "drink",
+            rewardXp = 12,
+            rewardCoins = 6,
+            topicId = "breakfast",
+            subtopicId = "verb_forms",
+            mediaUrl = null
         ),
-        // Задание на понимание контекста
-        Question(
-            task = "Answer the question.",
-            word = "What would you most likely say after finishing breakfast?",
-            imageRes = R.drawable.ic_breakfast2,
+        // Rozumienie kontekstu
+        Task(
+            taskId = "10",
+            title = "Answer the Task.",
+            description = "What would you most likely say after finishing breakfast?",
+            difficulty = "easy",
+            type = "reading",
+            question = "What would you most likely say after finishing breakfast?",
             options = listOf("I'm full, thank you.", "I'm hungry.", "It's time for lunch.", "I'm going to bed."),
-            correctAnswerIndex = 0
-        ),
+            correctAnswer = "I'm full, thank you.",
+            rewardXp = 10,
+            rewardCoins = 5,
+            topicId = "breakfast",
+            subtopicId = "comprehension",
+            mediaUrl = null
+        )
     )
 
-    private var currentQuestionIndex = 0
+
+    //add new task
+    fun loadQuestionsToFirebase() {
+        val database = FirebaseDatabase.getInstance()
+        val tasksRef = database.reference.child("tasks")
+
+
+        questions.forEach { question ->
+            //sprawdzamy, czy pytanie już istnieje
+            tasksRef.child(question.taskId).get().addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    //jesli pytanie istnieje, zaktualizuj je
+                    tasksRef.child(question.taskId).setValue(question)
+                        .addOnSuccessListener {
+                            println("Pytanie zostało zaktualizowane!")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Błąd przy aktualizowaniu pytania: ${e.message}")
+                        }
+                } else {
+                    //jesli pytanie nie istnieje, dodaj je jako nowe
+                    val taskId = tasksRef.push().key ?: return@addOnSuccessListener
+                    tasksRef.child(taskId).setValue(question)
+                        .addOnSuccessListener {
+                            println("Pytanie zostało zapisane!")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Błąd przy zapisywaniu pytania: ${e.message}")
+                        }
+                }
+            }.addOnFailureListener { e ->
+                println("Błąd przy pobieraniu pytania: ${e.message}")
+            }
+        }
+    }
+
+   /* private var currentTaskIndex = 0
     private var correctAnswers = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_test)
 
-        showQuestion()
+        showTask()
 
         findViewById<Button>(R.id.option1Button).setOnClickListener { checkAnswer(0) }
         findViewById<Button>(R.id.option2Button).setOnClickListener { checkAnswer(1) }
@@ -112,56 +232,56 @@ class TestActivity : AppCompatActivity() {
         }
     }
 
-    private fun showQuestion() {
-        val question = questions[currentQuestionIndex]
+  private fun showTask() {
+        val Task = Tasks[currentTaskIndex]
 
-        findViewById<TextView>(R.id.taskTextView).text = question.task
-        findViewById<TextView>(R.id.wordTextView).text = question.word
-        findViewById<ImageView>(R.id.imageView).setImageResource(question.imageRes)
+        findViewById<TextView>(R.id.taskTextView).text = Task.task
+        findViewById<TextView>(R.id.wordTextView).text = Task.word
+        findViewById<ImageView>(R.id.imageView).setImageResource(Task.imageRes)
 
         findViewById<Button>(R.id.option1Button).apply {
-            text = question.options[0]
-            contentDescription = "Opcja 1: ${question.options[0]}"
+            text = Task.options[0]
+            contentDescription = "Opcja 1: ${Task.options[0]}"
         }
 
         findViewById<Button>(R.id.option2Button).apply {
-            text = question.options[1]
-            contentDescription = "Opcja 2: ${question.options[1]}"
+            text = Task.options[1]
+            contentDescription = "Opcja 2: ${Task.options[1]}"
         }
 
         findViewById<Button>(R.id.option3Button).apply {
-            text = question.options[2]
-            contentDescription = "Opcja 3: ${question.options[2]}"
+            text = Task.options[2]
+            contentDescription = "Opcja 3: ${Task.options[2]}"
         }
 
         findViewById<Button>(R.id.option4Button).apply {
-            text = question.options[3]
-            contentDescription = "Opcja 4: ${question.options[3]}"
+            text = Task.options[3]
+            contentDescription = "Opcja 4: ${Task.options[3]}"
         }
     }
 
     private fun checkAnswer(selectedIndex: Int) {
-        val question = questions[currentQuestionIndex]
-        val isCorrect = selectedIndex == question.correctAnswerIndex
+        val Task = Tasks[currentTaskIndex]
+        val isCorrect = selectedIndex == Task.correctAnswerIndex
 
         if (isCorrect) {
             correctAnswers++
         } else {
             Toast.makeText(
                 this,
-                "Źle! Prawidłowa odpowiedź: ${question.options[question.correctAnswerIndex]}",
+                "Źle! Prawidłowa odpowiedź: ${Task.options[Task.correctAnswerIndex]}",
                 Toast.LENGTH_SHORT
             ).show()
         }
 
-        if (currentQuestionIndex < questions.size - 1) {
-            currentQuestionIndex++
-            showQuestion()
+        if (currentTaskIndex < Tasks.size - 1) {
+            currentTaskIndex++
+            showTask()
         } else {
             // Показать результат
             val intent = Intent(this, ResultActivity::class.java)
             intent.putExtra("correctAnswers", correctAnswers)
-            intent.putExtra("totalQuestions", questions.size)
+            intent.putExtra("totalTasks", Tasks.size)
             startActivity(intent)
             finish()
         }
@@ -183,13 +303,6 @@ class TestActivity : AppCompatActivity() {
 
         val alert = builder.create()
         alert.show()
-    }
+    }*/
 }
 
-data class Question(
-    val task: String,
-    val word: String,
-    val imageRes: Int,
-    val options: List<String>,
-    val correctAnswerIndex: Int
-)

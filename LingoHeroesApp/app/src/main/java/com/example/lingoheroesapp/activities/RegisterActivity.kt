@@ -1,4 +1,4 @@
-package com.example.lingoheroesapp
+package com.example.lingoheroesapp.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +7,8 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.lingoheroesapp.R
+import com.example.lingoheroesapp.services.AuthService
 
 class RegisterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,22 +22,24 @@ class RegisterActivity : AppCompatActivity() {
         val loginLink = findViewById<TextView>(R.id.loginLink)
 
         registerButton.setOnClickListener {
-            val email = emailEditText.text.toString()
+            val email = emailEditText.text.toString().trim()
             val password = passwordEditText.text.toString()
             val confirmPassword = confirmPasswordEditText.text.toString()
 
-            if (email == "yefrasinnia@gmail.com" && password == "12345678" && confirmPassword == password) {
-                Toast.makeText(this, "Konto utworzone!", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, LoginActivity::class.java)
-                startActivity(intent)
+            if (password == confirmPassword && email.isNotEmpty() && password.length >= 6) {
+                AuthService.registerUser(email, password, {
+                    Toast.makeText(this, "Rejestracja zakończona sukcesem!", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, LoginActivity::class.java))
+                }, {
+                    Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                })
             } else {
                 Toast.makeText(this, "Niepoprawne dane rejestracji.", Toast.LENGTH_SHORT).show()
             }
         }
 
         loginLink.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, LoginActivity::class.java))
         }
     }
 }
