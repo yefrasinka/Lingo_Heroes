@@ -25,11 +25,13 @@ class LoginActivity : AppCompatActivity() {
             val password = passwordEditText.text.toString()
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
+                // Sprawdzamy dane logowania
                 AuthService.loginUser(email, password, {
                     Toast.makeText(this, "Zalogowano pomyślnie!", Toast.LENGTH_SHORT).show()
                     startActivity(Intent(this, MainMenuActivity::class.java))
-                }, {
-                    Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+                    finish()
+                }, { errorMessage ->
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                 })
             } else {
                 Toast.makeText(this, "Uzupełnij wszystkie pola.", Toast.LENGTH_SHORT).show()
@@ -40,4 +42,6 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
+
 }
+

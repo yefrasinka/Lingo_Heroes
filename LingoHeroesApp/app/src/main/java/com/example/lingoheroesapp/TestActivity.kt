@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import com.example.lingoheroesapp.activities.MainMenuActivity
 import com.example.lingoheroesapp.activities.ResultActivity
+import com.example.lingoheroesapp.models.Subtopic
 import com.example.lingoheroesapp.models.Task
+import com.example.lingoheroesapp.models.Topic
 import com.google.firebase.database.FirebaseDatabase
 
 class TestActivity : AppCompatActivity() {
@@ -175,7 +177,50 @@ class TestActivity : AppCompatActivity() {
             mediaUrl = null
         )
     )
+    fun saveSampleData() {
+        // Uzyskiwanie referencji do Firebase Realtime Database
+        val database = FirebaseDatabase.getInstance().reference
 
+        // Tworzenie przykładowych danych dla Subtopic
+        val subtopic1 = Subtopic(
+            id = "subtopicId_1",
+            topicId = "topicId_1",
+            title = "Ssaki",
+            description = "Ssaki",
+            totalTasks = 10,
+            completedTasks = 0
+        )
+
+        val subtopic2 = Subtopic(
+            id = "subtopicId_2",
+            topicId = "topicId_1",
+            title = "Ptaki",
+            description = "Ptaki",
+            totalTasks = 10,
+            completedTasks = 0
+        )
+
+
+        val topic1 = Topic(
+            id = "topicId_1",
+            title = "Zwierzęta",
+            description = "Zwierzęta",
+            imageUrl = "https://example.com/topic1.jpg",
+            subtopics = listOf(subtopic1, subtopic2)
+        )
+
+        // Zapisanie danych do Firebase
+        val topicsRef = database.child("topics").child(topic1.id)
+        topicsRef.setValue(topic1).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                // Dane zostały zapisane pomyślnie
+                println("Data saved successfully.")
+            } else {
+                // Wystąpił błąd
+                println("Failed to save data: ${task.exception?.message}")
+            }
+        }
+    }
 
     //add new task
     fun loadQuestionsToFirebase() {

@@ -36,7 +36,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Imię"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -60,7 +59,6 @@
                 android:id="@+id/currencyText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="1500"
                 android:textColor="#FFFFFF"
                 android:layout_marginStart="4dp"
                 android:textSize="16sp" />
@@ -85,7 +83,6 @@
                 android:id="@+id/experienceText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3200"
                 android:textColor="#FFFFFF"
                 android:layout_marginStart="4dp"
                 android:textSize="16sp" />
@@ -121,12 +118,11 @@
                     android:padding="8dp">
 
                     <TextView
+                        android:id="@+id/topicProgressText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Zwierzęta"
                         android:textSize="20sp"
                         android:textColor="#FFFFFF"
-                        android:background="#A900AD00"
                         android:padding="8dp"
                         android:gravity="center"
                         android:textStyle="bold"/>
@@ -148,22 +144,21 @@
                             android:layout_marginBottom="3dp">
 
                             <Button
+                                android:id="@+id/subtopicProgressText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ssaki (5/5)"
                                 android:textSize="16sp"
                                 android:textColor="#00B800"
                                 android:background="@android:color/transparent"/>
 
                             <ProgressBar
-                                android:id="@+id/progressBar"
+                                android:id="@+id/subtopicProgressBar"
                                 style="@android:style/Widget.ProgressBar.Horizontal"
                                 android:layout_width="0dp"
                                 android:layout_height="8dp"
                                 android:layout_weight="1"
                                 android:layout_marginStart="8dp"
                                 android:layout_marginEnd="20dp"
-                                android:progress="100"
                                 android:progressTint="#00B800"
                                 android:backgroundTint="#D1C4E9" />
                         </LinearLayout>
