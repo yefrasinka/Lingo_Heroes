@@ -102,10 +102,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
+            <!-- тут хуйня яка сворює типу дуплікати або наоборот робить класноо-->
+           <TextView
+                 android:id="@+id/levelText"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:textSize="18sp"
+                 android:textColor="#FFFFFF"
+                 android:gravity="center"
+                 android:padding="8dp"
+                 android:textStyle="bold"/>
             <!-- Подтемы с уроками -->
             <LinearLayout
-                android:id="@+id/subtopicsContainer"
+                android:id="@+id/topicsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
@@ -129,6 +138,7 @@
 
                     <!-- Подтемы для Zwierzęta -->
                     <LinearLayout
+                        android:id="@+id/subtopicsContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
@@ -144,7 +154,7 @@
                             android:layout_marginBottom="3dp">
 
                             <Button
-                                android:id="@+id/subtopicProgressText"
+                                android:id="@+id/subtopicButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:textSize="16sp"
@@ -181,7 +191,7 @@
                                 android:background="@android:color/transparent"/>
 
                             <ProgressBar
-                                android:id="@+id/progressBar1"
+                                android:id="@+id/progressBar_2"
                                 style="@android:style/Widget.ProgressBar.Horizontal"
                                 android:layout_width="0dp"
                                 android:layout_height="8dp"

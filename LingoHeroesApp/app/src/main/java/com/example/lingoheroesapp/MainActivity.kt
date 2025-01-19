@@ -13,6 +13,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        //zamieniamy Activity
         val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)
 

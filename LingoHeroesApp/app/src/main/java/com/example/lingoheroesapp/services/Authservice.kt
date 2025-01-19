@@ -1,6 +1,7 @@
 package com.example.lingoheroesapp.services
 
 import android.util.Log
+import com.example.lingoheroesapp.models.TopicProgress
 import com.example.lingoheroesapp.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -30,7 +31,7 @@ object AuthService {
                     val user = FirebaseAuth.getInstance().currentUser
                     val database = FirebaseDatabase.getInstance()
 
-                    // Tworzymy obiekt User i przypisujemy dane, w tym nowe pola
+                    // Tworzymy obiekt User z domyślnymi wartościami
                     val userData = User(
                         uid = user?.uid ?: "",
                         username = username,
@@ -38,9 +39,27 @@ object AuthService {
                         level = 1,
                         xp = 0,
                         coins = 0,
-                        completedTasks = emptyList(),  // Pusta lista wykonanych zadań
-                        purchasedItems = emptyList(),  // Pusta lista zakupionych przedmiotów
-                        topicsProgress = emptyMap()    // Pusta mapa postępów w tematach
+                        completedTasks = emptyList(), // Pusta lista wykonanych zadań
+                        purchasedItems = emptyList(), // Pusta lista zakupionych przedmiotów
+                        topicsProgress = mapOf( // Pusta mapa postępów w tematach
+
+                            "topicId_1" to TopicProgress(
+                                topicId = "topicId_1",
+                                completedSubtopics = 0,
+                                totalSubtopics = 5,
+                                progressPercentage = 0,
+                                completedTasks = emptyList(),
+                                totalTasks = 10
+                            ),
+                            "topicId_2" to TopicProgress(
+                                topicId = "topicId_2",
+                                completedSubtopics = 0,
+                                totalSubtopics = 3,
+                                progressPercentage = 0,
+                                completedTasks = emptyList(),
+                                totalTasks = 7
+                            )
+                        )
                     )
 
                     user?.uid?.let { uid ->
@@ -56,7 +75,7 @@ object AuthService {
                             }
                     }
                 } else {
-                    // Obsługa błędu, użytkownik już istnieje
+                    // Obsługa błędu rejestracji
                     if (task.exception is FirebaseAuthUserCollisionException) {
                         onFailure("Użytkownik z tym adresem e-mail już istnieje.")
                     } else if (task.exception is FirebaseAuthWeakPasswordException) {
@@ -69,6 +88,7 @@ object AuthService {
                 }
             }
     }
+
 
 
 

@@ -1,12 +1,15 @@
 package com.example.lingoheroesapp.activities
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -15,14 +18,16 @@ import androidx.core.content.ContextCompat
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.TestActivity
 import com.example.lingoheroesapp.models.Progress
+import com.example.lingoheroesapp.models.Subtopic
+import com.example.lingoheroesapp.models.Topic
+import com.example.lingoheroesapp.models.TopicProgress
 import com.example.lingoheroesapp.models.User
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.database.core.view.View
 
 class MainMenuActivity : AppCompatActivity() {
-
-    // Firebase
     private lateinit var auth: FirebaseAuth
     private lateinit var database: DatabaseReference
 
@@ -31,27 +36,38 @@ class MainMenuActivity : AppCompatActivity() {
     private lateinit var levelTextView: TextView
     private lateinit var xpTextView: TextView
     private lateinit var coinsTextView: TextView
-    private lateinit var topicProgressText: TextView
-    private lateinit var subtopicProgressBar: ProgressBar // ProgressBar dla podtematu
-    private lateinit var taskProgressBar: ProgressBar // ProgressBar dla zadania
-    private lateinit var subtopicProgressBars: List<ProgressBar>
-
+    private lateinit var subtopicsContainer: LinearLayout
+    private lateinit var topicsContainer: LinearLayout
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize Firebase
+        initializeFirebase()
+        initializeUI()
+        setupBottomNavigation()
+        setupButtons()
+        checkUserAndLoadData()
+    }
+
+    private fun initializeFirebase() {
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance().reference
+    }
 
-        // Initialize UI elements
+    private fun initializeUI() {
         usernameTextView = findViewById(R.id.usernameText)
+
+
+        //level dla poziomi jezyka
+        levelTextView = findViewById(R.id.levelText)
+
         xpTextView = findViewById(R.id.experienceText)
         coinsTextView = findViewById(R.id.currencyText)
-        topicProgressText = findViewById(R.id.topicProgressText)
-        subtopicProgressBar = findViewById(R.id.subtopicProgressBar)
+        subtopicsContainer = findViewById(R.id.subtopicsContainer)
+        topicsContainer = findViewById(R.id.topicsContainer)
+    }
 
-        // Bottom navigation setup
+    private fun setupBottomNavigation() {
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
         bottomNavigationView.selectedItemId = R.id.nav_learning
 
@@ -62,143 +78,163 @@ class MainMenuActivity : AppCompatActivity() {
                     startActivity(Intent(this, MinigamesActivity::class.java))
                     true
                 }
-
                 R.id.nav_duels -> {
                     startActivity(Intent(this, DuelsActivity::class.java))
                     true
                 }
-
                 R.id.nav_store -> {
                     startActivity(Intent(this, StoreActivity::class.java))
                     true
                 }
-
                 else -> false
             }
         }
+    }
 
-        // Button for starting the test
-        val testButton = findViewById<Button>(R.id.testButton)
-        val avatarButton = findViewById<ImageView>(R.id.avatarImage)
-
-        testButton.setOnClickListener {
-            val intent = Intent(this, TestActivity::class.java)
-            startActivity(intent)
+    private fun setupButtons() {
+        findViewById<Button>(R.id.testButton).setOnClickListener {
+            startActivity(Intent(this, TestActivity::class.java))
         }
 
-        avatarButton.setOnClickListener {
-            // Navigate to account screen
-            val intent = Intent(this, AccountActivity::class.java)
-            startActivity(intent)
+        findViewById<ImageView>(R.id.avatarImage).setOnClickListener {
+            startActivity(Intent(this, AccountActivity::class.java))
         }
+    }
 
-        // Check if the user is logged in
-        val currentUser = FirebaseAuth.getInstance().currentUser
+    private fun checkUserAndLoadData() {
+        val currentUser = auth.currentUser
         if (currentUser != null) {
-            Log.d("MainMenuActivity", "User is logged in: ${currentUser.uid}")
-            fetchUserData(currentUser.uid)
-            fetchUserProgress(currentUser.uid)
+            loadUserData(currentUser.uid)
+            loadTopicsForUser(currentUser.uid)
         } else {
-            Log.d("MainMenuActivity", "User not logged in")
-            // Handle case where user is not logged in (redirect to login screen)
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish() // Close this activity
+            navigateToLogin()
         }
     }
 
-    private fun fetchUserData(uid: String) {
-        val userRef = database.child("users").child(uid)
-
-        userRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
+    private fun loadUserData(userId: String) {
+        database.child("users").child(userId)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
                     val user = snapshot.getValue(User::class.java)
-                    user?.let {
-                        usernameTextView.text = it.username
-                        xpTextView.text = it.xp.toString()
-                        coinsTextView.text = it.coins.toString()
-                        Log.d("MainMenuActivity", "User data fetched successfully")
-                    }
-                } else {
-                    usernameTextView.text = "User not found"
-                    Log.e("MainMenuActivity", "User not found in database")
+                    user?.let { updateUserUI(it) }
                 }
-            }
 
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@MainMenuActivity, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                Log.e("MainMenuActivity", "Error fetching user data: ${error.message}")
-            }
-        })
+                override fun onCancelled(error: DatabaseError) {
+                    showError("Failed to load user data: ${error.message}")
+                }
+            })
     }
 
-    private fun fetchUserProgress(uid: String) {
-        val progressRef = database
-            .child("progress")
-            .orderByChild("uid")
-            .equalTo(uid)
+    private fun updateUserUI(user: User) {
+        usernameTextView.text = user.username
+        levelTextView.text = "Level ${user.level}"  // Setting the level text dynamically
+        xpTextView.text = "${user.xp} XP"
+        coinsTextView.text = "${user.coins} coins"
+    }
 
-        progressRef.addValueEventListener(object : ValueEventListener {
+    private fun loadTopicsForUser(userId: String) {
+        database.child("topics").addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val progressList = mutableListOf<Progress>()
-                snapshot.children.forEach { data ->
-                    val progress = data.getValue(Progress::class.java)
-                    if (progress != null) {
-                        progressList.add(progress)
-                    }
+                val topics = mutableListOf<Topic>()
+                snapshot.children.forEach { topicSnapshot ->
+                    val topic = topicSnapshot.getValue(Topic::class.java)
+                    topic?.let { topics.add(it) }
                 }
-                updateProgressUI(progressList)
+                loadSubtopicsForTopics(topics, userId)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@MainMenuActivity, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
-                Log.e("MainMenuActivity", "Error fetching user progress: ${error.message}")
+                showError("Failed to load topics: ${error.message}")
             }
         })
     }
 
-    private fun updateProgressUI(progressList: List<Progress>) {
-        val topicProgress = calculateTopicProgress(progressList)
-        val subtopicProgresses = calculateSubtopicProgress(progressList)
+    private fun loadSubtopicsForTopics(topics: List<Topic>, userId: String) {
+        database.child("users").child(userId).child("topicsProgress")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val userProgress = snapshot.getValue<Map<String, TopicProgress>>()
+                    displayTopicsWithProgress(topics, userProgress ?: emptyMap())
+                }
 
-        // Update progress for subtopics
-        subtopicProgresses.forEachIndexed { index, progress ->
-            updateSubtopicProgressBar(subtopicProgressBars[index], progress)
-        }
-
-        // Update main topic progress based on subtopics
-        val allSubtopicsComplete = subtopicProgresses.all { it == 100 }
-        updateTopicProgressColor(allSubtopicsComplete)
+                override fun onCancelled(error: DatabaseError) {
+                    showError("Failed to load progress: ${error.message}")
+                }
+            })
     }
 
-    private fun calculateTopicProgress(progressList: List<Progress>): Int {
-        // Check if all subtopics are completed (100% progress)
-        val allSubtopicsComplete = progressList.all { it.score == 100 }
-        return if (allSubtopicsComplete) 100 else 0
-    }
+    private fun displayTopicsWithProgress(topics: List<Topic>, progress: Map<String, TopicProgress>) {
+        topicsContainer.removeAllViews() // Clear previous views
 
-    private fun calculateSubtopicProgress(progressList: List<Progress>): List<Int> {
-        // Calculate the progress for each subtopic
-        return progressList.map { it.score }
-    }
-
-    private fun updateSubtopicProgressBar(progressBar: ProgressBar, progress: Int) {
-        progressBar.progress = progress
-
-        // Change color based on progress
-        when {
-            progress < 30 -> progressBar.progressTintList = ColorStateList.valueOf(Color.RED)
-            progress in 30..60 -> progressBar.progressTintList = ColorStateList.valueOf(Color.YELLOW)
-            else -> progressBar.progressTintList = ColorStateList.valueOf(Color.GREEN)
+        topics.forEach { topic ->
+            val topicProgress = progress[topic.id]
+            val topicView = updateTopicView(topic, topicProgress)
+            topicsContainer.addView(topicView)
         }
     }
 
-    fun updateTopicProgressColor(isCompleted: Boolean) {
-        if (isCompleted) {
-            topicProgressText.setTextColor(ContextCompat.getColor(this, R.color.color_green))
+    private fun updateTopicView(topic: Topic, progress: TopicProgress?): android.view.View {
+        // Inflate the layout for the topic
+        val view = LayoutInflater.from(this).inflate(R.layout.activity_main, null, false)
+
+        val topicProgressText = view.findViewById<TextView>(R.id.topicProgressText)
+        val subtopicsContainer = view.findViewById<LinearLayout>(R.id.subtopicsContainer)
+
+        // Set the topic description
+        topicProgressText.text = topic.description  // Display the topic description
+
+        // Set background color based on progress
+        val progressPercentage = progress?.progressPercentage ?: 0
+        val backgroundColor = if (progressPercentage == 100) {
+            ContextCompat.getColor(this, R.color.color_green)
         } else {
-            topicProgressText.setTextColor(ContextCompat.getColor(this, R.color.color_gray))
+            ContextCompat.getColor(this, R.color.color_gray)
         }
+        topicProgressText.setBackgroundColor(backgroundColor)
+
+        // Clear any existing subtopics
+        subtopicsContainer.removeAllViews()
+
+        // Add subtopics dynamically
+        topic.subtopics.forEach { subtopic ->
+            val subtopicView = createSubtopicView(subtopic)  // Create subtopic views
+            subtopicsContainer.addView(subtopicView)
+        }
+
+        return view  // Return the fully populated view for the topic
+    }
+
+    private fun createSubtopicView(subtopic: Subtopic): android.view.View {
+        // Inflate the layout for the subtopic
+        val view = LayoutInflater.from(this).inflate(R.layout.activity_main, null, false)
+
+        val subtopicButton = view.findViewById<Button>(R.id.subtopicButton)
+        val subtopicProgressBar = view.findViewById<ProgressBar>(R.id.subtopicProgressBar)
+
+        // Set button text and progress bar based on data
+        subtopicButton.text = "${subtopic.title} (${subtopic.completedTasks}/${subtopic.totalTasks})"
+        subtopicProgressBar.progress = subtopic.progressPercentage
+
+        // Set background color based on progress
+        val progress = subtopic.progressPercentage
+        val backgroundColor = if (progress == 100) {
+            ContextCompat.getColor(this, R.color.color_green)
+        } else {
+            ContextCompat.getColor(this, R.color.color_gray)
+        }
+        subtopicButton.setBackgroundColor(backgroundColor)
+
+        return view  // Return the fully populated view for the subtopic
+    }
+    private fun navigateToLogin() {
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        Log.e("MainMenuActivity", message)
     }
 }
+
+
