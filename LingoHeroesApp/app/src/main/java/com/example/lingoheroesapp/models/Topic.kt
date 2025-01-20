@@ -5,7 +5,7 @@ data class Topic(
     val title: String = "",
     val description: String = "",
     val imageUrl: String = "",
-    val subtopics: List<Subtopic> = emptyList() // Lista podtematów
+    val subtopics: List<Subtopic> = listOf()// Lista podtematów
 ) {
     // Obliczanie ogólnego postępu w temacie na podstawie postępu w subtematach
     fun getProgressPercentage(): Int {
