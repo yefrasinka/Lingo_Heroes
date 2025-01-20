@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.services.AuthService
+import com.example.lingoheroesapp.models.User // Додаємо імпорт моделі User
 
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,10 +27,21 @@ class LoginActivity : AppCompatActivity() {
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 // Sprawdzamy dane logowania
-                AuthService.loginUser(email, password, {
-                    Toast.makeText(this, "Zalogowano pomyślnie!", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this, MainMenuActivity::class.java))
-                    finish()
+                AuthService.loginUser(email, password, { user -> // Змінено onSuccess на отримання User
+                    // Отримуємо дані користувача
+                    AuthService.getUserData(user.uid, { user ->
+                        if (user.level == 0) {
+                            Toast.makeText(this, "Zalogowano pomyślnie!", Toast.LENGTH_SHORT).show()
+                            startActivity(Intent(this, LanguageLevelActivity::class.java))
+                            finish()
+                        } else {
+                            Toast.makeText(this, "Zalogowano pomyślnie!", Toast.LENGTH_SHORT).show()
+                            startActivity(Intent(this, MainMenuActivity::class.java))
+                            finish()
+                        }
+                    }, { errorMessage ->
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+                    })
                 }, { errorMessage ->
                     Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                 })
@@ -42,6 +54,4 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
-
 }
-

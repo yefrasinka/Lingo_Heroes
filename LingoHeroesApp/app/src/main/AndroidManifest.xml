@@ -30,6 +30,11 @@
             android:exported="true">
         </activity>
 
+        <activity
+            android:name=".activities.TestLanguageActivity"
+            android:exported="true">
+        </activity>
+
         <!-- RegisterActivity: Активность для регистрации -->
         <activity
             android:name=".activities.RegisterActivity"

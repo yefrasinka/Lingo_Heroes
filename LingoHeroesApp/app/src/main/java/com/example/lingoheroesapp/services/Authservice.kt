@@ -7,6 +7,9 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 
 object AuthService {
 
@@ -35,7 +38,7 @@ object AuthService {
                         uid = user?.uid ?: "",
                         username = username,
                         email = email,
-                        level = 1,
+                        level = 0,
                         xp = 0,
                         coins = 0,
                         completedTasks = emptyList(),  // Pusta lista wykonanych zadań
@@ -69,11 +72,24 @@ object AuthService {
                 }
             }
     }
+    fun updateUser(uid: String, updatedUser: User, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
 
-
+        // Оновлюємо дані користувача
+        userRef.setValue(updatedUser)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $updatedUser")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
 
     // Metoda logowania użytkownika
-    fun loginUser(email: String, password: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+    fun loginUser(email: String, password: String, onSuccess: (User) -> Unit, onFailure: (String) -> Unit) {
         // Sprawdzanie poprawności danych wejściowych
         if (email.isEmpty() || password.isEmpty()) {
             onFailure("Proszę wypełnić wszystkie pola.")
@@ -105,7 +121,7 @@ object AuthService {
                                         // Zalogowano użytkownika pomyślnie
                                         // Zaktualizowanie użytkownika lokalnie
                                         // Możesz teraz przekazać dane użytkownika do dalszego przetwarzania
-                                        onSuccess()
+                                        onSuccess(userData)
                                     } else {
                                         onFailure("Błąd pobierania danych użytkownika.")
                                     }
@@ -130,4 +146,104 @@ object AuthService {
             }
     }
 
+    // Metoda pobierania danych użytkownika
+    fun getUserData(uid: String, onSuccess: (User) -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val user = snapshot.getValue(User::class.java)
+                    if (user != null) {
+                        onSuccess(user)
+                    } else {
+                        onFailure("Nie można pobrać danych użytkownika.")
+                    }
+                } else {
+                    onFailure("Użytkownik nie istnieje.")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                onFailure("Błąd pobierania danych użytkownika: ${error.message}")
+            }
+        })
+    }
+    fun updateUserField(uid: String, fieldName: String, newValue: Any, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        val updateData = mapOf(fieldName to newValue)
+        userRef.updateChildren(updateData)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $fieldName")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
+    fun updateUserField(uid: String, fieldName: String, newValue: Int, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        val updateData = mapOf(fieldName to newValue)
+        userRef.updateChildren(updateData)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $fieldName")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
+
+    fun updateUserField(uid: String, fieldName: String, newValue: List<String>, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        val updateData = mapOf(fieldName to newValue)
+        userRef.updateChildren(updateData)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $fieldName")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
+    fun updateUserField(uid: String, fieldName: String, newValue: Map<String, Int>, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        val updateData = mapOf(fieldName to newValue)
+        userRef.updateChildren(updateData)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $fieldName")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
+    fun updateUserField(uid: String, fieldName: String, newValue: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val userRef = database.reference.child("users").child(uid)
+
+        val updateData = mapOf(fieldName to newValue)
+        userRef.updateChildren(updateData)
+            .addOnSuccessListener {
+                Log.d("AuthService", "Dane użytkownika zaktualizowane pomyślnie: $fieldName")
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("AuthService", "Błąd aktualizacji danych użytkownika: ${exception.message}")
+                onFailure("Błąd aktualizacji danych użytkownika: ${exception.message}")
+            }
+    }
 }
