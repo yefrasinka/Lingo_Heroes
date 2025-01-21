@@ -25,6 +25,7 @@ class AccountActivity : AppCompatActivity() {
     private val database = Firebase.database.reference
     private var currentUsername: String = ""
     private var currentEmail: String = ""
+    private lateinit var usernameTextView: TextView // Оголошуємо змінну для usernameTextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,22 +33,7 @@ class AccountActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         val userId = auth.currentUser?.uid
-
-        // Загружаем текущие данные пользователя
-        if (userId != null) {
-            database.child("users").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    currentUsername = snapshot.child("username").getValue(String::class.java) ?: ""
-                    currentEmail = snapshot.child("email").getValue(String::class.java) ?: auth.currentUser?.email ?: ""
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(this@AccountActivity, "Не удалось загрузить данные пользователя.", Toast.LENGTH_SHORT).show()
-                }
-            })
-        }
-
-        val usernameTextView = findViewById<TextView>(R.id.usernameTextView)
+        usernameTextView = findViewById(R.id.usernameTextView) // Прив'язуємо до елементу в activity
 
         // Загружаем текущие данные пользователя
         if (userId != null) {
@@ -101,6 +87,7 @@ class AccountActivity : AppCompatActivity() {
                         database.child("users").child(userId).child("username").setValue(newUsername)
                             .addOnSuccessListener {
                                 currentUsername = newUsername
+                                usernameTextView.text = newUsername // Оновлюємо текст в TextView
                                 Toast.makeText(this, "Nazwa użytkownika została zmieniona!", Toast.LENGTH_SHORT).show()
                             }
                             .addOnFailureListener {
