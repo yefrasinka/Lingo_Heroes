@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -21,6 +22,19 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ServerValue
 import com.example.lingoheroesapp.models.Progress
+import com.example.lingoheroesapp.models.TopicProgress
+import com.example.lingoheroesapp.models.Topic
+import com.example.lingoheroesapp.models.SubtopicProgress
+
+
+///
+
+//odpowiada za taski         (TaskListActivity  chyba nie wykorzystuje sie w kodzie)
+
+///
+
+
+
 // TaskDisplayActivity.kt
 class TaskDisplayActivity : AppCompatActivity() {
     private lateinit var database: DatabaseReference
@@ -32,6 +46,8 @@ class TaskDisplayActivity : AppCompatActivity() {
     private lateinit var optionsContainer: LinearLayout
     private lateinit var feedbackTextView: TextView
     private lateinit var progressTextView: TextView
+    private lateinit var subtopicId: String
+    private lateinit var topicId: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +60,8 @@ class TaskDisplayActivity : AppCompatActivity() {
         progressTextView = findViewById(R.id.progressTextView)
 
         database = FirebaseDatabase.getInstance().reference
-        val subtopicId = intent.getStringExtra("SUBTOPIC_ID")
-
+        subtopicId = intent.getStringExtra("SUBTOPIC_ID") ?: ""
+        topicId = intent.getStringExtra("TOPIC_ID") ?: ""
         if (subtopicId != null) {
             loadTasksForSubtopic(subtopicId)
         } else {
@@ -144,8 +160,21 @@ class TaskDisplayActivity : AppCompatActivity() {
     }
 
     private fun handleAnswer(selectedAnswer: String, correctAnswer: String) {
+        if (!::subtopicId.isInitialized || !::topicId.isInitialized) {
+            Log.e("TaskDisplayActivity", "subtopicId lub topicId nie zostały zainicjalizowane")
+            return
+        }
+            val isCorrect = selectedAnswer == correctAnswer
 
 
+            updateProgress(subtopicId, topicId, tasks[currentTaskIndex])
+
+        // Pokaż feedback i przejdź do następnego zadania po 5 sekundach
+        showFeedbackAndContinue(isCorrect, correctAnswer)
+    }
+
+    private fun  showFeedbackAndContinue( isCorrect:Boolean, correctAnswer: String)
+    {
         // Wyłącz przyciski
         for (i in 0 until optionsContainer.childCount) {
             optionsContainer.getChildAt(i).isEnabled = false
@@ -154,7 +183,7 @@ class TaskDisplayActivity : AppCompatActivity() {
         // Pokaż feedback
         feedbackTextView.apply {
             visibility = View.VISIBLE
-            if (selectedAnswer == correctAnswer) {
+            if (isCorrect) {
                 text = "Correct! The answer is: $correctAnswer"
                 setTextColor(Color.GREEN)
             } else {
@@ -168,6 +197,93 @@ class TaskDisplayActivity : AppCompatActivity() {
             currentTaskIndex++
             displayCurrentTask()
         }, 5000)
+    }
+
+    private fun updateProgress(subtopicId: String, topicId: String, currentTask: Task) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val userProgressRef = database.child("users").child(userId).child("topicsProgress").child(topicId)
+
+        // Najpierw pobieramy aktualny stan tematu i podtematu
+        database.child("topics").child(topicId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(topicSnapshot: DataSnapshot) {
+                val topic = topicSnapshot.getValue(Topic::class.java) ?: return
+                
+                // Znajdujemy odpowiedni podtemat
+                val subtopic = topic.subtopics.find { it.id == subtopicId } ?: return
+                
+                // Aktualizujemy postęp w Firebase
+                userProgressRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(progressSnapshot: DataSnapshot) {
+                        // Pobieramy lub tworzymy nowy postęp tematu
+                        val topicProgress = progressSnapshot.getValue(TopicProgress::class.java) 
+                            ?: TopicProgress()
+                        
+                        // Pobieramy aktualny postęp podtematu
+                        val currentSubtopicProgress = topicProgress.subtopics[subtopicId] 
+                            ?: SubtopicProgress(title = subtopic.title)
+                        
+                        // Aktualizujemy postęp podtematu
+                        val updatedSubtopicProgress = currentSubtopicProgress.copy(
+                            completedTasks = currentSubtopicProgress.completedTasks + 1,
+                            totalTasks = subtopic.totalTasks
+                        )
+
+                        // Tworzymy nową mapę podtematów z zaktualizowanym postępem
+                        val updatedSubtopics = topicProgress.subtopics.toMutableMap()
+                        updatedSubtopics[subtopicId] = updatedSubtopicProgress
+
+                        // Obliczamy całkowity postęp tematu
+                        val totalCompletedTasks = updatedSubtopics.values.sumOf { it.completedTasks }
+                        val totalTasks = topic.subtopics.sumOf { it.totalTasks }
+                        val completedSubtopics = updatedSubtopics.count { (_, progress) -> 
+                            progress.completedTasks >= progress.totalTasks 
+                        }
+
+                        // Tworzymy zaktualizowany postęp tematu
+                        val updatedTopicProgress = topicProgress.copy(
+                            completedTasks = totalCompletedTasks,
+                            totalTasks = totalTasks,
+                            completedSubtopics = completedSubtopics,
+                            totalSubtopics = topic.subtopics.size,
+                            subtopics = updatedSubtopics
+                        )
+
+                        // Aktualizujemy wszystko w Firebase
+                        userProgressRef.setValue(updatedTopicProgress)
+                            .addOnSuccessListener {
+                                // Aktualizujemy XP i monety użytkownika
+                                val userRef = database.child("users").child(userId)
+                                updateUserRewards(userRef, currentTask.rewardXp, currentTask.rewardCoins)
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("TaskDisplayActivity", "Failed to update progress", e)
+                            }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("TaskDisplayActivity", "Failed to update progress", error.toException())
+                    }
+                })
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("TaskDisplayActivity", "Failed to load topic data", error.toException())
+            }
+        })
+    }
+
+    private fun updateUserRewards(userRef: DatabaseReference, xpReward: Int, coinsReward: Int) {
+        userRef.get().addOnSuccessListener { snapshot ->
+            val currentXp = snapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
+            val currentCoins = snapshot.child("coins").getValue(Long::class.java)?.toInt() ?: 0
+            
+            val updates = hashMapOf<String, Any>(
+                "xp" to (currentXp + xpReward),
+                "coins" to (currentCoins + coinsReward)
+            )
+            
+            userRef.updateChildren(updates)
+        }
     }
 
     override fun onDestroy() {

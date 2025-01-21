@@ -11,6 +11,7 @@ import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.models.Subtopic
 import com.example.lingoheroesapp.models.Topic
 import com.example.lingoheroesapp.models.TopicProgress
+import com.example.lingoheroesapp.models.SubtopicProgress
 import com.example.lingoheroesapp.models.User
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
@@ -47,7 +48,14 @@ class MainMenuActivity : AppCompatActivity() {
         xpTextView = findViewById(R.id.experienceText)
         coinsTextView = findViewById(R.id.currencyText)
         topicsContainer = findViewById(R.id.topicsContainer)
+
+
+            val avatarImage = findViewById<ImageView>(R.id.avatarImage)
+            avatarImage.setOnClickListener {
+                startActivity(Intent(this, AccountActivity::class.java))
+            }
     }
+
 
     private fun setupBottomNavigation() {
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
@@ -125,8 +133,21 @@ class MainMenuActivity : AppCompatActivity() {
         database.child("users").child(userId).child("topicsProgress")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val userProgress = snapshot.getValue<Map<String, TopicProgress>>()
-                    displayTopicsWithProgress(topics, userProgress ?: emptyMap())
+                    val progressMap = mutableMapOf<String, TopicProgress>()
+
+                    snapshot.children.forEach { topicSnapshot ->
+                        val key = topicSnapshot.key
+                        val topicData = topicSnapshot.getValue(TopicProgress::class.java)
+
+                        if (key != null && topicData != null) {
+                            progressMap[key] = topicData
+                        } else {
+                            Log.e("Firebase", "Invalid topic progress format for $key")
+                        }
+                    }
+
+                    // Wyświetlanie tematów z postępem
+                    displayTopicsWithProgress(topics, progressMap)
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -149,49 +170,97 @@ class MainMenuActivity : AppCompatActivity() {
         val topicTitle = view.findViewById<TextView>(R.id.topicProgressText)
         val subtopicsContainer = view.findViewById<LinearLayout>(R.id.subtopicsContainer)
 
-        topicTitle.text = topic.title
-        val completedSubtopics = topic.subtopics.count { it.completedTasks == it.totalTasks }
-        val backgroundColor = if (completedSubtopics == topic.subtopics.size) {
-            ContextCompat.getColor(this, R.color.color_green)
-        } else {
-            ContextCompat.getColor(this, R.color.color_gray)
+        // Obliczamy postęp tematu
+        val completedSubtopics = progress?.completedSubtopics ?: 0
+        val totalSubtopics = topic.subtopics.size
+        val progressPercentage = if (totalSubtopics > 0) {
+            (completedSubtopics * 100) / totalSubtopics
+        } else 0
+
+        // Ustawiamy tekst z postępem
+        topicTitle.text = "${topic.title} ($completedSubtopics/$totalSubtopics)"
+
+        // Ustawiamy kolor w zależności od postępu
+        val backgroundColor = when {
+            progressPercentage == 100 -> ContextCompat.getColor(this, R.color.color_green)
+            progressPercentage > 0 -> ContextCompat.getColor(this, R.color.color_yellow)
+            else -> ContextCompat.getColor(this, R.color.color_gray)
         }
         topicTitle.setBackgroundColor(backgroundColor)
 
+        // Wyświetlamy podtematy
         subtopicsContainer.removeAllViews()
         topic.subtopics.forEach { subtopic ->
-            val subtopicView = createSubtopicView(subtopic)
+            val subtopicView = createSubtopicView(
+                subtopic = subtopic,
+                topic = topic,
+                topicId = topic.id,
+                progress = progress?.subtopics?.get(subtopic.id)
+            )
             subtopicsContainer.addView(subtopicView)
         }
 
         return view
     }
 
-    private fun createSubtopicView(subtopic: Subtopic): android.view.View {
+    private fun createSubtopicView(
+        subtopic: Subtopic, 
+        topic: Topic, 
+        topicId: String,
+        progress: SubtopicProgress?
+    ): android.view.View {
         val view = LayoutInflater.from(this).inflate(R.layout.subtopic_item, null, false)
         val subtopicButton = view.findViewById<Button>(R.id.subtopicButton)
         val subtopicProgressBar = view.findViewById<ProgressBar>(R.id.subtopicProgressBar)
 
-        subtopicButton.text = "${subtopic.title} (${subtopic.completedTasks}/${subtopic.totalTasks})"
-        subtopicProgressBar.progress = if (subtopic.totalTasks > 0) {
-            (subtopic.completedTasks * 100) / subtopic.totalTasks
-        } else 0
+        // Pobieramy postęp podtematu
+        val completedTasks = progress?.completedTasks ?: 0
+        val totalTasks = subtopic.totalTasks
 
-        val backgroundColor = if (subtopic.completedTasks == subtopic.totalTasks) {
-            ContextCompat.getColor(this, R.color.color_green)
-        } else {
-            ContextCompat.getColor(this, R.color.color_gray)
+        // Ustawiamy tekst z postępem
+        subtopicButton.text = "${subtopic.title} ($completedTasks/$totalTasks)"
+
+        // Ustawiamy progress bar
+        val progressPercentage = if (totalTasks > 0) {
+            (completedTasks * 100) / totalTasks
+        } else 0
+        subtopicProgressBar.progress = progressPercentage
+
+        // Ustawiamy kolor w zależności od postępu
+        val backgroundColor = when {
+            progressPercentage == 100 -> ContextCompat.getColor(this, R.color.color_green)
+            progressPercentage > 0 -> ContextCompat.getColor(this, R.color.color_yellow)
+            else -> ContextCompat.getColor(this, R.color.color_gray)
         }
         subtopicButton.setBackgroundColor(backgroundColor)
 
-
         subtopicButton.setOnClickListener {
-            val intent = Intent(this, TaskDisplayActivity::class.java)
-            intent.putExtra("SUBTOPIC_ID", subtopic.id) // Pass the subtopic ID
-            startActivity(intent)
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId != null) {
+                // Przechodzimy do zadań
+                val intent = Intent(this, TaskDisplayActivity::class.java)
+                intent.putExtra("TOPIC_ID", topicId)
+                intent.putExtra("SUBTOPIC_ID", subtopic.id)
+                startActivity(intent)
+            }
         }
 
         return view
+    }
+
+    // Dodajemy pomocniczą funkcję do aktualizacji XP i monet
+    private fun updateUserRewards(userRef: DatabaseReference, xpReward: Int, coinsReward: Int) {
+        userRef.get().addOnSuccessListener { snapshot ->
+            val currentXp = snapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
+            val currentCoins = snapshot.child("coins").getValue(Long::class.java)?.toInt() ?: 0
+            
+            val updates = hashMapOf<String, Any>(
+                "xp" to (currentXp + xpReward),
+                "coins" to (currentCoins + coinsReward)
+            )
+            
+            userRef.updateChildren(updates)
+        }
     }
 
     private fun navigateToLogin() {
