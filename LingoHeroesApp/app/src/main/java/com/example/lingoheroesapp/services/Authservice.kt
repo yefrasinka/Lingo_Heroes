@@ -42,27 +42,8 @@ object AuthService {
                         level = 0,
                         xp = 0,
                         coins = 0,
-                        completedTasks = emptyList(), // Pusta lista wykonanych zadań
                         purchasedItems = emptyList(), // Pusta lista zakupionych przedmiotów
-                        topicsProgress = mapOf( // Pusta mapa postępów w tematach
-
-                            "topicId_1" to TopicProgress(
-                                topicId = "topicId_1",
-                                completedSubtopics = 0,
-                                totalSubtopics = 5,
-                                progressPercentage = 0,
-                                completedTasks = emptyList(),
-                                totalTasks = 10
-                            ),
-                            "topicId_2" to TopicProgress(
-                                topicId = "topicId_2",
-                                completedSubtopics = 0,
-                                totalSubtopics = 3,
-                                progressPercentage = 0,
-                                completedTasks = emptyList(),
-                                totalTasks = 7
-                            )
-                        )
+                        topicsProgress = mapOf() // Pusta mapa postępów w tematach
                     )
 
                     user?.uid?.let { uid ->

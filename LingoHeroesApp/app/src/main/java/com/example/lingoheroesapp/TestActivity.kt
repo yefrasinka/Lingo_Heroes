@@ -12,10 +12,10 @@ import com.example.lingoheroesapp.models.Task
 import com.example.lingoheroesapp.models.Topic
 import com.google.firebase.database.FirebaseDatabase
 
-class TestActivity : AppCompatActivity() {
+/*class TestActivity : AppCompatActivity() {
 
     // Pytania z opcjami odpowiedzi
-    private val questions = listOf(
+    /*private val questions = listOf(
         // Gramatyczne zadanie
         Task(
             taskId = "1",
@@ -350,4 +350,5 @@ class TestActivity : AppCompatActivity() {
         alert.show()
     }*/
 }
-
+*/
+*/

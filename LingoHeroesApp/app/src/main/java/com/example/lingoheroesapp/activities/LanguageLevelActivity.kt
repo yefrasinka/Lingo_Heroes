@@ -7,7 +7,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.R
-import com.example.lingoheroesapp.TestActivity
+//import com.example.lingoheroesapp.TestActivity
 import com.example.lingoheroesapp.services.AuthService
 import com.google.firebase.auth.FirebaseAuth
 

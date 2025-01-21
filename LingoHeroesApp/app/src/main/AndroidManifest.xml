@@ -41,12 +41,13 @@
             android:exported="true">
         </activity>
 
-        <!-- TestActivity: Активность с тестом -->
-        <activity
-            android:name=".TestActivity"
-            android:exported="true">
+        <activity android:name=".activities.TaskListActivity">
+            <!-- Add any intent filters if needed -->
         </activity>
-
+        <activity
+        android:name=".activities.TaskDisplayActivity"
+        android:exported="false">
+    </activity>
         <!-- ResultActivity: Активность для показа результата -->
         <activity
             android:name=".activities.ResultActivity"
