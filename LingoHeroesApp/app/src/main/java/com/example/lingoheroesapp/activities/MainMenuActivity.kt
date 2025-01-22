@@ -158,18 +158,40 @@ class MainMenuActivity : AppCompatActivity() {
 
     private fun displayTopicsWithProgress(topics: List<Topic>, progress: Map<String, TopicProgress>) {
         topicsContainer.removeAllViews()
-        topics.forEach { topic ->
-            val topicProgress = progress[topic.id]
-            val topicView = createTopicView(topic, topicProgress)
-            topicsContainer.addView(topicView)
+        
+        // Pobieramy aktualny poziom użytkownika
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            database.child("users").child(currentUser.uid)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val userLevel = snapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
+                        
+                        // Sortujemy tematy według poziomu
+                        val sortedTopics = topics.sortedBy { it.level }
+                        
+                        sortedTopics.forEach { topic ->
+                            val topicProgress = progress[topic.id]
+                            val topicView = createTopicView(topic, topicProgress, userLevel)
+                            topicsContainer.addView(topicView)
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        showError("Błąd podczas ładowania poziomu użytkownika")
+                    }
+                })
         }
     }
 
-    private fun createTopicView(topic: Topic, progress: TopicProgress?): android.view.View {
+    private fun createTopicView(topic: Topic, progress: TopicProgress?, userLevel: Int): android.view.View {
         val view = LayoutInflater.from(this).inflate(R.layout.topic_item, null, false)
         val topicTitle = view.findViewById<TextView>(R.id.topicProgressText)
         val subtopicsContainer = view.findViewById<LinearLayout>(R.id.subtopicsContainer)
 
+        // Sprawdzamy, czy temat jest dostępny dla aktualnego poziomu użytkownika
+        val isTopicAvailable = topic.level <= userLevel
+        
         // Obliczamy postęp tematu
         val completedSubtopics = progress?.completedSubtopics ?: 0
         val totalSubtopics = topic.subtopics.size
@@ -177,27 +199,50 @@ class MainMenuActivity : AppCompatActivity() {
             (completedSubtopics * 100) / totalSubtopics
         } else 0
 
-        // Ustawiamy tekst z postępem
-        topicTitle.text = "${topic.title} ($completedSubtopics/$totalSubtopics)"
+        // Ustawiamy tekst z postępem i poziomem
+        val levelText = when(topic.level) {
+            1 -> "A1"
+            2 -> "A2"
+            3 -> "B1"
+            4 -> "B2"
+            else -> "A1"
+        }
+        
+        if (isTopicAvailable) {
+            topicTitle.text = "${topic.title} ($completedSubtopics/$totalSubtopics) - $levelText"
+        } else {
+            topicTitle.text = "\uD83D\uDD12 ${topic.title} - $levelText" // 🔒 Emoji kłódki
+        }
 
-        // Ustawiamy kolor w zależności od postępu
+        // Ustawiamy kolor w zależności od postępu i dostępności
         val backgroundColor = when {
+            !isTopicAvailable -> ContextCompat.getColor(this, R.color.color_locked) // Dodaj nowy kolor
             progressPercentage == 100 -> ContextCompat.getColor(this, R.color.color_green)
             progressPercentage > 0 -> ContextCompat.getColor(this, R.color.color_yellow)
             else -> ContextCompat.getColor(this, R.color.color_gray)
         }
         topicTitle.setBackgroundColor(backgroundColor)
 
-        // Wyświetlamy podtematy
+        // Wyświetlamy podtematy tylko jeśli temat jest dostępny
         subtopicsContainer.removeAllViews()
-        topic.subtopics.forEach { subtopic ->
-            val subtopicView = createSubtopicView(
-                subtopic = subtopic,
-                topic = topic,
-                topicId = topic.id,
-                progress = progress?.subtopics?.get(subtopic.id)
-            )
-            subtopicsContainer.addView(subtopicView)
+        if (isTopicAvailable) {
+            topic.subtopics.forEach { subtopic ->
+                val subtopicView = createSubtopicView(
+                    subtopic = subtopic,
+                    topic = topic,
+                    topicId = topic.id,
+                    progress = progress?.subtopics?.get(subtopic.id)
+                )
+                subtopicsContainer.addView(subtopicView)
+            }
+        } else {
+            // Dodajemy informację o wymaganym poziomie
+            val lockInfoView = TextView(this).apply {
+                text = "Ten temat będzie dostępny na poziomie $levelText"
+                textAlignment = TextView.TEXT_ALIGNMENT_CENTER
+                setPadding(16, 8, 16, 8)
+            }
+            subtopicsContainer.addView(lockInfoView)
         }
 
         return view
@@ -237,11 +282,14 @@ class MainMenuActivity : AppCompatActivity() {
         subtopicButton.setOnClickListener {
             val userId = FirebaseAuth.getInstance().currentUser?.uid
             if (userId != null) {
-                // Przechodzimy do zadań
-                val intent = Intent(this, TaskDisplayActivity::class.java)
-                intent.putExtra("TOPIC_ID", topicId)
-                intent.putExtra("SUBTOPIC_ID", subtopic.id)
-                startActivity(intent)
+                if (completedTasks >= totalTasks) {
+                    Toast.makeText(this, "Ten test został już ukończony!", Toast.LENGTH_SHORT).show()
+                } else {
+                    val intent = Intent(this, TaskDisplayActivity::class.java)
+                    intent.putExtra("TOPIC_ID", topicId)
+                    intent.putExtra("SUBTOPIC_ID", subtopic.id)
+                    startActivity(intent)
+                }
             }
         }
 
