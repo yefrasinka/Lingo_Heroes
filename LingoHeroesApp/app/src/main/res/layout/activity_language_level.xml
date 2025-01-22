@@ -1,118 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1D6750A3">
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
 
     <TextView
-        android:id="@+id/questionText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="96dp"
-        android:layout_marginEnd="16dp"
-        android:gravity="center"
-        android:text="Jaki jest Twój poziom znajomości języka angielskiego?"
-        android:textSize="32sp"
+        android:text="Wybierz swój poziom języka"
+        android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_marginBottom="32dp"/>
 
     <Button
-        android:id="@+id/testButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="64dp"
-        android:layout_marginEnd="32dp"
-        android:text="Poznaj swój poziom języka"
-        android:textColor="#FFFFFF"
-        android:textSize="18dp"
-        android:background="@drawable/rounded_button"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/questionText" />
-
-    <TextView
-        android:id="@+id/selectLevelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="80dp"
-        android:gravity="center"
-        android:text="...lub wybierz swój poziom:"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/testButton" />
-
-    <!-- RadioGroup для выбора уровня -->
-    <RadioGroup
-        android:id="@+id/levelSelectionLayout"
+        android:id="@+id/levelA1Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/selectLevelText">
-
-        <RadioButton
-            android:id="@+id/levelA1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:text="A1"
-            android:textStyle="bold"
-            android:textSize="14sp" />
-
-        <RadioButton
-            android:id="@+id/levelA2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:text="A2"
-            android:textStyle="bold"
-            android:textSize="14sp" />
-
-        <RadioButton
-            android:id="@+id/levelB1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:text="B1"
-            android:textStyle="bold"
-            android:textSize="14sp" />
-
-        <RadioButton
-            android:id="@+id/levelB2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="8dp"
-            android:text="B2"
-            android:textStyle="bold"
-            android:textSize="14sp" />
-    </RadioGroup>
+        android:text="A1 - Początkujący"
+        android:layout_marginBottom="16dp"
+        style="@style/ButtonStyle"/>
 
     <Button
-        android:id="@+id/continueButton"
-        android:layout_width="wrap_content"
+        android:id="@+id/levelA2Button"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Kontynuuj"
-        android:textColor="#FFFFFF"
-        android:textSize="18dp"
-        android:background="@drawable/rounded_button"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/levelSelectionLayout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:text="A2 - Podstawowy"
+        android:layout_marginBottom="16dp"
+        style="@style/ButtonStyle"/>
+
+    <Button
+        android:id="@+id/levelB1Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="B1 - Średniozaawansowany"
+        android:layout_marginBottom="16dp"
+        style="@style/ButtonStyle"/>
+
+    <Button
+        android:id="@+id/levelB2Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="B2 - Wyższy średniozaawansowany"
+        android:layout_marginBottom="32dp"
+        style="@style/ButtonStyle"/>
+
+    <Button
+        android:id="@+id/backButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Powrót"
+        style="@style/ButtonStyle"/>
+
+</LinearLayout>
 

@@ -5,52 +5,59 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_height="wrap_content">
 
         <ImageButton
             android:id="@+id/backButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_revert"
+            android:layout_alignParentStart="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Powrót do menu głównego" />
+            android:src="@drawable/ic_back" />
 
         <TextView
             android:id="@+id/progressTextView"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:textSize="16sp"
+            android:layout_centerInParent="true"
+            android:textSize="18sp"
             android:textStyle="bold" />
-    </LinearLayout>
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/questionTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="32dp"
-        android:gravity="center"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="16dp"
         android:textSize="20sp"
-        android:textStyle="bold" />
+        android:textAlignment="center" />
+
+    <ImageButton
+        android:id="@+id/playAudioButton"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_play_audio"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/optionsContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical" />
 
     <TextView
         android:id="@+id/feedbackTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:textAlignment="center"
         android:textSize="18sp"
         android:visibility="invisible" />
 

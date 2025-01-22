@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -113,14 +114,35 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun loadTopicsForUser(userId: String) {
+        topicsContainer.removeAllViews()
+        
         database.child("topics").addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                // Logujemy całą strukturę danych
+                Log.d("TopicDebug", "Raw topics data from Firebase: ${snapshot.value}")
+                
                 val topics = mutableListOf<Topic>()
-                snapshot.children.forEach { topicSnapshot ->
+                
+                for (topicSnapshot in snapshot.children) {
                     val topic = topicSnapshot.getValue(Topic::class.java)
-                    topic?.let { topics.add(it) }
+                    if (topic != null) {
+                        topic.id = topicSnapshot.key ?: continue
+                        topics.add(topic)
+                        
+                        // Logujemy szczegóły każdego tematu
+                        Log.d("TopicDebug", """
+                            Topic details:
+                            ID: ${topic.id}
+                            Title: ${topic.title}
+                            Level: ${topic.level}
+                            Subtopics count: ${topic.subtopics.size}
+                            Subtopics: ${topic.subtopics.map { "${it.id}: ${it.title}" }}
+                        """.trimIndent())
+                    }
                 }
-                loadProgressForTopics(topics, userId)
+                
+                val sortedTopics = topics.sortedWith(compareBy({ it.level }, { it.id }))
+                loadProgressForTopics(sortedTopics, userId)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -134,20 +156,35 @@ class MainMenuActivity : AppCompatActivity() {
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val progressMap = mutableMapOf<String, TopicProgress>()
-
-                    snapshot.children.forEach { topicSnapshot ->
-                        val key = topicSnapshot.key
-                        val topicData = topicSnapshot.getValue(TopicProgress::class.java)
-
-                        if (key != null && topicData != null) {
-                            progressMap[key] = topicData
-                        } else {
-                            Log.e("Firebase", "Invalid topic progress format for $key")
+                    
+                    for (topicSnapshot in snapshot.children) {
+                        val topicId = topicSnapshot.key
+                        val progress = topicSnapshot.getValue(TopicProgress::class.java)
+                        if (topicId != null && progress != null) {
+                            progressMap[topicId] = progress
+                            Log.d("TopicDebug", "Loaded progress for topic: $topicId")
                         }
                     }
 
-                    // Wyświetlanie tematów z postępem
-                    displayTopicsWithProgress(topics, progressMap)
+                    database.child("users").child(userId)
+                        .addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(userSnapshot: DataSnapshot) {
+                                val userLevel = userSnapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
+                                
+                                topicsContainer.removeAllViews()
+                                
+                                topics.forEach { topic ->
+                                    val topicProgress = progressMap[topic.id]
+                                    val topicView = createTopicView(topic, topicProgress, userLevel)
+                                    topicsContainer.addView(topicView)
+                                    Log.d("TopicDebug", "Added view for topic: ${topic.id} - ${topic.title}")
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                showError("Błąd podczas ładowania poziomu użytkownika")
+                            }
+                        })
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -156,37 +193,10 @@ class MainMenuActivity : AppCompatActivity() {
             })
     }
 
-    private fun displayTopicsWithProgress(topics: List<Topic>, progress: Map<String, TopicProgress>) {
-        topicsContainer.removeAllViews()
-        
-        // Pobieramy aktualny poziom użytkownika
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            database.child("users").child(currentUser.uid)
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val userLevel = snapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
-                        
-                        // Sortujemy tematy według poziomu
-                        val sortedTopics = topics.sortedBy { it.level }
-                        
-                        sortedTopics.forEach { topic ->
-                            val topicProgress = progress[topic.id]
-                            val topicView = createTopicView(topic, topicProgress, userLevel)
-                            topicsContainer.addView(topicView)
-                        }
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        showError("Błąd podczas ładowania poziomu użytkownika")
-                    }
-                })
-        }
-    }
-
     private fun createTopicView(topic: Topic, progress: TopicProgress?, userLevel: Int): android.view.View {
         val view = LayoutInflater.from(this).inflate(R.layout.topic_item, null, false)
         val topicTitle = view.findViewById<TextView>(R.id.topicProgressText)
+        val topicProgressBar = view.findViewById<ProgressBar>(R.id.topicProgressBar)
         val subtopicsContainer = view.findViewById<LinearLayout>(R.id.subtopicsContainer)
 
         // Sprawdzamy, czy temat jest dostępny dla aktualnego poziomu użytkownika
@@ -199,6 +209,9 @@ class MainMenuActivity : AppCompatActivity() {
             (completedSubtopics * 100) / totalSubtopics
         } else 0
 
+        // Ustawiamy progress bar
+        topicProgressBar.progress = progressPercentage
+
         // Ustawiamy tekst z postępem i poziomem
         val levelText = when(topic.level) {
             1 -> "A1"
@@ -210,18 +223,12 @@ class MainMenuActivity : AppCompatActivity() {
         
         if (isTopicAvailable) {
             topicTitle.text = "${topic.title} ($completedSubtopics/$totalSubtopics) - $levelText"
+            topicTitle.setTextColor(ContextCompat.getColor(this, R.color.purple_700))
         } else {
             topicTitle.text = "\uD83D\uDD12 ${topic.title} - $levelText" // 🔒 Emoji kłódki
+            topicTitle.setTextColor(ContextCompat.getColor(this, R.color.color_locked))
+            topicProgressBar.visibility = View.GONE
         }
-
-        // Ustawiamy kolor w zależności od postępu i dostępności
-        val backgroundColor = when {
-            !isTopicAvailable -> ContextCompat.getColor(this, R.color.color_locked) // Dodaj nowy kolor
-            progressPercentage == 100 -> ContextCompat.getColor(this, R.color.color_green)
-            progressPercentage > 0 -> ContextCompat.getColor(this, R.color.color_yellow)
-            else -> ContextCompat.getColor(this, R.color.color_gray)
-        }
-        topicTitle.setBackgroundColor(backgroundColor)
 
         // Wyświetlamy podtematy tylko jeśli temat jest dostępny
         subtopicsContainer.removeAllViews()
@@ -241,6 +248,7 @@ class MainMenuActivity : AppCompatActivity() {
                 text = "Ten temat będzie dostępny na poziomie $levelText"
                 textAlignment = TextView.TEXT_ALIGNMENT_CENTER
                 setPadding(16, 8, 16, 8)
+                setTextColor(ContextCompat.getColor(context, R.color.color_locked))
             }
             subtopicsContainer.addView(lockInfoView)
         }
@@ -258,37 +266,76 @@ class MainMenuActivity : AppCompatActivity() {
         val subtopicButton = view.findViewById<Button>(R.id.subtopicButton)
         val subtopicProgressBar = view.findViewById<ProgressBar>(R.id.subtopicProgressBar)
 
-        // Pobieramy postęp podtematu
-        val completedTasks = progress?.completedTasks ?: 0
-        val totalTasks = subtopic.totalTasks
+        Log.d("SubtopicDebug", "Creating view for subtopic: ${subtopic.id} in topic: $topicId")
 
-        // Ustawiamy tekst z postępem
-        subtopicButton.text = "${subtopic.title} ($completedTasks/$totalTasks)"
+        // Pobieramy aktualny progress z bazy danych
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            database.child("users").child(currentUser.uid)
+                .child("topicsProgress").child(topicId)
+                .child("subtopics").child(subtopic.id)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val currentProgress = snapshot.getValue(SubtopicProgress::class.java)
+                        val completedTasks = currentProgress?.completedTasks ?: 0
+                        val totalTasks = subtopic.totalTasks
 
-        // Ustawiamy progress bar
-        val progressPercentage = if (totalTasks > 0) {
-            (completedTasks * 100) / totalTasks
-        } else 0
-        subtopicProgressBar.progress = progressPercentage
+                        Log.d("SubtopicDebug", "Progress for subtopic ${subtopic.id}: $completedTasks/$totalTasks")
 
-        // Ustawiamy kolor w zależności od postępu
-        val backgroundColor = when {
-            progressPercentage == 100 -> ContextCompat.getColor(this, R.color.color_green)
-            progressPercentage > 0 -> ContextCompat.getColor(this, R.color.color_yellow)
-            else -> ContextCompat.getColor(this, R.color.color_gray)
+                        // Aktualizujemy UI z aktualnym progressem
+                        subtopicButton.text = "${subtopic.title} ($completedTasks/$totalTasks)"
+                        val progressPercentage = if (totalTasks > 0) {
+                            (completedTasks * 100) / totalTasks
+                        } else 0
+                        subtopicProgressBar.progress = progressPercentage
+
+                        // Ustawiamy kolor tekstu w zależności od postępu
+                        when {
+                            progressPercentage == 100 -> {
+                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.color_green))
+                            }
+                            progressPercentage > 0 -> {
+                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.teal_700))
+                            }
+                            else -> {
+                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.purple_500))
+                            }
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("MainMenuActivity", "Error loading subtopic progress: ${error.message}")
+                    }
+                })
         }
-        subtopicButton.setBackgroundColor(backgroundColor)
 
         subtopicButton.setOnClickListener {
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            val userId = auth.currentUser?.uid
             if (userId != null) {
-                if (completedTasks >= totalTasks) {
-                    Toast.makeText(this, "Ten test został już ukończony!", Toast.LENGTH_SHORT).show()
-                } else {
-                    val intent = Intent(this, TaskDisplayActivity::class.java)
-                    intent.putExtra("TOPIC_ID", topicId)
-                    intent.putExtra("SUBTOPIC_ID", subtopic.id)
+                // Dodajemy więcej logów do debugowania
+                Log.d("SubtopicDebug", """
+                    Opening task:
+                    Topic ID: $topicId
+                    Topic Title: ${topic.title}
+                    Topic Level: ${topic.level}
+                    Subtopic ID: ${subtopic.id}
+                    Subtopic Title: ${subtopic.title}
+                """.trimIndent())
+
+                // Sprawdzamy, czy ID są poprawne przed przejściem do TaskDisplayActivity
+                if (topicId.isNotEmpty() && subtopic.id.isNotEmpty()) {
+                    val intent = Intent(this, TaskDisplayActivity::class.java).apply {
+                        putExtra("TOPIC_ID", topicId)
+                        putExtra("SUBTOPIC_ID", subtopic.id)
+                        // Dodajemy więcej informacji do intentu
+                        putExtra("TOPIC_LEVEL", topic.level)
+                        putExtra("TOPIC_TITLE", topic.title)
+                        putExtra("SUBTOPIC_TITLE", subtopic.title)
+                    }
                     startActivity(intent)
+                } else {
+                    Log.e("SubtopicDebug", "Invalid IDs - Topic ID: $topicId, Subtopic ID: ${subtopic.id}")
+                    showError("Błąd: Nieprawidłowe ID tematu lub podtematu")
                 }
             }
         }
@@ -319,5 +366,11 @@ class MainMenuActivity : AppCompatActivity() {
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         Log.e("MainMenuActivity", message)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Odświeżamy dane po powrocie do aktywności
+        checkUserAndLoadData()
     }
 }

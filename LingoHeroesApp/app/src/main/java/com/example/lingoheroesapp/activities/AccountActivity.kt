@@ -67,6 +67,11 @@ class AccountActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+
+        // Przycisk zmiany poziomu języka
+        findViewById<Button>(R.id.changeLevelButton).setOnClickListener {
+            startActivity(Intent(this, LanguageLevelActivity::class.java))
+        }
     }
 
     private fun showChangeUsernameDialog() {
