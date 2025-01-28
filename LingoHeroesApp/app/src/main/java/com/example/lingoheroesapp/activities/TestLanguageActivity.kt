@@ -208,6 +208,16 @@ class TestLanguageActivity : AppCompatActivity() {
     }
 
     private fun setupNextButton() {
+        // Ініціально кнопка неактивна
+        nextButton.isEnabled = false
+
+        // Додати слухач змін до RadioGroup
+        answersRadioGroup.setOnCheckedChangeListener { _, _ ->
+            // Активувати кнопку, якщо є вибраний варіант
+            nextButton.isEnabled = answersRadioGroup.checkedRadioButtonId != -1
+        }
+
+        // Логіка переходу до наступного питання
         nextButton.setOnClickListener {
             val selectedAnswer = getSelectedAnswer()
             if (isCorrectAnswer(selectedAnswer)) {
@@ -219,6 +229,9 @@ class TestLanguageActivity : AppCompatActivity() {
             } else {
                 showTestResult()
             }
+
+            // Після завантаження нового питання кнопка має знову стати неактивною
+            nextButton.isEnabled = false
         }
     }
 
