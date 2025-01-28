@@ -6,10 +6,13 @@ import android.widget.Button
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.services.AuthService
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 
 class TestLanguageActivity : AppCompatActivity() {
 
@@ -176,6 +179,9 @@ class TestLanguageActivity : AppCompatActivity() {
         )
     )
 
+    private lateinit var auth: FirebaseAuth
+    private val database = FirebaseDatabase.getInstance().reference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_language_level_test)
@@ -183,6 +189,8 @@ class TestLanguageActivity : AppCompatActivity() {
         questionTextView = findViewById(R.id.questionTextView)
         answersRadioGroup = findViewById(R.id.answersRadioGroup)
         nextButton = findViewById(R.id.nextButton)
+
+        auth = FirebaseAuth.getInstance()
 
         loadQuestion()
         setupNextButton()
@@ -209,7 +217,7 @@ class TestLanguageActivity : AppCompatActivity() {
             if (currentQuestionIndex < questions.size) {
                 loadQuestion()
             } else {
-                finishTest()
+                showTestResult()
             }
         }
     }
@@ -228,36 +236,48 @@ class TestLanguageActivity : AppCompatActivity() {
         return answer == currentQuestion.correctAnswer
     }
 
-    private fun finishTest() {
+    private fun showTestResult() {
         val totalQuestions = questions.size
         val percentage = (correctAnswersCount.toDouble() / totalQuestions) * 100
         val level = when {
-            percentage >= 80 -> "B2"
-            percentage >= 60 -> "B1"
-            percentage >= 40 -> "A2"
-            percentage >= 0 -> "A1"
-            else -> "F"
+            percentage >= 80 -> 4 // B2
+            percentage >= 60 -> 3 // B1
+            percentage >= 40 -> 2 // A2
+            else -> 1 // A1
         }
-        val numericLevel = when (level) {
-            "A1" -> 1
-            "A2" -> 2
-            "B1" -> 3
-            "B2" -> 4
-            else -> 0
+
+        val levelName = when (level) {
+            1 -> "A1"
+            2 -> "A2"
+            3 -> "B1"
+            4 -> "B2"
+            else -> "A1"
         }
-        saveUserLevel(numericLevel)
-        val intent = Intent(this, MainMenuActivity::class.java)
-        startActivity(intent)
-        finish()
+
+        AlertDialog.Builder(this)
+            .setTitle("Wynik testu")
+            .setMessage("Twój poziom to: $levelName\nPoprawne odpowiedzi: $correctAnswersCount/$totalQuestions")
+            .setPositiveButton("OK") { _, _ ->
+                updateUserLevel(level, levelName)
+            }
+            .setCancelable(false)
+            .show()
     }
 
-    private fun saveUserLevel(level: Int) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        AuthService.updateUserField(uid, "level", level, {
-            // Успішно збережено
-        }, { errorMessage ->
-            // Помилка збереження
-        })
+    private fun updateUserLevel(level: Int, levelName: String) {
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            database.child("users").child(userId).child("level").setValue(level)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Twój poziom został ustawiony na $levelName", Toast.LENGTH_SHORT).show()
+                    // Przekierowanie do MainMenuActivity
+                    startActivity(Intent(this, MainMenuActivity::class.java))
+                    finish()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Błąd podczas zapisywania poziomu: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 }
 

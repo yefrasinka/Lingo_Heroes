@@ -9,10 +9,26 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Wybierz swój poziom języka"
+        android:text="Wybierz swój poziom języka lub wykonaj test wstępny"
         android:textSize="24sp"
         android:textStyle="bold"
+        android:gravity="center"
         android:layout_marginBottom="32dp"/>
+
+    <Button
+        android:id="@+id/testButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Wykonaj test wstępny"
+        android:layout_marginBottom="24dp"
+        style="@style/ButtonStyle"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="lub wybierz poziom ręcznie:"
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/levelA1Button"
