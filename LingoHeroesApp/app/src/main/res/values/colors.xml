@@ -13,4 +13,5 @@
     <color name="color_gray">#9E9E9E</color>
     <color name="color_yellow">#FFC107</color>
     <color name="color_locked">#607D8B</color>
+    <color name="text_primary">#212121</color>
 </resources>

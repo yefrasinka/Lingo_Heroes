@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.models.Subtopic
 import com.example.lingoheroesapp.models.Topic
@@ -17,6 +18,8 @@ import com.example.lingoheroesapp.models.User
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import android.graphics.Color
+import android.content.res.ColorStateList
 
 class MainMenuActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
@@ -268,6 +271,10 @@ class MainMenuActivity : AppCompatActivity() {
 
         Log.d("SubtopicDebug", "Creating view for subtopic: ${subtopic.id} in topic: $topicId")
 
+        // Ustawiamy początkowy tekst na przycisku
+        subtopicButton.text = subtopic.title
+        subtopicButton.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+
         // Pobieramy aktualny progress z bazy danych
         val currentUser = auth.currentUser
         if (currentUser != null) {
@@ -289,16 +296,16 @@ class MainMenuActivity : AppCompatActivity() {
                         } else 0
                         subtopicProgressBar.progress = progressPercentage
 
-                        // Ustawiamy kolor tekstu w zależności od postępu
+                        // Ustawiamy kolor tła przycisku w zależności od postępu
                         when {
                             progressPercentage == 100 -> {
-                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.color_green))
+                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.color_green))
                             }
                             progressPercentage > 0 -> {
-                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.teal_700))
+                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.teal_700))
                             }
                             else -> {
-                                subtopicButton.setTextColor(ContextCompat.getColor(this@MainMenuActivity, R.color.purple_500))
+                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.purple_500))
                             }
                         }
                     }

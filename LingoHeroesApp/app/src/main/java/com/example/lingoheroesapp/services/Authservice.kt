@@ -33,30 +33,30 @@ object AuthService {
                 if (task.isSuccessful) {
                     val user = FirebaseAuth.getInstance().currentUser
                     val database = FirebaseDatabase.getInstance()
-
-                    // Tworzymy obiekt User z domyślnymi wartościami
-                    val userData = User(
+                    
+                        // Tworzymy obiekt User z domyślnymi wartościami
+                        val userData = User(
                         uid = user?.uid ?: "",
-                        username = username,
-                        email = email,
-                        level = 0,
-                        xp = 0,
+                            username = username,
+                            email = email,
+                            level = 0,
+                            xp = 0,
                         coins = 0,
                         purchasedItems = emptyList(), // Pusta lista zakupionych przedmiotów
                         topicsProgress = mapOf() // Pusta mapa postępów w tematach
-                    )
+                        )
 
                     user?.uid?.let { uid ->
                         // Zapisujemy dane użytkownika w ścieżce /users/{uid}
                         database.reference.child("users").child(uid).setValue(userData)
                             .addOnSuccessListener {
                                 Log.d("AuthService", "Dane użytkownika zapisane pomyślnie: $userData")
-                                onSuccess()
+                            onSuccess()
                             }
                             .addOnFailureListener { exception ->
-                                Log.e("AuthService", "Błąd zapisu danych użytkownika: ${exception.message}")
-                                onFailure("Błąd zapisu danych użytkownika: ${exception.message}")
-                            }
+                            Log.e("AuthService", "Błąd zapisu danych użytkownika: ${exception.message}")
+                            onFailure("Błąd zapisu danych użytkownika: ${exception.message}")
+                        }
                     }
                 } else {
                     // Obsługa błędu rejestracji
@@ -113,34 +113,34 @@ object AuthService {
                         // Sprawdzamy dane użytkownika w Realtime Database
                         database.reference.child("users").child(uid).get()
                             .addOnSuccessListener { snapshot ->
-                                if (snapshot.exists()) {
+                                    if (snapshot.exists()) {
                                     // Mapowanie danych użytkownika na obiekt User
-                                    val userData = snapshot.getValue(User::class.java)
+                                        val userData = snapshot.getValue(User::class.java)
 
                                     // Sprawdzenie, czy dane użytkownika zostały poprawnie pobrane
-                                    if (userData != null) {
+                                        if (userData != null) {
                                         // Zalogowano użytkownika pomyślnie
                                         // Zaktualizowanie użytkownika lokalnie
                                         // Możesz teraz przekazać dane użytkownika do dalszego przetwarzania
-                                        onSuccess(userData)
+                                            onSuccess(userData)
+                                        } else {
+                                            onFailure("Błąd pobierania danych użytkownika.")
+                                        }
                                     } else {
-                                        onFailure("Błąd pobierania danych użytkownika.")
-                                    }
-                                } else {
                                     onFailure("Użytkownik nie istnieje w bazie danych.")
-                                }
-                            }
+                                            }
+                                    }
                             .addOnFailureListener { exception ->
                                 onFailure("Błąd przy weryfikacji użytkownika: ${exception.message}")
-                            }
-                    }
-                } else {
+                                }
+                                }
+                    } else {
                     // Obsługa błędów przy logowaniu
                     if (task.exception is FirebaseAuthInvalidCredentialsException) {
                         onFailure("Nieprawidłowy adres e-mail lub hasło.")
                     } else if (task.exception is FirebaseAuthUserCollisionException) {
                         onFailure("Użytkownik z tym adresem e-mail już istnieje.")
-                    } else {
+                } else {
                         onFailure("Błąd logowania: ${task.exception?.message}")
                     }
                 }

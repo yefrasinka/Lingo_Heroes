@@ -111,7 +111,7 @@ class AccountActivity : AppCompatActivity() {
     private fun showChangeEmailDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_change_email, null)
         val editText = dialogView.findViewById<EditText>(R.id.emailEditText)
-
+        
         // Устанавливаем текущий email
         editText.setText(currentEmail)
 
@@ -125,19 +125,19 @@ class AccountActivity : AppCompatActivity() {
                         ?.addOnSuccessListener {
                             val userId = auth.currentUser?.uid
                             if (userId != null) {
-                                database.child("users").child(userId).child("email").setValue(newEmail)
+                                                    database.child("users").child(userId).child("email").setValue(newEmail)
                             }
-                            currentEmail = newEmail
+                                                            currentEmail = newEmail
                             Toast.makeText(this, "Email został zmieniony!", Toast.LENGTH_SHORT).show()
-                        }
+                                                        }
                         ?.addOnFailureListener {
                             Toast.makeText(this, "Błąd zmiany emaila: ${it.message}", Toast.LENGTH_SHORT).show()
-                        }
+                                                        }
                 } else {
                     Toast.makeText(this, "Pole nie może być puste.", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Anuluj", null)
+                        }
+                    }
+                    .setNegativeButton("Anuluj", null)
             .create()
             .show()
     }

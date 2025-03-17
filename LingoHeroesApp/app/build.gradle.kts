@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.lingoheroesapp"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.lingoheroesapp"
@@ -50,6 +50,11 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.database.ktx)
 
+    // Lottie Animation
+    implementation("com.airbnb.android:lottie:6.3.0")
+
+    // Material Design
+    implementation("com.google.android.material:material:1.11.0")
 
     // Test dependencies
     testImplementation(libs.junit)
