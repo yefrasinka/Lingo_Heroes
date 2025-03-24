@@ -29,6 +29,11 @@ import com.example.lingoheroesapp.models.Progress
 import com.example.lingoheroesapp.models.TopicProgress
 import com.example.lingoheroesapp.models.Topic
 import com.example.lingoheroesapp.models.SubtopicProgress
+import com.example.lingoheroesapp.models.Challenge
+import com.example.lingoheroesapp.models.User
+import com.example.lingoheroesapp.models.ChallengeType
+import com.google.firebase.database.Transaction
+import com.google.firebase.database.MutableData
 
 
 ///
@@ -280,7 +285,8 @@ class TaskDisplayActivity : AppCompatActivity() {
 
     private fun updateProgress(subtopicId: String, topicId: String, currentTask: Task) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val userProgressRef = database.child("users").child(userId).child("topicsProgress").child(topicId)
+        val userRef = database.child("users").child(userId)
+        val userProgressRef = userRef.child("topicsProgress").child(topicId)
 
         database.child("topics").child(topicId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(topicSnapshot: DataSnapshot) {
@@ -310,28 +316,44 @@ class TaskDisplayActivity : AppCompatActivity() {
                         val updatedSubtopics = topicProgress.subtopics.toMutableMap()
                         updatedSubtopics[subtopicId] = updatedSubtopicProgress
 
-                        val totalCompletedTasks = updatedSubtopics.values.sumOf { 
-                            minOf(it.completedTasks, it.totalTasks)
-                        }
-                        val totalTasks = topic.subtopics.sumOf { it.totalTasks }
-                        val completedSubtopics = updatedSubtopics.count { (_, progress) -> 
-                            progress.completedTasks >= progress.totalTasks 
-                        }
-
                         val updatedTopicProgress = topicProgress.copy(
-                            completedTasks = totalCompletedTasks,
-                            totalTasks = totalTasks,
-                            completedSubtopics = completedSubtopics,
-                            totalSubtopics = topic.subtopics.size,
+                            completedTasks = updatedSubtopics.values.sumOf { it.completedTasks },
+                            totalTasks = updatedSubtopics.values.sumOf { it.totalTasks },
+                            completedSubtopics = updatedSubtopics.count { (_, progress) -> 
+                                progress.completedTasks >= progress.totalTasks 
+                            },
                             subtopics = updatedSubtopics
                         )
 
                         userProgressRef.setValue(updatedTopicProgress)
                             .addOnSuccessListener {
-                                // Aktualizujemy XP i monety tylko przy poprawnej odpowiedzi
-                                if (lastSelectedAnswer == currentTask.correctAnswer) {
-                                    val userRef = database.child("users").child(userId)
-                                    updateUserRewards(userRef, currentTask.rewardXp, currentTask.rewardCoins)
+                                // Aktualizujemy statystyki użytkownika
+                                userRef.get().addOnSuccessListener { userSnapshot ->
+                                    val currentXp = userSnapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
+                                    val currentCoins = userSnapshot.child("coins").getValue(Long::class.java)?.toInt() ?: 0
+                                    val tasksCompleted = userSnapshot.child("tasksCompleted").getValue(Long::class.java)?.toInt() ?: 0
+                                    val perfectScores = userSnapshot.child("perfectScores").getValue(Long::class.java)?.toInt() ?: 0
+                                    
+                                    val updates = hashMapOf<String, Any>(
+                                        // Zawsze zwiększamy licznik ukończonych zadań
+                                        "tasksCompleted" to (tasksCompleted + 1)
+                                    )
+
+                                    // Dodajemy XP i monety tylko za poprawną odpowiedź
+                                    if (lastSelectedAnswer == currentTask.correctAnswer) {
+                                        updates["xp"] = currentXp + currentTask.rewardXp
+                                        updates["coins"] = currentCoins + currentTask.rewardCoins
+                                        
+                                        // Sprawdzamy czy to idealny wynik (wszystkie odpowiedzi poprawne w temacie)
+                                        if (currentTaskIndex == tasks.size - 1 && !tasks.any { it.correctAnswer != lastSelectedAnswer }) {
+                                            updates["perfectScores"] = perfectScores + 1
+                                        }
+                                    }
+                                    
+                                    userRef.updateChildren(updates).addOnSuccessListener {
+                                        // Aktualizacja wyzwań
+                                        updateChallenges(userId)
+                                    }
                                 }
                             }
                             .addOnFailureListener { e ->
@@ -351,17 +373,158 @@ class TaskDisplayActivity : AppCompatActivity() {
         })
     }
 
-    private fun updateUserRewards(userRef: DatabaseReference, xpReward: Int, coinsReward: Int) {
-        userRef.get().addOnSuccessListener { snapshot ->
-            val currentXp = snapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
-            val currentCoins = snapshot.child("coins").getValue(Long::class.java)?.toInt() ?: 0
+    private fun updateChallenges(userId: String) {
+        val challengesRef = database.child("users").child(userId).child("challenges")
+        val userRef = database.child("users").child(userId)
+
+        userRef.get().addOnSuccessListener { userSnapshot ->
+            val user = userSnapshot.getValue(User::class.java) ?: return@addOnSuccessListener
+            val currentDate = System.currentTimeMillis()
             
-            val updates = hashMapOf<String, Any>(
-                "xp" to (currentXp + xpReward),
-                "coins" to (currentCoins + coinsReward)
-            )
-            
-            userRef.updateChildren(updates)
+            challengesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    snapshot.children.forEach { challengeSnapshot ->
+                        val challenge = challengeSnapshot.getValue(Challenge::class.java)
+                        challenge?.let {
+                            when (it.type) {
+                                ChallengeType.DAILY -> {
+                                    // Sprawdzamy czy to nowy dzień
+                                    val lastUpdateTime = it.lastUpdateTime ?: 0
+                                    val isNewDay = (currentDate - lastUpdateTime) > 24 * 60 * 60 * 1000 // 24 godziny
+                                    
+                                    if (isNewDay) {
+                                        // Resetujemy postęp na początku nowego dnia
+                                        challengeSnapshot.ref.updateChildren(mapOf(
+                                            "currentProgress" to 0,
+                                            "isCompleted" to false,
+                                            "lastUpdateTime" to currentDate
+                                        ))
+                                    }
+                                    
+                                    // Aktualizujemy postęp tylko jeśli wyzwanie nie jest jeszcze ukończone
+                                    if (!it.isCompleted) {
+                                        when (it.title) {
+                                            "Codzienna praktyka" -> {
+                                                if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
+                                                    val newProgress = it.currentProgress + 1
+                                                    updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                }
+                                            }
+                                            "Dzienny zdobywca XP" -> {
+                                                if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
+                                                    val newProgress = it.currentProgress + tasks[currentTaskIndex].rewardXp
+                                                    updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                ChallengeType.WEEKLY -> {
+                                    // Sprawdzamy czy to nowy tydzień
+                                    val lastUpdateTime = it.lastUpdateTime ?: 0
+                                    val isNewWeek = (currentDate - lastUpdateTime) > 7 * 24 * 60 * 60 * 1000 // 7 dni
+                                    
+                                    if (isNewWeek) {
+                                        // Resetujemy postęp na początku nowego tygodnia
+                                        challengeSnapshot.ref.updateChildren(mapOf(
+                                            "currentProgress" to 0,
+                                            "isCompleted" to false,
+                                            "lastUpdateTime" to currentDate
+                                        ))
+                                        
+                                        // Resetujemy także liczniki dla wyzwań tygodniowych
+                                        userRef.updateChildren(mapOf(
+                                            "lastDayTasksCount" to 0,
+                                            "lastDayTimestamp" to 0,
+                                            "todaysPerfectTasks" to 0,
+                                            "todaysTotalTasks" to 0,
+                                            "lastPerfectDay" to 0
+                                        ))
+                                    }
+                                    
+                                    // Aktualizujemy postęp tylko jeśli wyzwanie nie jest jeszcze ukończone
+                                    if (!it.isCompleted) {
+                                        when (it.title) {
+                                            "Tygodniowa seria" -> {
+                                                val lastDayTimestamp = userSnapshot.child("lastDayTimestamp").getValue(Long::class.java) ?: 0
+                                                val isDayChange = (currentDate - lastDayTimestamp) > 24 * 60 * 60 * 1000
+                                                
+                                                if (isDayChange) {
+                                                    val tasksToday = user.tasksCompleted - (userSnapshot.child("lastDayTasksCount").getValue(Int::class.java) ?: 0)
+                                                    if (tasksToday >= 10) {
+                                                        val newProgress = it.currentProgress + 1
+                                                        updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                        
+                                                        userRef.updateChildren(mapOf(
+                                                            "lastDayTasksCount" to user.tasksCompleted,
+                                                            "lastDayTimestamp" to currentDate
+                                                        ))
+                                                    }
+                                                }
+                                            }
+                                            "Perfekcyjny tydzień" -> {
+                                                val lastPerfectDay = userSnapshot.child("lastPerfectDay").getValue(Long::class.java) ?: 0
+                                                val isDayChange = (currentDate - lastPerfectDay) > 24 * 60 * 60 * 1000
+                                                
+                                                if (isDayChange) {
+                                                    val todaysPerfectTasks = userSnapshot.child("todaysPerfectTasks").getValue(Int::class.java) ?: 0
+                                                    val todaysTotalTasks = userSnapshot.child("todaysTotalTasks").getValue(Int::class.java) ?: 0
+                                                    
+                                                    val updates = hashMapOf<String, Any>(
+                                                        "todaysPerfectTasks" to (if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) todaysPerfectTasks + 1 else todaysPerfectTasks),
+                                                        "todaysTotalTasks" to (todaysTotalTasks + 1)
+                                                    )
+                                                    
+                                                    if (todaysPerfectTasks + 1 == todaysTotalTasks + 1 && lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
+                                                        val newProgress = it.currentProgress + 1
+                                                        updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                        
+                                                        updates["lastPerfectDay"] = currentDate
+                                                        updates["todaysPerfectTasks"] = 0
+                                                        updates["todaysTotalTasks"] = 0
+                                                    }
+                                                    
+                                                    userRef.updateChildren(updates)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TaskDisplayActivity", "Failed to update challenges", error.toException())
+                }
+            })
+        }
+    }
+
+    private fun updateChallengeProgress(challengeRef: DatabaseReference, newProgress: Int, requiredValue: Int) {
+        if (newProgress >= requiredValue) {
+            val userRef = challengeRef.parent?.parent // Przejście do referencji użytkownika
+            userRef?.runTransaction(object : Transaction.Handler {
+                override fun doTransaction(currentData: MutableData): Transaction.Result {
+                    val currentCompletedChallenges = currentData.child("completedChallenges").getValue(Int::class.java) ?: 0
+                    val challengeKey = challengeRef.key
+                    
+                    currentData.child("challenges").child(challengeKey!!).child("currentProgress").value = requiredValue
+                    currentData.child("challenges").child(challengeKey).child("isCompleted").value = true
+                    currentData.child("completedChallenges").value = currentCompletedChallenges + 1
+                    
+                    return Transaction.success(currentData)
+                }
+
+                override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                    if (error != null) {
+                        Log.e("TaskDisplayActivity", "Failed to update challenge progress: ${error.message}")
+                    }
+                }
+            })
+        } else {
+            challengeRef.child("currentProgress").setValue(newProgress)
         }
     }
 

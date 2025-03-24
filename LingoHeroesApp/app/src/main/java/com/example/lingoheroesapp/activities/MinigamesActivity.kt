@@ -65,6 +65,10 @@ class MinigamesActivity : AppCompatActivity() {
                     startActivity(Intent(this, StoreActivity::class.java))
                     true
                 }
+                R.id.nav_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                    true
+                }
                 else -> false
             }
         }

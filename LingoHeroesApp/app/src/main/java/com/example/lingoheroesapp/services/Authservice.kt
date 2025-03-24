@@ -34,17 +34,17 @@ object AuthService {
                     val user = FirebaseAuth.getInstance().currentUser
                     val database = FirebaseDatabase.getInstance()
                     
-                        // Tworzymy obiekt User z domyślnymi wartościami
-                        val userData = User(
+                    // Tworzymy obiekt User z domyślnymi wartościami
+                    val userData = User(
                         uid = user?.uid ?: "",
-                            username = username,
-                            email = email,
-                            level = 0,
-                            xp = 0,
+                        username = username,
+                        email = email,
+                        level = 0,
+                        xp = 0,
                         coins = 0,
-                        purchasedItems = emptyList(), // Pusta lista zakupionych przedmiotów
-                        topicsProgress = mapOf() // Pusta mapa postępów w tematach
-                        )
+                        purchasedItems = emptyList(),
+                        topicsProgress = mapOf()
+                    )
 
                     user?.uid?.let { uid ->
                         // Zapisujemy dane użytkownika w ścieżce /users/{uid}

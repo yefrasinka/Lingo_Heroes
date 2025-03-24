@@ -82,14 +82,27 @@
         <!-- StoreActivity: Активность для магазина -->
         <activity
             android:name=".activities.StoreActivity"
-            android:exported="true">
-        </activity>
+            android:exported="false" />
 
         <!-- LanguageLevelActivity: Активность для магазина -->
         <activity
             android:name=".activities.LanguageLevelActivity"
             android:exported="true">
         </activity>
+
+        <!-- RankingActivity: Активность для рейтинга -->
+        <activity
+            android:name=".activities.RankingActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.ProfileActivity"
+            android:exported="false" />
+
+        <!-- ChallengesActivity: Активность для wyzwań -->
+        <activity
+            android:name=".activities.ChallengesActivity"
+            android:exported="false" />
 
     </application>
 

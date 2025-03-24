@@ -65,6 +65,10 @@ class StoreActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_store -> true
+                R.id.nav_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                    true
+                }
                 else -> false
             }
         }

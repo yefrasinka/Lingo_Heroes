@@ -8,7 +8,12 @@ data class User(
     val xp: Int = 0,                      // Punkty doświadczenia
     val coins: Int = 0,                   // Waluta w grze
     val purchasedItems: List<String> = emptyList(),
-    val topicsProgress: Map<String, TopicProgress> = mapOf()  // Postęp w tematach
+    val topicsProgress: Map<String, TopicProgress> = mapOf(),  // Postęp w tematach
+    val achievements: Map<String, Achievement> = mapOf(),      // Osiągnięcia użytkownika
+    val streakDays: Int = 0,              // Seria dni nauki
+    val perfectScores: Int = 0,           // Liczba idealnych wyników
+    val tasksCompleted: Int = 0,          // Liczba ukończonych zadań
+    val completedChallenges: Int = 0      // Liczba ukończonych wyzwań
 )
 
 data class TopicProgress(

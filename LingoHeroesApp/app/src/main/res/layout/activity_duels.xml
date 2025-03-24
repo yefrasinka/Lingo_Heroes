@@ -28,7 +28,7 @@
                 android:id="@+id/avatarImage"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
-                android:src="@drawable/ic_avatar"
+                android:src="@drawable/ic_avatar_vector_main"
                 android:contentDescription="Avatar"
                 app:shapeAppearanceOverlay="@style/CircularImageView"
                 android:elevation="2dp"

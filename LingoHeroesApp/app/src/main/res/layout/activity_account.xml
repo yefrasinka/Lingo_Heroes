@@ -15,7 +15,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:contentDescription="Avatar"
-        android:src="@drawable/ic_avatar"
+        android:src="@drawable/ic_avatar_vector"
         app:layout_constraintEnd_toStartOf="@id/usernameTextView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

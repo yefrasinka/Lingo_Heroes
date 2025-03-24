@@ -30,7 +30,7 @@
                 android:id="@+id/avatarImage"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
-                android:src="@drawable/ic_avatar"
+                android:src="@drawable/ic_avatar_vector_main"
                 android:contentDescription="Avatar"
                 app:shapeAppearanceOverlay="@style/CircularImageView"
                 android:elevation="2dp"
@@ -116,6 +116,18 @@
                         android:textSize="16sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Ranking button -->
+            <ImageButton
+                android:id="@+id/rankingButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_trophy"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Ranking"
+                android:tint="#FFFFFF"
+                android:padding="12dp"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

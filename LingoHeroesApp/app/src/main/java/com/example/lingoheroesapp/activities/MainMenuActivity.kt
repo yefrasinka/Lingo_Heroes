@@ -53,13 +53,17 @@ class MainMenuActivity : AppCompatActivity() {
         coinsTextView = findViewById(R.id.currencyText)
         topicsContainer = findViewById(R.id.topicsContainer)
 
+        val avatarImage = findViewById<ImageView>(R.id.avatarImage)
+        avatarImage.setOnClickListener {
+            startActivity(Intent(this, AccountActivity::class.java))
+        }
 
-            val avatarImage = findViewById<ImageView>(R.id.avatarImage)
-            avatarImage.setOnClickListener {
-                startActivity(Intent(this, AccountActivity::class.java))
-            }
+        // Dodanie obsługi przycisku rankingu
+        val rankingButton = findViewById<ImageButton>(R.id.rankingButton)
+        rankingButton.setOnClickListener {
+            startActivity(Intent(this, RankingActivity::class.java))
+        }
     }
-
 
     private fun setupBottomNavigation() {
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
@@ -78,6 +82,10 @@ class MainMenuActivity : AppCompatActivity() {
                 }
                 R.id.nav_store -> {
                     startActivity(Intent(this, StoreActivity::class.java))
+                    true
+                }
+                R.id.nav_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
                     true
                 }
                 else -> false
