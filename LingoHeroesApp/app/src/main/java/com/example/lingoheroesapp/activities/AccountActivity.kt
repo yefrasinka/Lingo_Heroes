@@ -63,7 +63,7 @@ class AccountActivity : AppCompatActivity() {
         changePasswordButton.setOnClickListener { showChangePasswordDialog() }
         logoutButton.setOnClickListener { logoutUser() }
         closeButton.setOnClickListener {
-            val intent = Intent(this, MainMenuActivity::class.java)
+            val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)
             finish()
         }

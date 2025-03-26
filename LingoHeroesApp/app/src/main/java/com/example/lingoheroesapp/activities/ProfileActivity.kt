@@ -3,6 +3,7 @@ package com.example.lingoheroesapp.activities
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -92,6 +93,11 @@ class ProfileActivity : AppCompatActivity() {
         levelText.text = user.level.toString()
         xpText.text = "${user.xp} XP"
         streakText.text = "${user.streakDays} dni"
+
+        val settingsImage = findViewById<ImageView>(R.id.settingsImage)
+        settingsImage.setOnClickListener {
+            startActivity(Intent(this, AccountActivity::class.java))
+        }
 
         // Create and update achievements
         val achievements = createDefaultAchievements()

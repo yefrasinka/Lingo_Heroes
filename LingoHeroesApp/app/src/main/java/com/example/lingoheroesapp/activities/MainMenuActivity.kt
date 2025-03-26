@@ -53,11 +53,6 @@ class MainMenuActivity : AppCompatActivity() {
         coinsTextView = findViewById(R.id.currencyText)
         topicsContainer = findViewById(R.id.topicsContainer)
 
-        val avatarImage = findViewById<ImageView>(R.id.avatarImage)
-        avatarImage.setOnClickListener {
-            startActivity(Intent(this, AccountActivity::class.java))
-        }
-
         // Dodanie obsługi przycisku rankingu
         val rankingButton = findViewById<ImageButton>(R.id.rankingButton)
         rankingButton.setOnClickListener {
