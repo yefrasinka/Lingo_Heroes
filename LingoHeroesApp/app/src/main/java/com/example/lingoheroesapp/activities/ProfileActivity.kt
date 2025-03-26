@@ -214,24 +214,27 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun setupBottomNavigation() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+        bottomNav.selectedItemId = R.id.nav_profile
+
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_learning -> {
-                    finish()
+                    startActivity(Intent(this, MainMenuActivity::class.java))
                     true
                 }
                 R.id.nav_minigames -> {
-                    // Navigate to minigames
+                    startActivity(Intent(this, MinigamesActivity::class.java))
                     true
                 }
                 R.id.nav_duels -> {
-                    // Navigate to duels
+                    startActivity(Intent(this, DuelsActivity::class.java))
                     true
                 }
                 R.id.nav_store -> {
-                    // Navigate to store
+                    startActivity(Intent(this, StoreActivity::class.java))
                     true
                 }
+                R.id.nav_profile -> true
                 else -> false
             }
         }

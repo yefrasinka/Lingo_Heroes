@@ -6,26 +6,28 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.activities.LanguageLevelActivity
 import com.example.lingoheroesapp.activities.LoginActivity
 import com.example.lingoheroesapp.activities.RegisterActivity
-
+import com.example.lingoheroesapp.activities.MainMenuActivity
+import com.google.firebase.auth.FirebaseAuth
 
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        //zamieniamy Activity
-        val intent = Intent(this, LoginActivity::class.java)
-        startActivity(intent)
 
+        auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
 
-        //add topic,subtopic(dodaje 1 raz nowe dane)
-        //TestActivity().saveSampleData()
-
-        //add  task to Firebase robi update poprzednich danych po id
-        //TestActivity().loadQuestionsToFirebase()
-
-
-
-
+        if (currentUser == null) {
+            // Если пользователь не залогинен, переходим на экран логина
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        } else {
+            // Если пользователь авторизован, переходим в MainMenuActivity
+            startActivity(Intent(this, MainMenuActivity::class.java))
+            finish()
+        }
     }
 }

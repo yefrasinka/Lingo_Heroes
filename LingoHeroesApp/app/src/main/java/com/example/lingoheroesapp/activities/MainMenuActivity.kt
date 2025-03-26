@@ -120,8 +120,8 @@ class MainMenuActivity : AppCompatActivity() {
     private fun updateUserUI(user: User) {
         usernameTextView.text = user.username
         levelTextView.text = "Level ${user.level}"
-        xpTextView.text = "${user.xp} XP"
-        coinsTextView.text = "${user.coins} coins"
+        xpTextView.text = "${user.xp}"
+        coinsTextView.text = "${user.coins}"
     }
 
     private fun loadTopicsForUser(userId: String) {

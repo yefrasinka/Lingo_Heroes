@@ -50,12 +50,6 @@
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
-                <!-- Trophy icon -->
-                <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_trophy"
-                    android:contentDescription="Trophy" />
             </LinearLayout>
 
             <!-- User's rank card -->
