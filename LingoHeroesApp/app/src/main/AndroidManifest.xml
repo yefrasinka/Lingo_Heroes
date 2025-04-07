@@ -72,7 +72,6 @@
             android:exported="true">
         </activity>
 
-
         <!-- DuelsActivity: Активность для дуэлей -->
         <activity
             android:name=".activities.DuelsActivity"

@@ -32,8 +32,10 @@ import com.example.lingoheroesapp.models.SubtopicProgress
 import com.example.lingoheroesapp.models.Challenge
 import com.example.lingoheroesapp.models.User
 import com.example.lingoheroesapp.models.ChallengeType
+import com.example.lingoheroesapp.models.Reward
 import com.google.firebase.database.Transaction
 import com.google.firebase.database.MutableData
+import java.util.*
 
 
 ///
@@ -381,8 +383,24 @@ class TaskDisplayActivity : AppCompatActivity() {
             val user = userSnapshot.getValue(User::class.java) ?: return@addOnSuccessListener
             val currentDate = System.currentTimeMillis()
             
+            // Sprawdzamy czy mamy poprawną odpowiedź na aktualne zadanie
+            val isCorrectAnswer = lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer
+            val currentTask = tasks[currentTaskIndex]
+            
+            // Pobieramy aktualną wartość XP użytkownika bezpośrednio z Firebase
+            val currentXp = userSnapshot.child("xp").getValue(Int::class.java) ?: 0
+            
             challengesRef.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
+                    // Jeśli nie ma wyzwań, tworzymy domyślne (to również zapewnia, że wszystkie wymagane wyzwania istnieją)
+                    if (!snapshot.exists() || !snapshot.hasChildren()) {
+                        // Tworzymy domyślne wyzwania używając tych samych wartości co w ChallengesActivity
+                        val defaultChallenges = createDefaultChallenges()
+                        defaultChallenges.forEach { challenge ->
+                            challengesRef.child(challenge.id).setValue(challenge)
+                        }
+                    }
+                    
                     snapshot.children.forEach { challengeSnapshot ->
                         val challenge = challengeSnapshot.getValue(Challenge::class.java)
                         challenge?.let {
@@ -405,15 +423,27 @@ class TaskDisplayActivity : AppCompatActivity() {
                                     if (!it.isCompleted) {
                                         when (it.title) {
                                             "Codzienna praktyka" -> {
-                                                if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
+                                                if (isCorrectAnswer) {
                                                     val newProgress = it.currentProgress + 1
                                                     updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
                                                 }
                                             }
                                             "Dzienny zdobywca XP" -> {
-                                                if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
-                                                    val newProgress = it.currentProgress + tasks[currentTaskIndex].rewardXp
-                                                    updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                if (isCorrectAnswer) {
+                                                    // Sprawdzamy bezpośrednio aktualny postęp wyzwania z Firebase
+                                                    val currentProgress = challengeSnapshot.child("currentProgress").getValue(Int::class.java) ?: 0
+                                                    val xpToAdd = currentTask.rewardXp
+                                                    
+                                                    // Upewniamy się, że postęp nie przekroczy wymaganej wartości
+                                                    val newProgress = Math.min(currentProgress + xpToAdd, it.requiredValue)
+                                                    
+                                                    Log.d("ChallengeProgress", "Updating XP challenge: current XP in DB: $currentXp, " +
+                                                            "current progress: $currentProgress, adding: $xpToAdd, new progress: $newProgress")
+                                                    
+                                                    // Aktualizujemy postęp tylko jeśli się zmienił
+                                                    if (newProgress > currentProgress) {
+                                                        updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
+                                                    }
                                                 }
                                             }
                                         }
@@ -431,15 +461,6 @@ class TaskDisplayActivity : AppCompatActivity() {
                                             "isCompleted" to false,
                                             "lastUpdateTime" to currentDate
                                         ))
-                                        
-                                        // Resetujemy także liczniki dla wyzwań tygodniowych
-                                        userRef.updateChildren(mapOf(
-                                            "lastDayTasksCount" to 0,
-                                            "lastDayTimestamp" to 0,
-                                            "todaysPerfectTasks" to 0,
-                                            "todaysTotalTasks" to 0,
-                                            "lastPerfectDay" to 0
-                                        ))
                                     }
                                     
                                     // Aktualizujemy postęp tylko jeśli wyzwanie nie jest jeszcze ukończone
@@ -450,42 +471,47 @@ class TaskDisplayActivity : AppCompatActivity() {
                                                 val isDayChange = (currentDate - lastDayTimestamp) > 24 * 60 * 60 * 1000
                                                 
                                                 if (isDayChange) {
+                                                    // Sprawdzamy czy użytkownik wykonał minimalną liczbę zadań danego dnia
                                                     val tasksToday = user.tasksCompleted - (userSnapshot.child("lastDayTasksCount").getValue(Int::class.java) ?: 0)
-                                                    if (tasksToday >= 10) {
+                                                    if (tasksToday >= 5) { // Zmniejszona wartość wymagana do 5 zadań dziennie
                                                         val newProgress = it.currentProgress + 1
                                                         updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
-                                                        
-                                                        userRef.updateChildren(mapOf(
-                                                            "lastDayTasksCount" to user.tasksCompleted,
-                                                            "lastDayTimestamp" to currentDate
-                                                        ))
                                                     }
+                                                    
+                                                    // Aktualizujemy liczniki niezależnie od liczby wykonanych zadań
+                                                    userRef.updateChildren(mapOf(
+                                                        "lastDayTasksCount" to user.tasksCompleted,
+                                                        "lastDayTimestamp" to currentDate
+                                                    ))
                                                 }
                                             }
                                             "Perfekcyjny tydzień" -> {
-                                                val lastPerfectDay = userSnapshot.child("lastPerfectDay").getValue(Long::class.java) ?: 0
-                                                val isDayChange = (currentDate - lastPerfectDay) > 24 * 60 * 60 * 1000
+                                                // Aktualizujemy liczniki dzisiejszych zadań
+                                                val todaysPerfectTasks = userSnapshot.child("todaysPerfectTasks").getValue(Int::class.java) ?: 0
+                                                val todaysTotalTasks = userSnapshot.child("todaysTotalTasks").getValue(Int::class.java) ?: 0
                                                 
-                                                if (isDayChange) {
-                                                    val todaysPerfectTasks = userSnapshot.child("todaysPerfectTasks").getValue(Int::class.java) ?: 0
-                                                    val todaysTotalTasks = userSnapshot.child("todaysTotalTasks").getValue(Int::class.java) ?: 0
+                                                val updates = hashMapOf<String, Any>(
+                                                    "todaysTotalTasks" to (todaysTotalTasks + 1)
+                                                )
+                                                
+                                                // Jeśli odpowiedź jest poprawna, zwiększamy licznik perfekcyjnych zadań
+                                                if (isCorrectAnswer) {
+                                                    updates["todaysPerfectTasks"] = todaysPerfectTasks + 1
                                                     
-                                                    val updates = hashMapOf<String, Any>(
-                                                        "todaysPerfectTasks" to (if (lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) todaysPerfectTasks + 1 else todaysPerfectTasks),
-                                                        "todaysTotalTasks" to (todaysTotalTasks + 1)
-                                                    )
-                                                    
-                                                    if (todaysPerfectTasks + 1 == todaysTotalTasks + 1 && lastSelectedAnswer == tasks[currentTaskIndex].correctAnswer) {
+                                                    // Sprawdzamy czy mamy wszystkie zadania poprawne i czy osiągnęliśmy minimalną liczbę (5)
+                                                    if (todaysPerfectTasks + 1 >= 5 && todaysPerfectTasks + 1 == todaysTotalTasks + 1) {
+                                                        // Dodajemy +1 do postępu wyzwania
                                                         val newProgress = it.currentProgress + 1
                                                         updateChallengeProgress(challengeSnapshot.ref, newProgress, it.requiredValue)
                                                         
+                                                        // Resetujemy liczniki na nowy dzień
                                                         updates["lastPerfectDay"] = currentDate
                                                         updates["todaysPerfectTasks"] = 0
                                                         updates["todaysTotalTasks"] = 0
                                                     }
-                                                    
-                                                    userRef.updateChildren(updates)
                                                 }
+                                                
+                                                userRef.updateChildren(updates)
                                             }
                                         }
                                     }
@@ -503,28 +529,65 @@ class TaskDisplayActivity : AppCompatActivity() {
     }
 
     private fun updateChallengeProgress(challengeRef: DatabaseReference, newProgress: Int, requiredValue: Int) {
-        if (newProgress >= requiredValue) {
-            val userRef = challengeRef.parent?.parent // Przejście do referencji użytkownika
-            userRef?.runTransaction(object : Transaction.Handler {
-                override fun doTransaction(currentData: MutableData): Transaction.Result {
-                    val currentCompletedChallenges = currentData.child("completedChallenges").getValue(Int::class.java) ?: 0
-                    val challengeKey = challengeRef.key
-                    
-                    currentData.child("challenges").child(challengeKey!!).child("currentProgress").value = requiredValue
-                    currentData.child("challenges").child(challengeKey).child("isCompleted").value = true
-                    currentData.child("completedChallenges").value = currentCompletedChallenges + 1
-                    
-                    return Transaction.success(currentData)
-                }
-
-                override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
-                    if (error != null) {
-                        Log.e("TaskDisplayActivity", "Failed to update challenge progress: ${error.message}")
+        // Sprawdzamy, czy już ukończyliśmy wyzwanie
+        challengeRef.get().addOnSuccessListener { snapshot ->
+            val isAlreadyCompleted = snapshot.child("isCompleted").getValue(Boolean::class.java) ?: false
+            
+            // Jeśli wyzwanie jest już ukończone, nie aktualizujemy go ponownie
+            if (isAlreadyCompleted) {
+                Log.d("ChallengeProgress", "Challenge already completed, skipping update")
+                return@addOnSuccessListener
+            }
+            
+            if (newProgress >= requiredValue) {
+                val userRef = challengeRef.parent?.parent // Przejście do referencji użytkownika
+                userRef?.runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(currentData: MutableData): Transaction.Result {
+                        val challengeKey = challengeRef.key
+                        val challengeData = currentData.child("challenges").child(challengeKey!!)
+                        
+                        // Sprawdzamy ponownie, czy wyzwanie nie zostało już ukończone
+                        val isCompleted = challengeData.child("isCompleted").getValue(Boolean::class.java) ?: false
+                        if (isCompleted) {
+                            return Transaction.success(currentData)
+                        }
+                        
+                        val currentCompletedChallenges = currentData.child("completedChallenges").getValue(Int::class.java) ?: 0
+                        
+                        challengeData.child("currentProgress").value = requiredValue
+                        challengeData.child("isCompleted").value = true
+                        currentData.child("completedChallenges").value = currentCompletedChallenges + 1
+                        
+                        return Transaction.success(currentData)
                     }
+
+                    override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                        if (error != null) {
+                            Log.e("TaskDisplayActivity", "Failed to update challenge progress: ${error.message}")
+                        } else if (committed) {
+                            // Pobierz informacje o ukończonym wyzwaniu, aby pokazać powiadomienie
+                            challengeRef.get().addOnSuccessListener { challengeSnapshot ->
+                                val challenge = challengeSnapshot.getValue(Challenge::class.java)
+                                challenge?.let {
+                                    // Powiadomienie dla użytkownika o ukończeniu wyzwania
+                                    Toast.makeText(
+                                        this@TaskDisplayActivity,
+                                        "Wyzwanie ukończone: ${it.title}! Odbierz nagrodę w sekcji wyzwań.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        }
+                    }
+                })
+            } else {
+                // Aktualizujemy postęp tylko jeśli jest większy niż obecny
+                val currentProgress = snapshot.child("currentProgress").getValue(Int::class.java) ?: 0
+                if (newProgress > currentProgress) {
+                    challengeRef.child("currentProgress").setValue(newProgress)
+                    Log.d("ChallengeProgress", "Updated challenge progress from $currentProgress to $newProgress")
                 }
-            })
-        } else {
-            challengeRef.child("currentProgress").setValue(newProgress)
+            }
         }
     }
 
@@ -644,5 +707,71 @@ class TaskDisplayActivity : AppCompatActivity() {
         super.onDestroy()
         releaseMediaPlayer()
         handler.removeCallbacksAndMessages(null)
+    }
+
+    // Pomocnicza metoda do tworzenia domyślnych wyzwań
+    private fun createDefaultChallenges(): List<Challenge> {
+        val calendar = Calendar.getInstance()
+        val currentTime = System.currentTimeMillis()
+        
+        val endOfDay = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.timeInMillis
+
+        val endOfWeek = Calendar.getInstance().apply {
+            while (get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.timeInMillis
+
+        return listOf(
+            Challenge(
+                id = "daily_xp",
+                title = "Dzienny zdobywca XP",
+                description = "Zdobądź 100 XP w ciągu dnia",
+                type = ChallengeType.DAILY,
+                requiredValue = 100,
+                reward = Reward(coins = 150),
+                expiresAt = endOfDay,
+                lastUpdateTime = currentTime
+            ),
+            Challenge(
+                id = "daily_tasks",
+                title = "Codzienna praktyka",
+                description = "Ukończ 5 zadań",
+                type = ChallengeType.DAILY,
+                requiredValue = 5,
+                reward = Reward(coins = 100),
+                expiresAt = endOfDay,
+                lastUpdateTime = currentTime
+            ),
+            Challenge(
+                id = "weekly_perfect",
+                title = "Perfekcyjny tydzień",
+                description = "Zdobądź 10 perfekcyjnych wyników w tym tygodniu",
+                type = ChallengeType.WEEKLY,
+                requiredValue = 10,
+                reward = Reward(coins = 500),
+                expiresAt = endOfWeek,
+                lastUpdateTime = currentTime
+            ),
+            Challenge(
+                id = "weekly_streak",
+                title = "Tygodniowa seria",
+                description = "Utrzymaj 7-dniową serię nauki",
+                type = ChallengeType.WEEKLY,
+                requiredValue = 7,
+                reward = Reward(coins = 400),
+                expiresAt = endOfWeek,
+                lastUpdateTime = currentTime
+            )
+        )
     }
 }

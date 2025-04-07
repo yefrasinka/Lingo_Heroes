@@ -47,8 +47,9 @@ class AchievementsAdapter : RecyclerView.Adapter<AchievementsAdapter.Achievement
             
             // Set progress
             progressBar.max = achievement.requiredValue
-            progressBar.progress = achievement.progress
-            progressText.text = "${achievement.progress}/${achievement.requiredValue}"
+            val limitedProgress = minOf(achievement.progress, achievement.requiredValue)
+            progressBar.progress = limitedProgress
+            progressText.text = "${limitedProgress}/${achievement.requiredValue}"
 
             // Show completion status if achieved
             completionStatus.visibility = if (achievement.isUnlocked) View.VISIBLE else View.GONE

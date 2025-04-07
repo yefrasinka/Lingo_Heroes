@@ -156,9 +156,9 @@ class ProfileActivity : AppCompatActivity() {
             Achievement(
                 id = "level_5",
                 title = "Ambitny uczeń",
-                description = "Osiągnij poziom 5",
+                description = "Osiągnij poziom B2",
                 type = AchievementType.LEVEL,
-                requiredValue = 5
+                requiredValue = 4
             ),
             Achievement(
                 id = "tasks_50",
