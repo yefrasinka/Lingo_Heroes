@@ -78,6 +78,12 @@
             android:exported="true">
         </activity>
 
+        <!-- DuelBattleActivity: Aktywność dla pojedynków PvE -->
+        <activity
+            android:name=".activities.DuelBattleActivity"
+            android:exported="false">
+        </activity>
+
         <!-- StoreActivity: Активность для магазина -->
         <activity
             android:name=".activities.StoreActivity"

@@ -15,4 +15,16 @@
     <color name="color_locked">#607D8B</color>
     <color name="text_primary">#212121</color>
     <color name="red">#F44336</color>
+    <color name="light_gray">#EEEEEE</color>
+    <color name="correct_green">#4CAF50</color>
+    <color name="incorrect_red">#F44336</color>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#D81B60</color>
+    <color name="fire_red">#F44336</color>
+    <color name="ice_blue">#2196F3</color>
+    <color name="lightning_yellow">#FFC107</color>
+    <color name="fire_glow">#FF9800</color>
+    <color name="ice_glow">#00BCD4</color>
+    <color name="lightning_glow">#FFEB3B</color>
 </resources>
