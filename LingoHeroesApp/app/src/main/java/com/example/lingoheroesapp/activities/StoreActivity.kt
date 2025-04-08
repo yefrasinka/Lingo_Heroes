@@ -57,7 +57,7 @@ class StoreActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_minigames -> {
-                    startActivity(Intent(this, MinigamesActivity::class.java))
+                    startActivity(Intent(this, HeroActivity::class.java))
                     true
                 }
                 R.id.nav_duels -> {

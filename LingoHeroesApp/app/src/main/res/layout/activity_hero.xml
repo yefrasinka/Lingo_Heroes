@@ -123,44 +123,156 @@
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:padding="16dp"
+        android:background="@color/purple_light"
         app:layout_constraintTop_toBottomOf="@id/topPanelCard"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigationView">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center_horizontal"
+            android:paddingBottom="32dp">
 
-            <!-- Logo w karcie -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
+            <!-- Статы: HP и ATK в карточках -->
+            <LinearLayout
+                android:id="@+id/statsLayout"
+                android:layout_width="250dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp">
 
-                <ImageView
-                    android:id="@+id/logo"
-                    android:layout_width="match_parent"
-                    android:layout_height="350dp"
-                    android:src="@drawable/logo"
-                    android:contentDescription="Logo"
-                    android:scaleType="centerCrop"/>
-            </androidx.cardview.widget.CardView>
+                <!-- HP -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/stat_background"
+                    android:padding="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="4dp">
 
-            <!-- Coming soon text z lepszą typografią -->
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_heart"
+                        android:contentDescription="HP"
+                        android:layout_marginStart="8dp"/>
+
+                    <TextView
+                        android:id="@+id/hpText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="142632"
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <!-- ATK -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/stat_background"
+                    android:padding="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="4dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_sword"
+                        android:contentDescription="ATK"
+                        android:layout_marginStart="8dp"/>
+
+                    <TextView
+                        android:id="@+id/atkText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="35374"
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Герой -->
+            <ImageView
+                android:id="@+id/heroImage"
+                android:layout_width="250dp"
+                android:layout_height="330dp"
+                android:layout_below="@id/statsLayout"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
+                android:src="@drawable/ic_warrior_lightning"
+                android:contentDescription="Hero"
+                android:scaleType="fitCenter" />
+
+            <!-- Надпись "Różdżka" -->
             <TextView
-                android:id="@+id/comingSoonText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Coming soon..."
-                android:textAppearance="@style/TextAppearance.App.Headline1"
-                android:textColor="@color/purple_700"
-                android:layout_marginTop="24dp"
-                android:gravity="center" />
-        </LinearLayout>
+                android:layout_below="@id/heroImage"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="72dp"
+                android:text="Różdżka"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <!-- Кнопка посоха -->
+            <ImageButton
+                android:id="@+id/staffButton"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_below="@id/heroImage"
+                android:layout_marginTop="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="48dp"
+                android:background="@drawable/staff_background"
+                android:src="@drawable/ic_staff_lightning"
+                android:contentDescription="Posoch"
+                android:scaleType="centerInside"
+                android:padding="12dp" />
+
+            <!-- Надпись "Zbroja" -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/heroImage"
+                android:layout_alignParentStart="true"
+                android:layout_marginTop="12dp"
+                android:layout_marginStart="72dp"
+                android:text="Zbroja"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <!-- Кнопка брони -->
+            <ImageButton
+                android:id="@+id/armorButton"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_below="@id/heroImage"
+                android:layout_marginTop="32dp"
+                android:layout_alignParentStart="true"
+                android:layout_marginStart="48dp"
+                android:background="@drawable/staff_background"
+                android:src="@drawable/ic_armor_bronze"
+                android:contentDescription="Zbroja"
+                android:scaleType="centerInside"
+                android:padding="12dp" />
+        </RelativeLayout>
     </androidx.core.widget.NestedScrollView>
+
 
     <!-- Dolna nawigacja z Material Design -->
     <com.google.android.material.bottomnavigation.BottomNavigationView

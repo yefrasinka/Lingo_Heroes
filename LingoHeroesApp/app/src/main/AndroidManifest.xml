@@ -68,7 +68,7 @@
 
         <!-- MinigamesActivity: Активность для миниигр -->
         <activity
-            android:name=".activities.MinigamesActivity"
+            android:name=".activities.HeroActivity"
             android:exported="true">
         </activity>
 

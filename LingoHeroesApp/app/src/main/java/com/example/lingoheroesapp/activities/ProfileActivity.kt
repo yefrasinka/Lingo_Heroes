@@ -17,7 +17,6 @@ import com.example.lingoheroesapp.models.AchievementType
 import com.example.lingoheroesapp.models.Challenge
 import com.example.lingoheroesapp.models.ChallengeType
 import com.example.lingoheroesapp.models.User
-import com.example.lingoheroesapp.services.AuthService
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -229,7 +228,7 @@ class ProfileActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_minigames -> {
-                    startActivity(Intent(this, MinigamesActivity::class.java))
+                    startActivity(Intent(this, HeroActivity::class.java))
                     true
                 }
                 R.id.nav_duels -> {

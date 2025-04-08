@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.content.res.ResourcesCompat
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.models.Subtopic
 import com.example.lingoheroesapp.models.Topic
@@ -18,7 +17,6 @@ import com.example.lingoheroesapp.models.User
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import android.graphics.Color
 import android.content.res.ColorStateList
 
 class MainMenuActivity : AppCompatActivity() {
@@ -68,7 +66,7 @@ class MainMenuActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_learning -> true
                 R.id.nav_minigames -> {
-                    startActivity(Intent(this, MinigamesActivity::class.java))
+                    startActivity(Intent(this, HeroActivity::class.java))
                     true
                 }
                 R.id.nav_duels -> {

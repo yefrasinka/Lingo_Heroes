@@ -121,20 +121,19 @@ class DuelsActivity : AppCompatActivity() {
             when (menuItem.itemId) {
                 R.id.nav_learning -> {
                     startActivity(Intent(this, MainMenuActivity::class.java))
-                    overridePendingTransition(0, 0)
-                    finish()
                     true
                 }
                 R.id.nav_minigames -> {
-                    // TODO: Implement when MiniGamesActivity is created
+                    startActivity(Intent(this, HeroActivity::class.java))
                     true
                 }
-                R.id.nav_duels -> {
-                    // Already in this activity
-                    true
-                }
+                R.id.nav_duels -> true
                 R.id.nav_store -> {
-                    // TODO: Implement when ShopActivity is created
+                    startActivity(Intent(this, StoreActivity::class.java))
+                    true
+                }
+                R.id.nav_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
                     true
                 }
                 else -> false

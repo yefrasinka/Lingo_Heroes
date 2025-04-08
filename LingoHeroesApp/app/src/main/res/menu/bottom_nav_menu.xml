@@ -6,8 +6,8 @@
         android:title="Nauka" />
     <item
         android:id="@+id/nav_minigames"
-        android:icon="@drawable/ic_mini_games"
-        android:title="Minigry" />
+        android:icon="@drawable/ic_bohater"
+        android:title="Bohater" />
     <item
         android:id="@+id/nav_duels"
         android:icon="@drawable/ic_duels"
