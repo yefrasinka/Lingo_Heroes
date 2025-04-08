@@ -7,6 +7,8 @@ import com.example.lingoheroesapp.activities.LanguageLevelActivity
 import com.example.lingoheroesapp.activities.LoginActivity
 import com.example.lingoheroesapp.activities.RegisterActivity
 import com.example.lingoheroesapp.activities.MainMenuActivity
+import com.example.lingoheroesapp.utils.AchievementManager
+import com.example.lingoheroesapp.utils.ChallengeManager
 import com.example.lingoheroesapp.utils.UserDataMigration
 import com.google.firebase.auth.FirebaseAuth
 
@@ -28,7 +30,20 @@ class MainActivity : AppCompatActivity() {
         } else {
             // Check and migrate user data if needed
             currentUser.uid.let { userId ->
+                // Migracja wyposażenia
                 UserDataMigration.migrateEquipmentData(userId)
+                
+                // Inicjalizacja osiągnięć
+                AchievementManager.initializeAchievementsForUser(userId)
+                
+                // Inicjalizacja wyzwań
+                ChallengeManager.createDefaultChallengesForUser(userId)
+                
+                // Synchronizacja osiągnięć
+                AchievementManager.syncAchievements(userId)
+                
+                // Sprawdzenie i zresetowanie wygasłych wyzwań
+                ChallengeManager.checkAndResetExpiredChallenges()
             }
             
             // Если пользователь авторизован, переходим в MainMenuActivity

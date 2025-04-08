@@ -12,6 +12,8 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.example.lingoheroesapp.models.Equipment
+import com.example.lingoheroesapp.utils.AchievementManager
+import com.example.lingoheroesapp.utils.ChallengeManager
 
 object AuthService {
 
@@ -53,12 +55,19 @@ object AuthService {
                         database.reference.child("users").child(uid).setValue(userData)
                             .addOnSuccessListener {
                                 Log.d("AuthService", "Dane użytkownika zapisane pomyślnie: $userData")
-                            onSuccess()
+                                
+                                // Inicjalizujemy osiągnięcia dla nowego użytkownika
+                                AchievementManager.initializeAchievementsForUser(uid)
+                                
+                                // Inicjalizujemy wyzwania dla nowego użytkownika
+                                ChallengeManager.createDefaultChallengesForUser(uid)
+                                
+                                onSuccess()
                             }
                             .addOnFailureListener { exception ->
-                            Log.e("AuthService", "Błąd zapisu danych użytkownika: ${exception.message}")
-                            onFailure("Błąd zapisu danych użytkownika: ${exception.message}")
-                        }
+                                Log.e("AuthService", "Błąd zapisu danych użytkownika: ${exception.message}")
+                                onFailure("Błąd zapisu danych użytkownika: ${exception.message}")
+                            }
                     }
                 } else {
                     // Obsługa błędu rejestracji

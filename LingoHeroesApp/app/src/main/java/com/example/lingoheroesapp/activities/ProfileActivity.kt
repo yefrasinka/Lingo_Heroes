@@ -17,6 +17,8 @@ import com.example.lingoheroesapp.models.AchievementType
 import com.example.lingoheroesapp.models.Challenge
 import com.example.lingoheroesapp.models.ChallengeType
 import com.example.lingoheroesapp.models.User
+import com.example.lingoheroesapp.utils.AchievementManager
+import com.example.lingoheroesapp.utils.ChallengeManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -47,6 +49,9 @@ class ProfileActivity : AppCompatActivity() {
         loadUserData()
         setupBottomNavigation()
         setupViews()
+        
+        // Sprawdź i resetuj wygasłe wyzwania
+        ChallengeManager.checkAndResetExpiredChallenges()
     }
 
     private fun initializeViews() {
@@ -76,8 +81,14 @@ class ProfileActivity : AppCompatActivity() {
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val user = snapshot.getValue(User::class.java)
-                        user?.let { updateUserUI(it) }
+                        user?.let { 
+                            updateUserUI(it)
+                            
+                            // Synchronizuj osiągnięcia z aktualnymi danymi użytkownika
+                            AchievementManager.syncAchievements(currentUser.uid)
+                        }
                         loadChallengesData(currentUser.uid)
+                        loadAchievements(currentUser.uid)
                     }
 
                     override fun onCancelled(error: DatabaseError) {
@@ -97,11 +108,13 @@ class ProfileActivity : AppCompatActivity() {
         settingsImage.setOnClickListener {
             startActivity(Intent(this, AccountActivity::class.java))
         }
-
-        // Create and update achievements
-        val achievements = createDefaultAchievements()
-        updateAchievementsProgress(achievements, user.xp, user.level, user.tasksCompleted, user.streakDays, user.perfectScores)
-        achievementsAdapter.updateAchievements(achievements)
+    }
+    
+    private fun loadAchievements(userId: String) {
+        // Użyj nowego menedżera do pobrania osiągnięć
+        AchievementManager.getUserAchievements(userId) { achievements ->
+            achievementsAdapter.updateAchievements(achievements)
+        }
     }
 
     private fun loadChallengesData(userId: String) {
@@ -141,80 +154,6 @@ class ProfileActivity : AppCompatActivity() {
 
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun createDefaultAchievements(): List<Achievement> {
-        return listOf(
-            Achievement(
-                id = "xp_1000",
-                title = "Początkujący lingwista",
-                description = "Zdobądź 1000 punktów doświadczenia",
-                type = AchievementType.XP,
-                requiredValue = 1000
-            ),
-            Achievement(
-                id = "level_5",
-                title = "Ambitny uczeń",
-                description = "Osiągnij poziom B2",
-                type = AchievementType.LEVEL,
-                requiredValue = 4
-            ),
-            Achievement(
-                id = "tasks_50",
-                title = "Pracowity student",
-                description = "Ukończ 50 zadań",
-                type = AchievementType.TASKS_COMPLETED,
-                requiredValue = 50
-            ),
-            Achievement(
-                id = "streak_7",
-                title = "Tygodniowa seria",
-                description = "Utrzymaj serię nauki przez 7 dni",
-                type = AchievementType.STREAK_DAYS,
-                requiredValue = 7
-            ),
-            Achievement(
-                id = "perfect_10",
-                title = "Perfekcjonista",
-                description = "Zdobądź 10 perfekcyjnych wyników",
-                type = AchievementType.PERFECT_SCORES,
-                requiredValue = 10
-            )
-        )
-    }
-
-    private fun updateAchievementsProgress(
-        achievements: List<Achievement>,
-        xp: Int,
-        level: Int,
-        tasksCompleted: Int,
-        streakDays: Int,
-        perfectScores: Int
-    ) {
-        achievements.forEach { achievement ->
-            when (achievement.type) {
-                AchievementType.XP -> {
-                    achievement.progress = xp
-                    achievement.isUnlocked = xp >= achievement.requiredValue
-                }
-                AchievementType.LEVEL -> {
-                    achievement.progress = level
-                    achievement.isUnlocked = level >= achievement.requiredValue
-                }
-                AchievementType.TASKS_COMPLETED -> {
-                    achievement.progress = tasksCompleted
-                    achievement.isUnlocked = tasksCompleted >= achievement.requiredValue
-                }
-                AchievementType.STREAK_DAYS -> {
-                    achievement.progress = streakDays
-                    achievement.isUnlocked = streakDays >= achievement.requiredValue
-                }
-                AchievementType.PERFECT_SCORES -> {
-                    achievement.progress = perfectScores
-                    achievement.isUnlocked = perfectScores >= achievement.requiredValue
-                }
-            }
-        }
     }
 
     private fun setupBottomNavigation() {

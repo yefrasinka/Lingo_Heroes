@@ -781,7 +781,7 @@ class DuelBattleActivity : AppCompatActivity() {
             val question = questions[currentQuestionIndex]
             
             // Display question text
-            questionText.text = question.text
+            questionText.text = question.question
             
             // Get all possible answers including the correct one
             val answers = question.incorrectAnswers.toMutableList()
