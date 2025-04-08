@@ -16,6 +16,7 @@ data class User(
     val perfectScores: Int = 0,           // Liczba idealnych wyników
     val tasksCompleted: Int = 0,          // Liczba ukończonych zadań
     val completedChallenges: Int = 0,     // Liczba ukończonych wyzwań
+    val equipment: Equipment = Equipment(), // Ekwipunek postaci gracza
     
     // Pola dla systemu wyzwań
     val challenges: Map<String, Challenge> = mapOf(),  // Wyzwania użytkownika
@@ -40,6 +41,7 @@ data class User(
         perfectScores = 0,
         tasksCompleted = 0,
         completedChallenges = 0,
+        equipment = Equipment(),
         challenges = mapOf(),
         lastDayTasksCount = 0,
         lastDayTimestamp = 0,

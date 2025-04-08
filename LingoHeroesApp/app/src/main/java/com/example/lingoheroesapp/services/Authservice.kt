@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
+import com.example.lingoheroesapp.models.Equipment
 
 object AuthService {
 
@@ -43,7 +44,8 @@ object AuthService {
                         xp = 0,
                         coins = 0,
                         purchasedItems = emptyList(),
-                        topicsProgress = mapOf()
+                        topicsProgress = mapOf(),
+                        equipment = Equipment() // Initialize default equipment
                     )
 
                     user?.uid?.let { uid ->

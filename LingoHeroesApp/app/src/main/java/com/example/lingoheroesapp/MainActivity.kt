@@ -7,6 +7,7 @@ import com.example.lingoheroesapp.activities.LanguageLevelActivity
 import com.example.lingoheroesapp.activities.LoginActivity
 import com.example.lingoheroesapp.activities.RegisterActivity
 import com.example.lingoheroesapp.activities.MainMenuActivity
+import com.example.lingoheroesapp.utils.UserDataMigration
 import com.google.firebase.auth.FirebaseAuth
 
 
@@ -25,6 +26,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         } else {
+            // Check and migrate user data if needed
+            currentUser.uid.let { userId ->
+                UserDataMigration.migrateEquipmentData(userId)
+            }
+            
             // Если пользователь авторизован, переходим в MainMenuActivity
             startActivity(Intent(this, MainMenuActivity::class.java))
             finish()
