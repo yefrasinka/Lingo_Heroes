@@ -11,22 +11,22 @@ enum class ElementType {
      * 1.0f - neutralny
      * 0.5f - nieefektywny (słaby przeciwko)
      */
-    fun getEffectiveness(against: ElementType): Float {
+    fun getEffectiveness(target: ElementType): Float {
         return when (this) {
-            FIRE -> when (against) {
-                ICE -> 1.5f
-                LIGHTNING -> 0.5f
-                else -> 1.0f
+            FIRE -> when (target) {
+                ICE -> 1.5f      // Ogień jest efektywny przeciwko lodowi
+                LIGHTNING -> 0.8f // Ogień jest słaby przeciwko błyskawicom
+                FIRE -> 1.0f     // Neutralne przeciwko temu samemu typowi
             }
-            ICE -> when (against) {
-                LIGHTNING -> 1.5f
-                FIRE -> 0.5f
-                else -> 1.0f
+            ICE -> when (target) {
+                LIGHTNING -> 1.5f // Lód jest efektywny przeciwko błyskawicom
+                FIRE -> 0.8f     // Lód jest słaby przeciwko ogniowi
+                ICE -> 1.0f      // Neutralne przeciwko temu samemu typowi
             }
-            LIGHTNING -> when (against) {
-                FIRE -> 1.5f
-                ICE -> 0.5f
-                else -> 1.0f
+            LIGHTNING -> when (target) {
+                FIRE -> 1.5f     // Błyskawica jest efektywna przeciwko ogniowi
+                ICE -> 0.8f      // Błyskawica jest słaba przeciwko lodowi
+                LIGHTNING -> 1.0f // Neutralne przeciwko temu samemu typowi
             }
         }
     }
@@ -36,11 +36,10 @@ enum class ElementType {
      */
     companion object {
         fun fromString(value: String): ElementType {
-            return when (value.uppercase()) {
-                "FIRE" -> FIRE
-                "ICE" -> ICE
-                "LIGHTNING" -> LIGHTNING
-                else -> FIRE // Domyślnie ogień, jeśli nie znaleziono dopasowania
+            return try {
+                valueOf(value)
+            } catch (e: IllegalArgumentException) {
+                FIRE // Domyślny element, jeśli string jest nieprawidłowy
             }
         }
     }

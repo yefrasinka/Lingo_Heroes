@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="96dp"
-    android:height="96dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
     
     <!-- Zewnętrzna poświata -->
     <path
@@ -12,7 +12,7 @@
     
     <!-- Błyskawica -->
     <path
-        android:fillColor="#FFC107"
-        android:pathData="M13,6L11,6L8,12L11,12L9,18L15,11L12,11L13,6z"/>
+        android:fillColor="#80FFC107"
+        android:pathData="M60,10L40,50h20l-20,40l40,-60h-20z"/>
     
 </vector> 

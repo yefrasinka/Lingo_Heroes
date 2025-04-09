@@ -21,10 +21,13 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
-    <color name="fire_red">#F44336</color>
-    <color name="ice_blue">#2196F3</color>
-    <color name="lightning_yellow">#FFC107</color>
+    <color name="fire_red">#FFFF5722</color>
+    <color name="ice_blue">#FF03A9F4</color>
+    <color name="lightning_yellow">#FFFFC107</color>
     <color name="fire_glow">#FF9800</color>
     <color name="ice_glow">#00BCD4</color>
     <color name="lightning_glow">#FFEB3B</color>
+    <color name="poison_purple">#FF8219C7</color>
+    <color name="transparent_black">#80000000</color>
+    <color name="transparent_white">#80FFFFFF</color>
 </resources>

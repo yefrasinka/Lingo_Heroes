@@ -161,7 +161,14 @@ class DuelsActivity : AppCompatActivity() {
                     val unlockedStagesSnapshot = snapshot.child("unlockedStages")
                     if (unlockedStagesSnapshot.exists()) {
                         for (stageSnapshot in unlockedStagesSnapshot.children) {
-                            val stageNum = stageSnapshot.getValue(Int::class.java)
+                            // Próba konwersji String -> Int
+                            val stageNum = try {
+                                stageSnapshot.getValue(String::class.java)?.toInt() 
+                                    ?: stageSnapshot.getValue(Int::class.java)
+                            } catch (e: NumberFormatException) {
+                                null
+                            }
+                            
                             if (stageNum != null) {
                                 unlockedStages.add(stageNum)
                             }
@@ -173,7 +180,14 @@ class DuelsActivity : AppCompatActivity() {
                     val completedStagesSnapshot = snapshot.child("completedStages")
                     if (completedStagesSnapshot.exists()) {
                         for (stageSnapshot in completedStagesSnapshot.children) {
-                            val stageNum = stageSnapshot.getValue(Int::class.java)
+                            // Próba konwersji String -> Int
+                            val stageNum = try {
+                                stageSnapshot.getValue(String::class.java)?.toInt() 
+                                    ?: stageSnapshot.getValue(Int::class.java)
+                            } catch (e: NumberFormatException) {
+                                null
+                            }
+                            
                             if (stageNum != null) {
                                 completedStages.add(stageNum)
                             }
@@ -185,7 +199,13 @@ class DuelsActivity : AppCompatActivity() {
                     val stageStarsSnapshot = snapshot.child("stageStars")
                     if (stageStarsSnapshot.exists()) {
                         for (stageSnapshot in stageStarsSnapshot.children) {
-                            val stageNum = stageSnapshot.key?.toIntOrNull()
+                            // Klucz może być teraz stringiem, więc konwertujemy go na Int
+                            val stageNum = try {
+                                stageSnapshot.key?.toIntOrNull()
+                            } catch (e: NumberFormatException) {
+                                null
+                            }
+                            
                             val starCount = stageSnapshot.getValue(Int::class.java) ?: 0
                             if (stageNum != null) {
                                 stageStars[stageNum] = starCount
@@ -242,14 +262,24 @@ class DuelsActivity : AppCompatActivity() {
     private fun saveUserData() {
         val userRef = database.reference.child("users").child(userId!!)
         
+        // Konwertujemy listy i mapy, aby miały stringi jako klucze
+        val stringUnlockedStages = unlockedStages.map { it.toString() }
+        val stringCompletedStages = completedStages.map { it.toString() }
+        
+        // Konwertujemy mapę stageStars, aby używała stringów jako kluczy
+        val stringStageStars = mutableMapOf<String, Int>()
+        stageStars.forEach { (stage, stars) ->
+            stringStageStars[stage.toString()] = stars
+        }
+        
         // Create a map of the user data
         val userData = mapOf(
             "level" to userLevel,
             "xp" to userXp,
             "coins" to userCoins,
-            "unlockedStages" to unlockedStages.toList(),
-            "completedStages" to completedStages.toList(),
-            "stageStars" to stageStars
+            "unlockedStages" to stringUnlockedStages,
+            "completedStages" to stringCompletedStages,
+            "stageStars" to stringStageStars
         )
         
         // Update the data

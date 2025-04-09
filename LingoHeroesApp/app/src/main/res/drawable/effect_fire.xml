@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="96dp"
-    android:height="96dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
     
     <!-- Zewnętrzna poświata -->
     <path
-        android:fillColor="#FF9800"
-        android:pathData="M12,2.5C7.582,2.5 4,6.082 4,10.5C4,14.918 7.582,18.5 12,18.5C16.418,18.5 20,14.918 20,10.5C20,6.082 16.418,2.5 12,2.5zM12,16.5C8.686,16.5 6,13.814 6,10.5C6,7.186 8.686,4.5 12,4.5C15.314,4.5 18,7.186 18,10.5C18,13.814 15.314,16.5 12,16.5z"/>
+        android:fillColor="#80FF5722"
+        android:pathData="M60,115C35.2,115 15,94.8 15,70C15,52.6 24.3,37.2 38,30.5C38,30.5 38,30.5 38,30.5C38,26.4 50,10 50,10C50,10 50,10 50,10C50,10 60,26.4 60,30.5C60,30.5 60,30.5 60,30.5C71.7,37.2 81,52.6 81,70C81,94.8 60.8,115 36,115H60Z"/>
     
     <!-- Płomienie -->
     <path

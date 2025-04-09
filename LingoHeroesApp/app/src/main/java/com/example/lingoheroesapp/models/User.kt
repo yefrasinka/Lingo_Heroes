@@ -1,7 +1,9 @@
 package com.example.lingoheroesapp.models
 
 import com.google.firebase.database.PropertyName
+import com.google.firebase.database.IgnoreExtraProperties
 
+@IgnoreExtraProperties
 data class User(
     val uid: String = "",                 // UID z Firebase Authentication
     val username: String = "",            // Nazwa użytkownika
@@ -24,7 +26,11 @@ data class User(
     val lastDayTimestamp: Long = 0,       // Timestamp ostatniego dnia
     val todaysPerfectTasks: Int = 0,      // Liczba perfekcyjnych zadań dzisiaj
     val todaysTotalTasks: Int = 0,        // Całkowita liczba zadań dzisiaj
-    val lastPerfectDay: Long = 0          // Timestamp ostatniego perfekcyjnego dnia
+    val lastPerfectDay: Long = 0,          // Timestamp ostatniego perfekcyjnego dnia
+    val character: Character? = null,
+    val stagesCompleted: Map<String, Boolean> = mapOf(),
+    val stageStars: Map<String, Int> = mapOf(),
+    val inventory: Map<String, Int> = mapOf()
 ) {
     // Konstruktor bezargumentowy wymagany przez Firebase
     constructor() : this(
@@ -47,7 +53,11 @@ data class User(
         lastDayTimestamp = 0,
         todaysPerfectTasks = 0,
         todaysTotalTasks = 0,
-        lastPerfectDay = 0
+        lastPerfectDay = 0,
+        character = null,
+        stagesCompleted = mapOf(),
+        stageStars = mapOf(),
+        inventory = mapOf()
     )
 }
 

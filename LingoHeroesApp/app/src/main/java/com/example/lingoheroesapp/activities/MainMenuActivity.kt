@@ -100,8 +100,30 @@ class MainMenuActivity : AppCompatActivity() {
         database.child("users").child(userId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val user = snapshot.getValue(User::class.java)
-                    user?.let { updateUserUI(it) }
+                    try {
+                        // Używamy ręcznej konwersji zamiast automatycznego mapowania
+                        val uid = snapshot.child("uid").getValue(String::class.java) ?: userId
+                        val username = snapshot.child("username").getValue(String::class.java) ?: "User"
+                        val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                        val level = snapshot.child("level").getValue(Int::class.java) ?: 1
+                        val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
+                        val coins = snapshot.child("coins").getValue(Int::class.java) ?: 0
+                        
+                        // Tworzymy obiekt User z podstawowych danych
+                        val user = User(
+                            uid = uid,
+                            username = username,
+                            email = email,
+                            level = level,
+                            xp = xp,
+                            coins = coins
+                        )
+                        
+                        updateUserUI(user)
+                    } catch (e: Exception) {
+                        Log.e("MainMenuActivity", "Error deserializing user data", e)
+                        showError("Wystąpił błąd podczas wczytywania danych użytkownika")
+                    }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -161,33 +183,72 @@ class MainMenuActivity : AppCompatActivity() {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val progressMap = mutableMapOf<String, TopicProgress>()
                     
-                    for (topicSnapshot in snapshot.children) {
-                        val topicId = topicSnapshot.key
-                        val progress = topicSnapshot.getValue(TopicProgress::class.java)
-                        if (topicId != null && progress != null) {
+                    try {
+                        for (topicSnapshot in snapshot.children) {
+                            val topicId = topicSnapshot.key ?: continue
+                            
+                            // Ręczne mapowanie danych TopicProgress
+                            val completedSubtopics = topicSnapshot.child("completedSubtopics").getValue(Int::class.java) ?: 0
+                            val totalSubtopics = topicSnapshot.child("totalSubtopics").getValue(Int::class.java) ?: 0
+                            val completedTasks = topicSnapshot.child("completedTasks").getValue(Int::class.java) ?: 0
+                            val totalTasks = topicSnapshot.child("totalTasks").getValue(Int::class.java) ?: 0
+                            
+                            // Mapa subtopics
+                            val subtopicsMap = mutableMapOf<String, SubtopicProgress>()
+                            val subtopicsSnapshot = topicSnapshot.child("subtopics")
+                            if (subtopicsSnapshot.exists()) {
+                                for (subtopicSnapshot in subtopicsSnapshot.children) {
+                                    val subtopicId = subtopicSnapshot.key ?: continue
+                                    
+                                    val subCompletedTasks = subtopicSnapshot.child("completedTasks").getValue(Int::class.java) ?: 0
+                                    val subTotalTasks = subtopicSnapshot.child("totalTasks").getValue(Int::class.java) ?: 0
+                                    val subTitle = subtopicSnapshot.child("title").getValue(String::class.java) ?: ""
+                                    
+                                    val subtopicProgress = SubtopicProgress(
+                                        completedTasks = subCompletedTasks,
+                                        totalTasks = subTotalTasks,
+                                        title = subTitle
+                                    )
+                                    
+                                    subtopicsMap[subtopicId] = subtopicProgress
+                                }
+                            }
+                            
+                            // Tworzymy obiekt postępu
+                            val progress = TopicProgress(
+                                completedSubtopics = completedSubtopics,
+                                totalSubtopics = totalSubtopics,
+                                completedTasks = completedTasks,
+                                totalTasks = totalTasks,
+                                subtopics = subtopicsMap
+                            )
+                            
                             progressMap[topicId] = progress
                             Log.d("TopicDebug", "Loaded progress for topic: $topicId")
                         }
-                    }
 
-                    database.child("users").child(userId)
-                        .addListenerForSingleValueEvent(object : ValueEventListener {
-                            override fun onDataChange(userSnapshot: DataSnapshot) {
-                                val userLevel = userSnapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
-                                
-                                topicsContainer.removeAllViews()
-                                
-                                topics.forEach { topic ->
-                                    val topicView = createTopicView(topic, progressMap[topic.id], topics, progressMap)
-                                    topicsContainer.addView(topicView)
-                                    Log.d("TopicDebug", "Added view for topic: ${topic.id} - ${topic.title}")
+                        database.child("users").child(userId)
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(userSnapshot: DataSnapshot) {
+                                    val userLevel = userSnapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
+                                    
+                                    topicsContainer.removeAllViews()
+                                    
+                                    topics.forEach { topic ->
+                                        val topicView = createTopicView(topic, progressMap[topic.id], topics, progressMap)
+                                        topicsContainer.addView(topicView)
+                                        Log.d("TopicDebug", "Added view for topic: ${topic.id} - ${topic.title}")
+                                    }
                                 }
-                            }
 
-                            override fun onCancelled(error: DatabaseError) {
-                                showError("Błąd podczas ładowania poziomu użytkownika")
-                            }
-                        })
+                                override fun onCancelled(error: DatabaseError) {
+                                    showError("Błąd podczas ładowania poziomu użytkownika")
+                                }
+                            })
+                    } catch (e: Exception) {
+                        Log.e("MainMenuActivity", "Error deserializing topics progress", e)
+                        showError("Wystąpił błąd podczas wczytywania postępu tematów")
+                    }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
