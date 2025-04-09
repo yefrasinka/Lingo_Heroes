@@ -228,23 +228,9 @@
                 android:textStyle="bold"
                 android:textColor="@android:color/black" />
 
-            <!-- Кнопка посоха -->
-            <ImageButton
-                android:id="@+id/staffButton"
-                android:layout_width="96dp"
-                android:layout_height="96dp"
-                android:layout_below="@id/heroImage"
-                android:layout_marginTop="32dp"
-                android:layout_alignParentEnd="true"
-                android:layout_marginEnd="48dp"
-                android:background="@drawable/staff_background"
-                android:src="@drawable/ic_staff_lightning"
-                android:contentDescription="Posoch"
-                android:scaleType="centerInside"
-                android:padding="12dp" />
-
             <!-- Надпись "Zbroja" -->
             <TextView
+                android:id="@+id/armorTitleText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/heroImage"
@@ -256,23 +242,66 @@
                 android:textStyle="bold"
                 android:textColor="@android:color/black" />
 
-            <!-- Кнопка брони -->
+            <!-- Licznik posiadanych zbroi -->
+            <TextView
+                android:id="@+id/armorCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/armorTitleText"
+                android:layout_alignParentStart="true"
+                android:layout_marginTop="2dp"
+                android:layout_marginStart="72dp"
+                android:text="0/10"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray" />
+
+            <!-- Przycisk zbroi z licznikiem postępu -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/heroImage"
+                android:layout_marginTop="32dp"
+                android:layout_alignParentStart="true"
+                android:layout_marginStart="48dp">
+
+                <ImageButton
+                    android:id="@+id/armorButton"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:background="@drawable/staff_background"
+                    android:src="@drawable/ic_armor_bronze"
+                    android:contentDescription="Zbroja"
+                    android:scaleType="centerInside"
+                    android:padding="12dp" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/armorProgressIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:progress="0"
+                    app:indicatorSize="102dp"
+                    app:trackThickness="3dp"
+                    app:trackColor="#33FFFFFF"
+                    app:indicatorColor="@color/progress_bronze" />
+            </FrameLayout>
+
+            <!-- Пpzycisk różdżki -->
             <ImageButton
-                android:id="@+id/armorButton"
+                android:id="@+id/staffButton"
                 android:layout_width="96dp"
                 android:layout_height="96dp"
                 android:layout_below="@id/heroImage"
                 android:layout_marginTop="32dp"
-                android:layout_alignParentStart="true"
-                android:layout_marginStart="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="48dp"
                 android:background="@drawable/staff_background"
-                android:src="@drawable/ic_armor_bronze"
-                android:contentDescription="Zbroja"
+                android:src="@drawable/ic_staff_lightning"
+                android:contentDescription="Różdżka"
                 android:scaleType="centerInside"
                 android:padding="12dp" />
         </RelativeLayout>
     </androidx.core.widget.NestedScrollView>
-
 
     <!-- Dolna nawigacja z Material Design -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
@@ -290,4 +319,13 @@
         app:itemTextAppearanceActive="@style/TextAppearance.App.Medium"
         app:itemTextAppearanceInactive="@style/TextAppearance.App.Medium"/>
 
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

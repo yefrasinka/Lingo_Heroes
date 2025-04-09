@@ -1,16 +1,23 @@
 package com.example.lingoheroesapp.activities
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
@@ -19,11 +26,16 @@ import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.adapters.MistakesAdapter
 import com.example.lingoheroesapp.models.*
+import com.example.lingoheroesapp.models.DuelBattleCharacter
+import com.example.lingoheroesapp.models.DuelBattleEnemy
+import com.example.lingoheroesapp.models.WandType
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
@@ -55,6 +67,14 @@ class DuelBattleActivity : AppCompatActivity() {
     private lateinit var continueButton: Button
     private lateinit var specialAbilityButton: Button
     
+    // Dodatkowe elementy UI
+    private lateinit var playerHealthText: TextView
+    private lateinit var opponentHealthText: TextView
+    private lateinit var playerNameText: TextView
+    private lateinit var opponentNameText: TextView
+    private lateinit var playerCharacterImage: ImageView
+    private lateinit var opponentCharacterImage: ImageView
+    
     // Element effectiveness UI
     private lateinit var elementEffectivenessContainer: LinearLayout
     private lateinit var attackerElementIcon: ImageView
@@ -82,13 +102,18 @@ class DuelBattleActivity : AppCompatActivity() {
     private var timer: CountDownTimer? = null
     private val random = Random()
     
-    // Character and enemy data
-    private lateinit var playerCharacter: Character
-    private lateinit var enemyCharacter: Enemy
+    // Character and enemy instances
+    private lateinit var playerCharacter: DuelBattleCharacter
+    private lateinit var enemyCharacter: DuelBattleEnemy
     
     // Special ability variables
     private var specialAbilityCooldown = 0
     private var isSpecialAbilityAvailable = false
+    
+    // Wand effect state variables
+    private var enemyFrozen = false
+    private var enemyDefenseReduced = false
+    private var playerDefenseIncreased = false
     
     // Stage variables
     private var stageNumber: Int = 1
@@ -100,7 +125,10 @@ class DuelBattleActivity : AppCompatActivity() {
     private var battleStartTime: Long = 0
     private val mistakes = mutableListOf<String>()
     private var currentQuestionStartTime: Long = 0
-
+    
+    // Dialogi
+    private var activeDialog: Dialog? = null
+    
     private val battleTime: Long
         get() = System.currentTimeMillis() - battleStartTime
 
@@ -116,17 +144,19 @@ class DuelBattleActivity : AppCompatActivity() {
         database = FirebaseDatabase.getInstance()
         currentUser = auth.currentUser
         
+        // Najpierw inicjalizujemy domyślne wartości dla postaci, aby uniknąć UninitializedPropertyAccessException
+        createDefaultPlayerCharacter()
+        createInitialEnemyForStage()
+        
         // Initialize UI components
         initViews()
         
-        // Load player character
-        loadPlayerCharacter()
-        
-        // Load enemy character for the stage
-        loadEnemyForStage()
-        
         // Start battle timer
         battleStartTime = System.currentTimeMillis()
+        
+        // Teraz ładujemy prawdziwe dane postaci z Firebase
+        loadPlayerCharacter()
+        loadEnemyForStage()
     }
     
     private fun initViews() {
@@ -166,6 +196,16 @@ class DuelBattleActivity : AppCompatActivity() {
         elementEffectContainer = findViewById(R.id.elementEffectContainer)
         elementEffectImage = findViewById(R.id.elementEffectImage)
         
+        // Dodatkowe elementy UI
+        playerHealthText = findViewById(R.id.playerHealthText)
+        opponentHealthText = findViewById(R.id.opponentHealthText)
+        
+        // Referencje do elementów potrzebnych przy aktualizowaniu UI
+        playerNameText = playerName
+        opponentNameText = opponentName
+        playerCharacterImage = playerAvatar
+        opponentCharacterImage = opponentAvatar
+        
         // Set up answer button click listeners
         answerButtons.forEachIndexed { index, button ->
             button.setOnClickListener {
@@ -197,6 +237,10 @@ class DuelBattleActivity : AppCompatActivity() {
         playerHealthBar.progress = playerHealth
         opponentHealthBar.progress = opponentHealth
         
+        // Initialize health texts
+        playerHealthText.text = "$playerHealth/100"
+        opponentHealthText.text = "$opponentHealth/100"
+        
         // Initialize score texts
         playerScoreText.text = "0"
         opponentScoreText.text = "0"
@@ -209,22 +253,66 @@ class DuelBattleActivity : AppCompatActivity() {
             return
         }
         
-        val characterRef = database.reference
+        // Pobierz nazwę użytkownika z bazy danych
+        val userRef = database.reference
             .child("users")
             .child(currentUser!!.uid)
-            .child("character")
         
-        characterRef.addListenerForSingleValueEvent(object : ValueEventListener {
+        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    // Pobierz postać gracza z Firebase
-                    playerCharacter = snapshot.getValue(Character::class.java)
-                        ?: createDefaultPlayerCharacter()
+                // Pobierz nazwę użytkownika
+                val username = snapshot.child("username").getValue(String::class.java)
+                    ?: currentUser?.displayName
+                    ?: "Gracz"
+                
+                // Sprawdź, czy użytkownik ma już postać
+                val characterSnapshot = snapshot.child("character")
+                if (characterSnapshot.exists()) {
+                    try {
+                        // Pobierz poszczególne pola zamiast całego obiektu
+                        val elementStr = characterSnapshot.child("elementValue").getValue(String::class.java) 
+                            ?: characterSnapshot.child("element").getValue(String::class.java)
+                            ?: "FIRE"
+                        val element = ElementType.fromString(elementStr)
+                        
+                        val imageResId = characterSnapshot.child("imageResId").getValue(Int::class.java) ?: R.drawable.ic_player_avatar
+                        val baseAttack = characterSnapshot.child("baseAttack").getValue(Int::class.java) ?: 12
+                        val baseDefense = characterSnapshot.child("baseDefense").getValue(Int::class.java) ?: 8
+                        
+                        val specialAbilityName = when (element) {
+                            ElementType.FIRE -> "Ściana Ognia"
+                            ElementType.ICE -> "Lodowa Zbroja"
+                            ElementType.LIGHTNING -> "Porażenie"
+                            else -> "Specjalna Zdolność"
+                        }
+                        
+                        val specialAbilityDescription = when (element) {
+                            ElementType.FIRE -> "Zadaje większe obrażenia przeciwnikowi"
+                            ElementType.ICE -> "Zmniejsza otrzymywane obrażenia"
+                            ElementType.LIGHTNING -> "Zwiększa precyzję odpowiedzi"
+                            else -> "Specjalna zdolność postaci"
+                        }
+                        
+                        playerCharacter = DuelBattleCharacter(
+                            id = "player_" + currentUser!!.uid,
+                            name = username,
+                            element = element,
+                            imageResId = imageResId,
+                            baseAttack = baseAttack,
+                            baseDefense = baseDefense,
+                            specialAbilityName = specialAbilityName,
+                            specialAbilityDescription = specialAbilityDescription,
+                            specialAbilityCooldown = 3
+                        )
+                    } catch (e: Exception) {
+                        Log.e("DuelBattleActivity", "Błąd deserializacji postaci: ${e.message}")
+                        createDefaultPlayerCharacter(username)
+                    }
                 } else {
                     // Utwórz domyślną postać, jeśli nie ma jej w bazie
-                    createDefaultPlayerCharacter()
+                    createDefaultPlayerCharacter(username)
                     // Zapisz domyślną postać do bazy
-                    characterRef.setValue(playerCharacter)
+                    userRef.child("character").setValue(playerCharacter)
                 }
                 
                 // Aktualizuj UI postaci gracza
@@ -243,14 +331,14 @@ class DuelBattleActivity : AppCompatActivity() {
         })
     }
     
-    private fun createDefaultPlayerCharacter(): Character {
+    private fun createDefaultPlayerCharacter(username: String? = null): DuelBattleCharacter {
         // Losowy typ elementu dla nowego gracza
         val elementTypes = ElementType.values()
         val randomElement = elementTypes[random.nextInt(elementTypes.size)]
         
-        playerCharacter = Character(
-            id = "player_default",
-            name = currentUser?.displayName ?: "Gracz",
+        playerCharacter = DuelBattleCharacter(
+            id = "player_" + (currentUser?.uid ?: "default"),
+            name = username ?: currentUser?.displayName ?: "Gracz",
             element = randomElement,
             imageResId = R.drawable.ic_player_avatar,
             baseAttack = 12,
@@ -283,7 +371,7 @@ class DuelBattleActivity : AppCompatActivity() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     // Pobierz przeciwnika z Firebase
-                    enemyCharacter = snapshot.getValue(Enemy::class.java)
+                    enemyCharacter = snapshot.getValue(DuelBattleEnemy::class.java)
                         ?: createDefaultEnemyForStage()
                 } else {
                     // Utwórz domyślnego przeciwnika, jeśli nie ma go w bazie
@@ -308,7 +396,7 @@ class DuelBattleActivity : AppCompatActivity() {
         })
     }
     
-    private fun createDefaultEnemyForStage(): Enemy {
+    private fun createDefaultEnemyForStage(): DuelBattleEnemy {
         // Losowy typ elementu dla przeciwnika, ale z preferencją dla typów, które są słabsze 
         // przeciwko typowi gracza (aby dać przewagę graczowi)
         val elementTypes = ElementType.values()
@@ -347,7 +435,7 @@ class DuelBattleActivity : AppCompatActivity() {
         val baseAttack = 6 + (stageNumber)
         val baseDefense = 2 + (stageNumber / 2)
         
-        return Enemy(
+        return DuelBattleEnemy(
             id = "enemy_stage_$stageNumber",
             name = name,
             element = enemyElement,
@@ -377,6 +465,9 @@ class DuelBattleActivity : AppCompatActivity() {
         }
         playerElementBadge.setImageResource(elementDrawableId)
         
+        // Aktualizuj tekst HP
+        playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
+        
         // Aktualizuj tekst specjalnej zdolności
         updateSpecialAbilityButtonText()
     }
@@ -393,6 +484,9 @@ class DuelBattleActivity : AppCompatActivity() {
             else -> R.drawable.ic_fire // Domyślny element
         }
         opponentElementBadge.setImageResource(elementDrawableId)
+        
+        // Aktualizuj tekst HP
+        opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
         
         // Możemy dostosować awatar przeciwnika, jeśli mamy odpowiednie zasoby
         if (enemyCharacter.imageResId != 0) {
@@ -587,11 +681,19 @@ class DuelBattleActivity : AppCompatActivity() {
         updateScoreAndHealth()
         showFeedback(isCorrect, damage)
         
-        // Move to next question after delay
-        Handler(Looper.getMainLooper()).postDelayed({
-            currentQuestionIndex++
-            displayQuestion()
-        }, 2000)
+        // Check if the game is over
+        if (playerHealth <= 0 || opponentHealth <= 0) {
+            stageCompleted = opponentHealth <= 0
+            Handler(Looper.getMainLooper()).postDelayed({
+                showResults()
+            }, 1500)
+        } else {
+            // Move to next question after delay
+            Handler(Looper.getMainLooper()).postDelayed({
+                currentQuestionIndex++
+                displayQuestion()
+            }, 2000)
+        }
     }
     
     private fun calculateDamage(isCorrect: Boolean, timeSpent: Long): Int {
@@ -777,55 +879,65 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun displayQuestion() {
-        if (currentQuestionIndex < questions.size) {
-            val question = questions[currentQuestionIndex]
+        // Jeśli skończą się pytania, ładuj kolejną porcję lub zacznij od początku
+        if (currentQuestionIndex >= questions.size) {
+            // Jeśli nie ma już więcej pytań, zacznij od początku lub załaduj nowe pytania
+            currentQuestionIndex = 0
             
-            // Display question text
-            questionText.text = question.question
-            
-            // Get all possible answers including the correct one
-            val answers = ArrayList<String>()
-            answers.addAll(question.incorrectAnswers)
-            answers.add(question.correctAnswer)
-            
-            // Shuffle answers
-            answers.shuffle()
-            
-            // Find index of correct answer
-            correctAnswerIndex = answers.indexOf(question.correctAnswer)
-            
-            // Display answers on buttons
-            for (i in answerButtons.indices) {
-                if (i < answers.size) {
-                    answerButtons[i].text = answers[i]
-                    answerButtons[i].visibility = View.VISIBLE
-                } else {
-                    answerButtons[i].visibility = View.GONE
-                }
-            }
-            
-            // Reset UI state for new question
-            isAnswerSelected = false
-            for (button in answerButtons) {
-                button.isEnabled = true
-                button.setBackgroundResource(R.drawable.button_normal)
-                button.setTypeface(null, Typeface.NORMAL)
-            }
-            
-            // Reset feedback and damage texts
-            feedbackText.visibility = View.INVISIBLE
-            playerDamageText.visibility = View.INVISIBLE
-            opponentDamageText.visibility = View.INVISIBLE
-            
-            // Start timer
-            startTimer()
-            
-            // Start battle timer
-            currentQuestionStartTime = System.currentTimeMillis()
-        } else {
-            // End of questions, show results
-            showResults()
+            // Można też dodać więcej pytań z bazy danych, jeśli są dostępne
+            loadMoreQuestionsIfNeeded()
         }
+        
+        // Kontynuuj tylko jeśli gra się nie skończyła
+        if (playerHealth <= 0 || opponentHealth <= 0) {
+            showResults()
+            return
+        }
+        
+        val question = questions[currentQuestionIndex]
+        
+        // Display question text
+        questionText.text = question.question
+        
+        // Get all possible answers including the correct one
+        val answers = ArrayList<String>()
+        answers.addAll(question.incorrectAnswers)
+        answers.add(question.correctAnswer)
+        
+        // Shuffle answers
+        answers.shuffle()
+        
+        // Find index of correct answer
+        correctAnswerIndex = answers.indexOf(question.correctAnswer)
+        
+        // Display answers on buttons
+        for (i in answerButtons.indices) {
+            if (i < answers.size) {
+                answerButtons[i].text = answers[i]
+                answerButtons[i].visibility = View.VISIBLE
+            } else {
+                answerButtons[i].visibility = View.GONE
+            }
+        }
+        
+        // Reset UI state for new question
+        isAnswerSelected = false
+        for (button in answerButtons) {
+            button.isEnabled = true
+            button.setBackgroundResource(R.drawable.button_normal)
+            button.setTypeface(null, Typeface.NORMAL)
+        }
+        
+        // Reset feedback and damage texts
+        feedbackText.visibility = View.INVISIBLE
+        playerDamageText.visibility = View.INVISIBLE
+        opponentDamageText.visibility = View.INVISIBLE
+        
+        // Start timer
+        startTimer()
+        
+        // Start battle timer
+        currentQuestionStartTime = System.currentTimeMillis()
     }
     
     private fun startTimer() {
@@ -853,13 +965,58 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun updateScoreAndHealth() {
-        // Update score texts
+        // Update score text view
         playerScoreText.text = playerScore.toString()
         opponentScoreText.text = opponentScore.toString()
         
-        // Update health bars
-        playerHealthBar.progress = playerHealth
-        opponentHealthBar.progress = opponentHealth
+        // Update player health bar
+        animateHealthBar(playerHealthBar, playerHealthBar.progress, playerHealth)
+        updateHealthBarColor(playerHealthBar, playerHealth)
+        playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
+        
+        // Update enemy health bar
+        animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+        updateHealthBarColor(opponentHealthBar, opponentHealth)
+        opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+    }
+    
+    private fun animateHealthBar(healthBar: ProgressBar, from: Int, to: Int, onAnimationEnd: () -> Unit = {}) {
+        val valueAnimator = ValueAnimator.ofInt(from, to)
+        valueAnimator.duration = 500 // Krótka animacja dla lepszej responsywności
+        valueAnimator.addUpdateListener { animation ->
+            val animatedValue = animation.animatedValue as Int
+            // Sprawdź czy aktywność nie jest niszczona
+            if (!isFinishing && !isDestroyed) {
+                healthBar.progress = animatedValue
+            } else {
+                // Jeśli aktywność jest niszczona, zatrzymaj animację
+                animation.cancel()
+            }
+        }
+        valueAnimator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                // Sprawdź czy aktywność nie jest niszczona przed wywołaniem callback'a
+                if (!isFinishing && !isDestroyed) {
+                    onAnimationEnd()
+                }
+            }
+        })
+        valueAnimator.start()
+    }
+    
+    private fun updateHealthBarColor(healthBar: ProgressBar, health: Int) {
+        val maxHealth = if (healthBar == playerHealthBar) 
+            playerCharacter.hp else enemyCharacter.hp
+        
+        val healthPercentage = (health * 100) / maxHealth
+        
+        val colorRes = when {
+            healthPercentage > 60 -> R.color.health_good
+            healthPercentage > 30 -> R.color.health_medium
+            else -> R.color.health_low
+        }
+        
+        healthBar.progressTintList = ColorStateList.valueOf(resources.getColor(colorRes, theme))
     }
     
     private fun animateDamageText(textView: TextView) {
@@ -868,6 +1025,9 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun showResults() {
+        // Zablokuj interakcję użytkownika, aby zapobiec kolejnym akcjom
+        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+        
         val timeSpent = System.currentTimeMillis() - battleStartTime
         val xpGained = calculateXpReward()
         val coinsGained = calculateCoinsReward()
@@ -890,99 +1050,164 @@ class DuelBattleActivity : AppCompatActivity() {
             mistakes = mistakes.toList()
         )
         
-        // Set result message
-        resultText.text = if (playerWon) "Zwycięstwo!" else "Porażka!"
-        resultText.setTextColor(resources.getColor(
-            if (playerWon) R.color.correct_green else R.color.incorrect_red, 
-            theme
-        ))
-        
-        // Show result card
-        resultCard.visibility = View.VISIBLE
-        
-        // Animation for result card
-        val animation = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
-        resultCard.startAnimation(animation)
-        
         // Save battle statistics
         saveBattleStatistics()
         
-        // Show detailed report dialog
-        showDuelReport(duelReport)
+        // Ukryj zbędny kartę wyników
+        resultCard.visibility = View.GONE
         
-        // Return to duels activity after delay or when user clicks "Continue" on the report
-        Handler(Looper.getMainLooper()).postDelayed({
+        // Pokazuj raport bezpośrednio, bez żadnych opóźnień i callbacków
+        if (!isFinishing && !isDestroyed) {
+            try {
+                showDuelReport(duelReport)
+            } catch (e: Exception) {
+                Log.e("DuelBattleActivity", "Error showing duel report: ${e.message}")
+                e.printStackTrace()
+                // Odblokuj interakcję użytkownika w przypadku błędu
+                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+                // Wróć do ekranu pojedynków
+                returnToDuelsActivity()
+            }
+        } else {
+            // Aktywność już jest zamykana, po prostu wracamy
             returnToDuelsActivity()
-        }, 10000) // Dłuższy czas oczekiwania (10s), bo mamy dialog z raportem
+        }
     }
     
     private fun showDuelReport(report: DuelReport) {
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.duel_report_dialog)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        
-        // Set report data
-        dialog.findViewById<TextView>(R.id.correctAnswersText).text = 
-            "${report.correctAnswers}/${report.totalAnswers}"
-        dialog.findViewById<TextView>(R.id.timeSpentText).text = 
-            formatTime(report.timeSpent)
-        dialog.findViewById<TextView>(R.id.xpGainedText).text = 
-            "+${report.xpGained}"
-        dialog.findViewById<TextView>(R.id.coinsGainedText).text = 
-            "+${report.coinsGained}"
-        
-        // Set stars
-        val starsContainer = dialog.findViewById<LinearLayout>(R.id.starsContainer)
-        for (i in 0 until 3) {
-            val star = ImageView(this)
-            star.layoutParams = LinearLayout.LayoutParams(48, 48)
-            star.setImageResource(
-                if (i < report.stars) R.drawable.ic_star_filled
-                else R.drawable.ic_star_empty
-            )
-            starsContainer.addView(star)
-        }
-        
-        // Set mistakes
-        val mistakesRecyclerView = dialog.findViewById<RecyclerView>(R.id.mistakesRecyclerView)
-        mistakesRecyclerView.layoutManager = LinearLayoutManager(this)
-        mistakesRecyclerView.adapter = MistakesAdapter(report.mistakes)
-        
-        // Set continue button
-        dialog.findViewById<Button>(R.id.continueButton).setOnClickListener {
-            dialog.dismiss()
+        // Check if the activity is still valid
+        if (isFinishing || isDestroyed) {
             returnToDuelsActivity()
+            return
         }
         
-        // Show dialog
-        dialog.show()
-        
-        // Make dialog take most of the screen
-        val metrics = resources.displayMetrics
-        val width = metrics.widthPixels
-        dialog.window?.setLayout((width * 0.9).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
+        try {
+            // Zamknij aktywny dialog, jeśli istnieje
+            activeDialog?.dismiss()
+            
+            // Utwórz dialog z zachowaniem weak reference (soft reference) do aktywności
+            val dialogReference = Dialog(this)
+            activeDialog = dialogReference
+            dialogReference.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            dialogReference.setContentView(R.layout.duel_report_dialog)
+            dialogReference.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialogReference.setCancelable(false) // Uniemożliw zamknięcie przez back button
+            
+            // Set report data
+            dialogReference.findViewById<TextView>(R.id.correctAnswersText).text = 
+                "${report.correctAnswers}/${report.totalAnswers}"
+            dialogReference.findViewById<TextView>(R.id.timeSpentText).text = 
+                formatTime(report.timeSpent)
+            dialogReference.findViewById<TextView>(R.id.xpGainedText).text = 
+                "+${report.xpGained}"
+            dialogReference.findViewById<TextView>(R.id.coinsGainedText).text = 
+                "+${report.coinsGained}"
+            
+            // Set stars
+            val starsContainer = dialogReference.findViewById<LinearLayout>(R.id.starsContainer)
+            for (i in 0 until 3) {
+                val star = ImageView(this)
+                star.layoutParams = LinearLayout.LayoutParams(48, 48)
+                star.setImageResource(
+                    if (i < report.stars) R.drawable.ic_star_filled
+                    else R.drawable.ic_star_empty
+                )
+                starsContainer.addView(star)
+            }
+            
+            // Set mistakes
+            val mistakesRecyclerView = dialogReference.findViewById<RecyclerView>(R.id.mistakesRecyclerView)
+            mistakesRecyclerView.layoutManager = LinearLayoutManager(this)
+            mistakesRecyclerView.adapter = MistakesAdapter(report.mistakes)
+            
+            // Set continue button - finishes the activity to prevent window leaks
+            val continueButton = dialogReference.findViewById<Button>(R.id.continueButton)
+            continueButton.setOnClickListener {
+                // Bezpośrednio zamknij dialog i przejdź do aktywności
+                dialogReference.dismiss()
+                
+                // Bezpiecznie wróć do poprzedniej aktywności
+                if (!isFinishing && !isDestroyed) {
+                    returnToDuelsActivity()
+                }
+            }
+            
+            // Dodaj obsługę przycisku back, aby zapobiec wyciekowi okna
+            dialogReference.setOnKeyListener { dialog, keyCode, event ->
+                if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                    dialog.dismiss()
+                    if (!isFinishing && !isDestroyed) {
+                        returnToDuelsActivity()
+                    }
+                    true
+                } else {
+                    false
+                }
+            }
+            
+            // Make dialog take most of the screen
+            val metrics = resources.displayMetrics
+            val width = metrics.widthPixels
+            dialogReference.window?.setLayout((width * 0.9).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
+            
+            // Bezpiecznie pokazuj dialog
+            if (!isFinishing && !isDestroyed) {
+                // Użyj Handler, aby pokazać dialog w wątku UI
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        if (!isFinishing && !isDestroyed) {
+                            // Dialog nie powinien automatycznie zamykać się i przekierowywać do innej aktywności
+                            // Usuwamy automatyczne przekierowanie po zamknięciu dialogu
+                            dialogReference.show()
+                        } else {
+                            // Jeśli aktywność jest kończona, zamknij dialog
+                            dialogReference.dismiss()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DuelBattleActivity", "Błąd podczas pokazywania dialogu: ${e.message}")
+                        e.printStackTrace()
+                        returnToDuelsActivity()
+                    }
+                }
+            } else {
+                returnToDuelsActivity()
+            }
+        } catch (e: Exception) {
+            Log.e("DuelBattleActivity", "Error showing dialog: ${e.message}")
+            e.printStackTrace()
+            // Make sure activity returns if dialog fails
+            returnToDuelsActivity() 
+        }
     }
     
     private fun saveBattleStatistics() {
         // Zapisz statystyki pojedynku do Firebase, jeśli użytkownik jest zalogowany
         if (currentUser != null) {
+            // Określ ID statystyk dla większej czytelności
+            val statsId = System.currentTimeMillis().toString()
+            
             val statsRef = database.reference
                 .child("users")
                 .child(currentUser!!.uid)
                 .child("duelStats")
                 .child(stageNumber.toString())
-                .child(System.currentTimeMillis().toString())
+                .child(statsId)
             
             // Oblicz nagrody
             val timeSpent = System.currentTimeMillis() - battleStartTime
             val xpGained = calculateXpReward()
             val coinsGained = calculateCoinsReward()
+            val stars = calculateStars()
             
+            // Teraz dodawanie zbroi jest obsługiwane w DuelsActivity
+            // Nie dodajemy jej już tutaj, będzie to robione przez DuelsActivity
+            // w zależności od poprzednich gwiazdek
+            
+            // Utwórz mapę statystyk
             val stats = mapOf(
                 "stageNumber" to stageNumber,
                 "isVictory" to stageCompleted,
-                "stars" to calculateStars(),
+                "stars" to stars,
                 "playerScore" to playerScore,
                 "opponentScore" to opponentScore,
                 "playerHealth" to playerHealth,
@@ -995,8 +1220,257 @@ class DuelBattleActivity : AppCompatActivity() {
                 "mistakes" to mistakes.toList()
             )
             
+            // Aktualizuj statystyki w bazie
             statsRef.setValue(stats)
+                .addOnSuccessListener {
+                    Log.d("DuelBattleActivity", "Statystyki zapisane pomyślnie")
+                    
+                    // Zaktualizuj także XP i monety użytkownika
+                    if (stageCompleted) {
+                        val userRef = database.reference.child("users").child(currentUser!!.uid)
+                        userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                // Pobierz obecne wartości
+                                val currentXp = snapshot.child("xp").getValue(Int::class.java) ?: 0
+                                val currentCoins = snapshot.child("coins").getValue(Int::class.java) ?: 0
+                                
+                                // Dodaj nagrody
+                                val updatedValues = HashMap<String, Any>()
+                                updatedValues["xp"] = currentXp + xpGained
+                                updatedValues["coins"] = currentCoins + coinsGained
+                                
+                                // Aktualizuj wartości w bazie
+                                userRef.updateChildren(updatedValues)
+                                    .addOnSuccessListener {
+                                        Log.d("DuelBattleActivity", "XP i monety zaktualizowane")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("DuelBattleActivity", "Błąd podczas aktualizacji XP i monet: ${e.message}")
+                                    }
+                            }
+                            
+                            override fun onCancelled(error: DatabaseError) {
+                                Log.e("DuelBattleActivity", "Błąd podczas odczytu danych użytkownika: ${error.message}")
+                            }
+                        })
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DuelBattleActivity", "Błąd podczas zapisu statystyk: ${e.message}")
+                }
         }
+    }
+    
+    private fun addBronzeArmorToUserEquipment(statsId: String = "") {
+        // Zapewnij, że użytkownik jest zalogowany
+        if (currentUser == null) {
+            Log.e("DuelBattleActivity", "Nie można dodać zbroi - użytkownik niezalogowany")
+            return
+        }
+
+        // Utwórz jednoznaczne odniesienie do userId
+        val userId = currentUser!!.uid
+        val userRef = database.reference.child("users").child(userId)
+        
+        // Wykonaj operację synchronicznie na głównym wątku, żeby uniknąć problemów z wątkami
+        userRef.child("equipment").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                try {
+                    // Odczytaj aktualne dane ekwipunku - obsługa różnych typów
+                    val armorLevel = when {
+                        snapshot.child("armorLevel").getValue(Long::class.java) != null ->
+                            snapshot.child("armorLevel").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("armorLevel").getValue(Int::class.java) != null ->
+                            snapshot.child("armorLevel").getValue(Int::class.java)!!
+                        snapshot.child("armorLevel").getValue(String::class.java) != null ->
+                            snapshot.child("armorLevel").getValue(String::class.java)!!.toInt()
+                        else -> 1
+                    }
+                    
+                    val wandLevel = when {
+                        snapshot.child("wandLevel").getValue(Long::class.java) != null ->
+                            snapshot.child("wandLevel").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("wandLevel").getValue(Int::class.java) != null ->
+                            snapshot.child("wandLevel").getValue(Int::class.java)!!
+                        snapshot.child("wandLevel").getValue(String::class.java) != null ->
+                            snapshot.child("wandLevel").getValue(String::class.java)!!.toInt()
+                        else -> 1
+                    }
+                    
+                    val baseHp = when {
+                        snapshot.child("baseHp").getValue(Long::class.java) != null ->
+                            snapshot.child("baseHp").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("baseHp").getValue(Int::class.java) != null ->
+                            snapshot.child("baseHp").getValue(Int::class.java)!!
+                        snapshot.child("baseHp").getValue(String::class.java) != null ->
+                            snapshot.child("baseHp").getValue(String::class.java)!!.toInt()
+                        else -> 100
+                    }
+                    
+                    val baseDamage = when {
+                        snapshot.child("baseDamage").getValue(Long::class.java) != null ->
+                            snapshot.child("baseDamage").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("baseDamage").getValue(Int::class.java) != null ->
+                            snapshot.child("baseDamage").getValue(Int::class.java)!!
+                        snapshot.child("baseDamage").getValue(String::class.java) != null ->
+                            snapshot.child("baseDamage").getValue(String::class.java)!!.toInt()
+                        else -> 10
+                    }
+                    
+                    // Pobierz armorTier używając metody getValue bez określonego typu
+                    val armorTierRaw = snapshot.child("armorTier").getValue()
+                    
+                    // Określ armorTier na podstawie różnych możliwych typów
+                    val armorTier = when (armorTierRaw) {
+                        is Long -> ArmorTier.fromInt((armorTierRaw.toInt() + 1))
+                        is Int -> ArmorTier.fromInt((armorTierRaw + 1))
+                        is String -> {
+                            try {
+                                // Próba odczytu jako enum lub konwersja na int
+                                val tierInt = armorTierRaw.toIntOrNull()
+                                if (tierInt != null) {
+                                    ArmorTier.fromInt(tierInt + 1)
+                                } else {
+                                    try {
+                                        ArmorTier.valueOf(armorTierRaw)
+                                    } catch (e: Exception) {
+                                        ArmorTier.BRONZE // domyślnie
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("DuelBattleActivity", "Błąd konwersji armorTier: ${e.message}")
+                                ArmorTier.BRONZE
+                            }
+                        }
+                        else -> ArmorTier.BRONZE // domyślnie
+                    }
+                    
+                    val bronzeArmorCount = when {
+                        snapshot.child("bronzeArmorCount").getValue(Long::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("bronzeArmorCount").getValue(Int::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(Int::class.java)!!
+                        snapshot.child("bronzeArmorCount").getValue(String::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(String::class.java)!!.toInt()
+                        else -> 0
+                    }
+                    
+                    val silverArmorCount = when {
+                        snapshot.child("silverArmorCount").getValue(Long::class.java) != null ->
+                            snapshot.child("silverArmorCount").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("silverArmorCount").getValue(Int::class.java) != null ->
+                            snapshot.child("silverArmorCount").getValue(Int::class.java)!!
+                        snapshot.child("silverArmorCount").getValue(String::class.java) != null ->
+                            snapshot.child("silverArmorCount").getValue(String::class.java)!!.toInt()
+                        else -> 0
+                    }
+                    
+                    val goldArmorCount = when {
+                        snapshot.child("goldArmorCount").getValue(Long::class.java) != null ->
+                            snapshot.child("goldArmorCount").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("goldArmorCount").getValue(Int::class.java) != null ->
+                            snapshot.child("goldArmorCount").getValue(Int::class.java)!!
+                        snapshot.child("goldArmorCount").getValue(String::class.java) != null ->
+                            snapshot.child("goldArmorCount").getValue(String::class.java)!!.toInt()
+                        else -> 0
+                    }
+                    
+                    // Odczytaj aktualny typ różdżki
+                    val wandTypeStr = snapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
+                    val wandType = try {
+                        WandType.valueOf(wandTypeStr)
+                    } catch (e: Exception) {
+                        WandType.FIRE // Domyślnie ogień
+                    }
+                    
+                    // Utwórz obiekt Equipment z aktualnymi danymi
+                    val currentEquipment = Equipment(
+                        armorLevel = armorLevel,
+                        wandLevel = wandLevel,
+                        baseHp = baseHp,
+                        baseDamage = baseDamage,
+                        armorTier = armorTier,
+                        bronzeArmorCount = bronzeArmorCount,
+                        silverArmorCount = silverArmorCount,
+                        goldArmorCount = goldArmorCount,
+                        wandType = wandType
+                    )
+                    
+                    Log.d("DuelBattleActivity", "Odczytane wartości: armorTier=${armorTier}, bronzeArmorCount=${bronzeArmorCount}")
+                    
+                    // Dodaj brązową zbroję
+                    val updatedEquipment = currentEquipment.addBronzeArmor()
+                    Log.d("DuelBattleActivity", "Przed aktualizacją: bronze=${currentEquipment.bronzeArmorCount}, Po: bronze=${updatedEquipment.bronzeArmorCount}")
+                    
+                    // Sprawdź, czy nastąpił upgrade zbroi
+                    val upgradeMessage = if (updatedEquipment.armorTier != currentEquipment.armorTier) {
+                        "Gratulacje! Twoja zbroja została ulepszona do ${updatedEquipment.armorTier.name}!\n" +
+                        "Odblokowano nowy wygląd postaci z lepszą ochroną!"
+                    } else {
+                        "Zdobyłeś brązową zbroję! (${updatedEquipment.bronzeArmorCount}/10)\n" +
+                        "Zbierz jeszcze ${10 - updatedEquipment.bronzeArmorCount} sztuk, aby awansować na wyższy poziom."
+                    }
+                    
+                    // Tworzę mapę z danymi do aktualizacji
+                    val equipmentMap = HashMap<String, Any>()
+                    equipmentMap["armorLevel"] = updatedEquipment.armorLevel
+                    equipmentMap["wandLevel"] = updatedEquipment.wandLevel
+                    equipmentMap["baseHp"] = updatedEquipment.baseHp
+                    equipmentMap["baseDamage"] = updatedEquipment.baseDamage
+                    equipmentMap["armorTier"] = updatedEquipment.armorTier.ordinal  // zapisz jako int
+                    equipmentMap["bronzeArmorCount"] = updatedEquipment.bronzeArmorCount
+                    equipmentMap["silverArmorCount"] = updatedEquipment.silverArmorCount
+                    equipmentMap["goldArmorCount"] = updatedEquipment.goldArmorCount
+                    equipmentMap["wandType"] = updatedEquipment.wandType.name
+                    
+                    // Aktualizuj pojedyncze pola zamiast całego obiektu
+                    userRef.child("equipment").updateChildren(equipmentMap)
+                        .addOnSuccessListener {
+                            // Pokaż komunikat o zdobyciu zbroi tylko po zakończeniu zapisu
+                            // używając głównego wątku do aktualizacji UI
+                            Handler(Looper.getMainLooper()).post {
+                                Log.d("DuelBattleActivity", "Zbroja dodana pomyślnie: $upgradeMessage")
+                                Toast.makeText(
+                                    this@DuelBattleActivity,
+                                    upgradeMessage,
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                
+                                // Dodaj informację o aktualizacji do statystyk
+                                if (statsId.isNotEmpty()) {
+                                    val armorUpdate = mapOf("bronzeArmorAdded" to true)
+                                    database.reference
+                                        .child("users")
+                                        .child(userId)
+                                        .child("duelStats")
+                                        .child(stageNumber.toString())
+                                        .child(statsId)
+                                        .updateChildren(armorUpdate)
+                                }
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            // Pokaż błąd na głównym wątku
+                            Handler(Looper.getMainLooper()).post {
+                                Log.e("DuelBattleActivity", "Błąd podczas zapisu ekwipunku: ${e.message}")
+                                e.printStackTrace()
+                                Toast.makeText(
+                                    this@DuelBattleActivity,
+                                    "Wystąpił błąd podczas aktualizacji ekwipunku",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                } catch (e: Exception) {
+                    Log.e("DuelBattleActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
+                    e.printStackTrace() // Dodatkowe logowanie stosu błędów
+                }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelBattleActivity", "Błąd odczytu danych ekwipunku: ${error.message}")
+            }
+        })
     }
     
     private fun calculateXpReward(): Int {
@@ -1043,35 +1517,101 @@ class DuelBattleActivity : AppCompatActivity() {
             saveBattleStatistics()
         }
         
-        // Oblicz nagrody
-        val xpReward = if (stageCompleted) calculateXpReward() else 0
-        val coinsReward = if (stageCompleted) calculateCoinsReward() else 0
-        
-        // Create intent with result data
+        // Przygotuj wynik do zwrócenia do DuelsActivity
         val resultIntent = Intent()
-        resultIntent.putExtra("COMPLETED_STAGE", if (stageCompleted) stageNumber else -1)
-        resultIntent.putExtra("STAGE_STARS", calculateStars())
-        resultIntent.putExtra("XP_GAINED", xpReward)
-        resultIntent.putExtra("COINS_GAINED", coinsReward)
-        resultIntent.putExtra("CORRECT_ANSWERS", correctAnswers)
-        resultIntent.putExtra("TOTAL_ANSWERS", totalAnswers)
         
-        // Set result and finish
+        // Przekaż informacje o ukończonym etapie i nagrodach
+        if (stageCompleted) {
+            val stars = calculateStars()
+            val xpGained = calculateXpReward()
+            val coinsGained = calculateCoinsReward()
+            
+            resultIntent.putExtra("COMPLETED_STAGE", stageNumber)
+            resultIntent.putExtra("STAGE_STARS", stars)
+            resultIntent.putExtra("XP_GAINED", xpGained)
+            resultIntent.putExtra("COINS_GAINED", coinsGained)
+            resultIntent.putExtra("CORRECT_ANSWERS", correctAnswers)
+            resultIntent.putExtra("TOTAL_ANSWERS", totalAnswers)
+        }
+        
+        // Ustaw wynik i zamknij aktywność
         setResult(RESULT_OK, resultIntent)
         finish()
     }
     
     @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
-        // Show confirmation dialog if in the middle of a battle
-        // For now, just return to duels activity
-        returnToDuelsActivity()
+        // Zamknij aktualnie otwarty dialog, jeśli istnieje
+        if (activeDialog?.isShowing == true) {
+            activeDialog?.dismiss()
+            activeDialog = null
+            return
+        }
+        
+        // Pokaż komunikat o potwierdzeniu wyjścia
+        showExitConfirmationDialog()
+    }
+    
+    private fun showExitConfirmationDialog() {
+        // Zamknij aktywny dialog, jeśli istnieje
+        activeDialog?.dismiss()
+        
+        val dialog = Dialog(this)
+        activeDialog = dialog
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_confirmation)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.setCancelable(true)
+        
+        val titleText = dialog.findViewById<TextView>(R.id.dialogTitle)
+        val messageText = dialog.findViewById<TextView>(R.id.dialogMessage)
+        val yesButton = dialog.findViewById<Button>(R.id.yesButton)
+        val noButton = dialog.findViewById<Button>(R.id.noButton)
+        
+        titleText.text = "Opuścić pojedynek?"
+        messageText.text = "Jeśli opuścisz pojedynek, stracisz cały postęp. Czy na pewno chcesz wyjść?"
+        
+        yesButton.setOnClickListener {
+            dialog.dismiss()
+            returnToDuelsActivity()
+        }
+        
+        noButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        // Ustaw onDismissListener przed pokazaniem dialogu
+        dialog.setOnDismissListener {
+            activeDialog = null
+        }
+        
+        // Make dialog take most of the screen
+        val metrics = resources.displayMetrics
+        val width = metrics.widthPixels
+        dialog.window?.setLayout((width * 0.9).toInt(), WindowManager.LayoutParams.WRAP_CONTENT)
+        
+        dialog.show()
     }
     
     override fun onDestroy() {
         super.onDestroy()
-        // Make sure to cancel the timer to prevent memory leaks
+        
+        // Zamknij wszystkie aktywne dialogi
+        activeDialog?.let {
+            if (it.isShowing) {
+                it.dismiss()
+            }
+        }
+        activeDialog = null
+        
+        // Zwolnij referencje do Firebase
+        currentUser = null
+        
+        // Zamknij ewentualne timery, animacje itp.
         timer?.cancel()
+        timer = null
+        
+        Log.d("DuelBattleActivity", "onDestroy - zasoby zwolnione")
     }
 
     private fun showFeedback(isCorrect: Boolean, damage: Int) {
@@ -1097,9 +1637,409 @@ class DuelBattleActivity : AppCompatActivity() {
         // Sprawdź czy gra się skończyła
         if (playerHealth <= 0 || opponentHealth <= 0) {
             stageCompleted = opponentHealth <= 0
+            
+            // Ukryj feedback natychmiast po zakończeniu gry
             Handler(Looper.getMainLooper()).postDelayed({
-                showResults()
-            }, 1500)
+                if (!isFinishing && !isDestroyed) {
+                    // Ukryj feedbackText przed pokazaniem wyników
+                    feedbackText.visibility = View.INVISIBLE
+                    damageText.visibility = View.INVISIBLE
+                    
+                    // Pokaż wyniki
+                    try {
+                        showResults()
+                    } catch (e: Exception) {
+                        Log.e("DuelBattleActivity", "Błąd podczas pokazywania wyników: ${e.message}")
+                        e.printStackTrace()
+                        returnToDuelsActivity()
+                    }
+                }
+            }, 250) // Jeszcze krótsze opóźnienie dla lepszej responsywności
         }
+    }
+
+    private fun loadMoreQuestionsIfNeeded() {
+        // Jeśli liczba pytań jest mała, dodaj więcej pytań domyślnych
+        if (questions.size < 15) {
+            val moreQuestions = createMoreDefaultQuestions()
+            questions.addAll(moreQuestions)
+            
+            // Można też zapisać te pytania w Firebase
+            saveAdditionalQuestionsToFirebase(moreQuestions)
+        }
+    }
+
+    private fun createMoreDefaultQuestions(): List<com.example.lingoheroesapp.models.Question> {
+        val additionalQuestions = mutableListOf<com.example.lingoheroesapp.models.Question>()
+        
+        // Dodaj dodatkowe pytania z różnych kategorii
+        when (stageNumber) {
+            1 -> {
+                // Poziom 1 - więcej podstawowych słówek
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Car' po polsku?",
+                    correctAnswer = "Samochód",
+                    incorrectAnswers = listOf("Pociąg", "Autobus", "Rower")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'School' po polsku?",
+                    correctAnswer = "Szkoła",
+                    incorrectAnswers = listOf("Dom", "Praca", "Sklep")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Water' po polsku?",
+                    correctAnswer = "Woda",
+                    incorrectAnswers = listOf("Powietrze", "Ogień", "Ziemia")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Book' po polsku?",
+                    correctAnswer = "Książka",
+                    incorrectAnswers = listOf("Zeszyt", "Długopis", "Ołówek")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Friend' po polsku?",
+                    correctAnswer = "Przyjaciel",
+                    incorrectAnswers = listOf("Wróg", "Rodzina", "Kolega")
+                ))
+            }
+            2 -> {
+                // Poziom 2 - więcej zwierząt
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Bird' po polsku?",
+                    correctAnswer = "Ptak",
+                    incorrectAnswers = listOf("Ryba", "Gad", "Owad")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Fish' po polsku?",
+                    correctAnswer = "Ryba",
+                    incorrectAnswers = listOf("Ptak", "Żaba", "Wąż")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Elephant' po polsku?",
+                    correctAnswer = "Słoń",
+                    incorrectAnswers = listOf("Żyrafa", "Lew", "Tygrys")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Bear' po polsku?",
+                    correctAnswer = "Niedźwiedź",
+                    incorrectAnswers = listOf("Wilk", "Lis", "Borsuk")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Snake' po polsku?",
+                    correctAnswer = "Wąż",
+                    incorrectAnswers = listOf("Jaszczurka", "Żółw", "Krokodyl")
+                ))
+            }
+            3 -> {
+                // Poziom 3 - więcej jedzenia
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Meat' po polsku?",
+                    correctAnswer = "Mięso",
+                    incorrectAnswers = listOf("Warzywo", "Owoc", "Nabiał")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Cheese' po polsku?",
+                    correctAnswer = "Ser",
+                    incorrectAnswers = listOf("Mleko", "Masło", "Jogurt")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Vegetable' po polsku?",
+                    correctAnswer = "Warzywo",
+                    incorrectAnswers = listOf("Owoc", "Mięso", "Zboże")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Soup' po polsku?",
+                    correctAnswer = "Zupa",
+                    incorrectAnswers = listOf("Kanapka", "Sałatka", "Deser")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Dinner' po polsku?",
+                    correctAnswer = "Obiad",
+                    incorrectAnswers = listOf("Śniadanie", "Kolacja", "Deser")
+                ))
+            }
+            else -> {
+                // Poziom 4 i wyżej - różne tematy
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Computer' po polsku?",
+                    correctAnswer = "Komputer",
+                    incorrectAnswers = listOf("Telefon", "Telewizor", "Radio")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Family' po polsku?",
+                    correctAnswer = "Rodzina",
+                    incorrectAnswers = listOf("Przyjaciele", "Znajomi", "Sąsiedzi")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Hospital' po polsku?",
+                    correctAnswer = "Szpital",
+                    incorrectAnswers = listOf("Szkoła", "Biblioteka", "Kino")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Weather' po polsku?",
+                    correctAnswer = "Pogoda",
+                    incorrectAnswers = listOf("Klimat", "Środowisko", "Temperatura")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Mountain' po polsku?",
+                    correctAnswer = "Góra",
+                    incorrectAnswers = listOf("Dolina", "Rzeka", "Morze")
+                ))
+            }
+        }
+        
+        return additionalQuestions
+    }
+
+    private fun saveAdditionalQuestionsToFirebase(additionalQuestions: List<com.example.lingoheroesapp.models.Question>) {
+        val questionsRef = database.reference.child("duelStages").child(stageNumber.toString()).child("additionalQuestions")
+        
+        for (i in additionalQuestions.indices) {
+            val question = additionalQuestions[i]
+            val questionMap = mapOf(
+                "question" to question.question,
+                "correctAnswer" to question.correctAnswer,
+                "incorrectAnswers" to question.incorrectAnswers
+            )
+            questionsRef.child("additionalQuestion_$i").setValue(questionMap)
+        }
+    }
+
+    private fun handleCorrectAnswer() {
+        // Increase player score
+        playerScore += 10
+        playerScoreText.text = playerScore.toString()
+        
+        // Check if special ability effect is triggered (zastępuje sprawdzanie efektu różdżki)
+        val isSpecialEffectTriggered = random.nextFloat() < 0.25f // 25% szans na aktywację
+        
+        // Calculate damage based on character stats
+        val damage = calculateDamage(
+            playerCharacter.baseAttack, 
+            enemyCharacter.defense,
+            isSpecialEffectTriggered
+        )
+        
+        // Apply element effect if triggered
+        if (isSpecialEffectTriggered) {
+            applyElementEffect(playerCharacter.element)
+        }
+        
+        // Apply damage to opponent
+        opponentHealth = (opponentHealth - damage).coerceAtLeast(0)
+        
+        // Show damage text
+        playerDamageText.text = "+" + damage.toString()
+        playerDamageText.visibility = View.VISIBLE
+        animateDamageText(playerDamageText)
+        
+        // Update opponent's health bar
+        animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+        updateHealthBarColor(opponentHealthBar, opponentHealth)
+        opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+        
+        // Check if opponent is defeated
+        if (opponentHealth <= 0) {
+            showResults()
+            return
+        }
+        
+        // Play correct answer animation and feedback
+        feedbackText.text = "Poprawna odpowiedź!"
+        feedbackText.setTextColor(resources.getColor(R.color.correct_green, theme))
+        feedbackText.visibility = View.VISIBLE
+        
+        // Load next question after delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            feedbackText.visibility = View.INVISIBLE
+            playerDamageText.visibility = View.INVISIBLE
+            
+            // Proceed to next question
+            if (currentQuestionIndex < questions.size - 1) {
+                currentQuestionIndex++
+                displayQuestion()
+            } else {
+                // If we've gone through all questions but neither player nor opponent is defeated,
+                // determine winner by score
+                showResults()
+            }
+        }, 1500)
+    }
+
+    private fun calculateDamage(attack: Int, defense: Int, isSpecialEffectTriggered: Boolean): Int {
+        val baseDamage = (attack - defense * 0.5).coerceAtLeast(1.0).toInt()
+        
+        // Apply element effect multiplier if triggered
+        if (isSpecialEffectTriggered && playerCharacter.element == ElementType.FIRE) {
+            val multiplier = playerCharacter.element.getEffectiveness(ElementType.FIRE)
+            return (baseDamage * multiplier).toInt()
+        }
+        
+        return baseDamage
+    }
+
+    private fun applyElementEffect(elementType: ElementType) {
+        // Show effect animation
+        elementEffectContainer.visibility = View.VISIBLE
+        elementEffectImage.setImageResource(when (elementType) {
+            ElementType.FIRE -> R.drawable.effect_fire
+            ElementType.ICE -> R.drawable.effect_ice
+            ElementType.LIGHTNING -> R.drawable.effect_lightning
+        })
+        
+        // Play animation
+        val animation = AnimationUtils.loadAnimation(this, R.anim.effect_animation)
+        elementEffectImage.startAnimation(animation)
+        
+        // Apply specific effect based on element type
+        when (elementType) {
+            ElementType.FIRE -> {
+                // Fire effect: opponent takes additional damage
+                val additionalDamage = calculateDamage(playerCharacter.baseAttack, enemyCharacter.defense, false)
+                opponentHealth -= additionalDamage
+                opponentDamageText.text = "-${additionalDamage}"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+            }
+            ElementType.ICE -> {
+                // Ice effect: opponent can't attack next turn
+                enemyFrozen = true
+                opponentDamageText.text = "Odp. zablokowana!"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+            }
+            ElementType.LIGHTNING -> {
+                // Lightning effect: reduces opponent defense temporarily
+                enemyDefenseReduced = true
+                opponentDamageText.text = "Obrona przeciwnika obniżona!"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+            }
+        }
+        
+        // Hide effect after delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            elementEffectContainer.visibility = View.GONE
+        }, 2000)
+    }
+
+    private fun showEffect(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun handleIncorrectAnswer() {
+        // Check if ice shield effect is active
+        var defenseMod = 1.0
+        if (playerDefenseIncreased) {
+            defenseMod = 1.2 // 20% bonus to defense from ice element
+            playerDefenseIncreased = false
+        }
+        
+        // Check if opponent defense is reduced
+        var attackMod = 1.0
+        if (enemyDefenseReduced) {
+            attackMod = 1.3 // 30% bonus to attack against reduced defense
+            enemyDefenseReduced = false
+        }
+        
+        // Calculate damage based on enemy character stats
+        val damage = calculateEnemyDamage(
+            enemyCharacter.baseAttack,
+            playerCharacter.defense,
+            defenseMod,
+            attackMod
+        )
+
+        // Apply damage to player
+        playerHealth = (playerHealth - damage).coerceAtLeast(0)
+        
+        // Show damage text
+        opponentDamageText.text = "+" + damage.toString()
+        opponentDamageText.visibility = View.VISIBLE
+        animateDamageText(opponentDamageText)
+        
+        // Update health bar
+        animateHealthBar(playerHealthBar, playerHealthBar.progress, playerHealth)
+        updateHealthBarColor(playerHealthBar, playerHealth)
+        playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
+        
+        // Check if player is defeated
+        if (playerHealth <= 0) {
+            showResults()
+            return
+        }
+        
+        // Play incorrect answer animation and feedback
+        feedbackText.text = "Błędna odpowiedź!"
+        feedbackText.setTextColor(resources.getColor(R.color.incorrect_red, theme))
+        feedbackText.visibility = View.VISIBLE
+        
+        // Load next question after delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            feedbackText.visibility = View.INVISIBLE
+            opponentDamageText.visibility = View.INVISIBLE
+            
+            // Proceed to next question
+            if (currentQuestionIndex < questions.size - 1) {
+                currentQuestionIndex++
+                displayQuestion()
+            } else {
+                // If we've gone through all questions but neither player nor opponent is defeated,
+                // determine winner by score
+                showResults()
+            }
+        }, 1500)
+    }
+    
+    private fun calculateEnemyDamage(attack: Int, defense: Int, defenseMod: Double = 1.0, attackMod: Double = 1.0): Int {
+        val modifiedAttack = (attack * attackMod).toInt()
+        val modifiedDefense = (defense * defenseMod).toInt()
+        val baseDamage = (modifiedAttack - modifiedDefense * 0.5).coerceAtLeast(1.0).toInt()
+        
+        // Add some randomness
+        val minDamage = (baseDamage * 0.8).toInt()
+        val maxDamage = (baseDamage * 1.2).toInt()
+        return random.nextInt(maxDamage - minDamage + 1) + minDamage
+    }
+
+    private fun createInitialEnemyForStage() {
+        // Tymczasowy przeciwnik do inicjalizacji, bez zależności od playerCharacter
+        val elementTypes = ElementType.values()
+        val randomElement = elementTypes[random.nextInt(elementTypes.size)]
+        
+        val enemyNames = arrayOf(
+            "Ognisty Golem", "Lodowy Gigant", "Burza Błyskawic",
+            "Piekielny Strażnik", "Zamrożony Demon", "Elektryczny Duszek",
+            "Magma", "Mróz", "Iskra"
+        )
+        
+        val nameIndex = when (randomElement) {
+            ElementType.FIRE -> 0 + (stageNumber - 1) % 3
+            ElementType.ICE -> 1 + (stageNumber - 1) % 3
+            ElementType.LIGHTNING -> 2 + (stageNumber - 1) % 3
+        }
+        
+        val name = enemyNames[nameIndex]
+        
+        // Skalowanie statystyk przeciwnika w zależności od poziomu etapu
+        val baseHp = 80 + (stageNumber * 10)
+        val baseAttack = 6 + (stageNumber)
+        val baseDefense = 2 + (stageNumber / 2)
+        
+        enemyCharacter = DuelBattleEnemy(
+            id = "enemy_stage_$stageNumber",
+            name = name,
+            element = randomElement,
+            imageResId = when (randomElement) {
+                ElementType.FIRE -> R.drawable.ic_fire_enemy
+                ElementType.ICE -> R.drawable.ic_ice_enemy
+                ElementType.LIGHTNING -> R.drawable.ic_lightning_enemy
+            },
+            hp = baseHp,
+            attack = baseAttack,
+            defense = baseDefense,
+            description = "Przeciwnik poziomu $stageNumber",
+            stageId = stageNumber
+        )
     }
 } 

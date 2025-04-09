@@ -384,20 +384,73 @@ class DuelsActivity : AppCompatActivity() {
         if (requestCode == REQUEST_DUEL_BATTLE && resultCode == RESULT_OK && data != null) {
             val completedStage = data.getIntExtra("COMPLETED_STAGE", -1)
             val stars = data.getIntExtra("STAGE_STARS", 0)
-            val xpGained = data.getIntExtra("XP_GAINED", 0)
-            val coinsGained = data.getIntExtra("COINS_GAINED", 0)
+            var xpGained = data.getIntExtra("XP_GAINED", 0)
+            var coinsGained = data.getIntExtra("COINS_GAINED", 0)
+            var shouldAddBronzeArmor = stars == 3
             
             if (completedStage > 0) {
-                // Jeśli etap został ukończony
-                completeStage(completedStage, stars)
+                // Sprawdź, czy etap był już wcześniej ukończony i z iloma gwiazdkami
+                val previousStars = stageStars[completedStage] ?: 0
                 
-                // Dodajemy zdobyte XP i monety
-                updateRewards(xpGained, coinsGained)
+                // Jeśli etap był już ukończony, dostosuj nagrody
+                if (completedStage in completedStages) {
+                    when {
+                        // Jeśli wcześniej ukończono na 3 gwiazdki, nie ma dodatkowych nagród
+                        previousStars == 3 -> {
+                            xpGained = 0
+                            coinsGained = 0
+                            shouldAddBronzeArmor = false
+                            
+                            Toast.makeText(this, 
+                                "Etap $completedStage już został ukończony na 3 gwiazdki! Brak dodatkowych nagród.", 
+                                Toast.LENGTH_LONG).show()
+                            
+                            // Nie aktualizuj liczby gwiazdek, tylko wyjdź
+                            return
+                        }
+                        
+                        // Jeśli gracz poprawił swój wynik (więcej gwiazdek)
+                        stars > previousStars -> {
+                            // Zredukowane nagrody za poprawę wyniku
+                            xpGained = (xpGained * 0.5).toInt()
+                            
+                            // Zachowaj pełne monety
+                            // Zachowaj nagrodę za zbroję, jeśli osiągnięto 3 gwiazdki
+                            shouldAddBronzeArmor = stars == 3
+                            
+                            Toast.makeText(this, 
+                                "Poprawiłeś swój wynik z $previousStars na $stars gwiazdki! Zdobyto: $xpGained XP, $coinsGained monet" + 
+                                    (if (shouldAddBronzeArmor) ", +brązowa zbroja" else ""), 
+                                Toast.LENGTH_LONG).show()
+                        }
+                        
+                        // Jeśli liczba gwiazdek jest taka sama lub niższa
+                        else -> {
+                            // Minimalna nagroda za ponowne ukończenie
+                            xpGained = 0
+                            coinsGained = (coinsGained * 0.25).toInt()
+                            shouldAddBronzeArmor = false
+                            
+                            Toast.makeText(this, 
+                                "Etap $completedStage już został ukończony z lepszym wynikiem. Zdobyto: $coinsGained monet.", 
+                                Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    // Pierwsze ukończenie etapu - pełne nagrody
+                    Toast.makeText(this, 
+                        "Etap $completedStage ukończony! Zdobyto: $xpGained XP, $coinsGained monet, $stars ⭐" +
+                            (if (shouldAddBronzeArmor) ", +brązowa zbroja" else ""), 
+                        Toast.LENGTH_LONG).show()
+                }
                 
-                // Wyświetlamy Toast z informacją o zdobytych nagrodach
-                Toast.makeText(this, 
-                    "Zdobyto: $xpGained XP, $coinsGained monet, $stars ⭐", 
-                    Toast.LENGTH_LONG).show()
+                // Aktualizuj etap w danych gracza
+                completeStage(completedStage, stars, shouldAddBronzeArmor)
+                
+                // Dodajemy zdobyte XP i monety (mogą być zredukowane)
+                if (xpGained > 0 || coinsGained > 0) {
+                    updateRewards(xpGained, coinsGained)
+                }
             }
         }
     }
@@ -415,29 +468,28 @@ class DuelsActivity : AppCompatActivity() {
     }
     
     private fun checkLevelUp() {
-        // Prosta formuła wymaganego XP do następnego poziomu: level * 100
+        // Nie zwiększamy poziomu na podstawie XP - tylko po pokonaniu bossa
+        // Zostawiamy kod obsługi XP dla innych celów, ale bez zmiany poziomu
+        
+        // Prosta formuła wymaganego XP do następnego poziomu: level * 100 - używamy do innych celów
         val requiredXpForNextLevel = userLevel * 100
         
         if (userXp >= requiredXpForNextLevel) {
-            // Awans na następny poziom
-            userLevel++
+            // Resetujemy XP powyżej progu, ale nie zwiększamy poziomu automatycznie
             userXp -= requiredXpForNextLevel
             
-            // Dodatkowa nagroda za awans
-            userCoins += 50
+            // Dodatkowa nagroda za przekroczenie progu XP
+            userCoins += 25
             
-            // Pokaż informację o awansie
+            // Pokaż informację o nagrodzie
             Toast.makeText(this, 
-                "Gratulacje! Awansowałeś na poziom $userLevel! +50 monet", 
+                "Zdobyłeś dodatkowe monety za osiągnięcie progu XP! +25 monet", 
                 Toast.LENGTH_LONG).show()
-            
-            // Aktualizuj UI
-            playerLevelText.text = "Level $userLevel"
         }
     }
     
     // Called from DuelBattleActivity when a stage is completed
-    fun completeStage(stageNumber: Int, stars: Int) {
+    fun completeStage(stageNumber: Int, stars: Int, shouldAddBronzeArmor: Boolean = true) {
         // Add to completed stages
         completedStages.add(stageNumber)
         
@@ -447,9 +499,36 @@ class DuelsActivity : AppCompatActivity() {
             stageStars[stageNumber] = stars
         }
         
-        // Unlock next stage if not the last one
+        // Określ, który etap jest bossem na tym poziomie (ostatni etap na tym poziomie)
+        val bossStageLevels = listOf(3, 6, 9, 10) // Przykładowo: etapy 3, 6, 9, 10 są bossami
+        
+        // Sprawdź czy ukończony etap jest bossem
+        val isBossStage = bossStageLevels.contains(stageNumber)
+        
+        // Odblokuj następny etap, jeśli nie ostatni
         if (stageNumber < TOTAL_STAGES) {
             unlockedStages.add(stageNumber + 1)
+        }
+        
+        // Jeśli pokonano bossa, zwiększ poziom gracza
+        if (isBossStage) {
+            userLevel++
+            
+            // Dodatkowa nagroda za pokonanie bossa
+            userCoins += 50
+            
+            // Pokaż informację o awansie
+            Toast.makeText(this, 
+                "Gratulacje! Pokonałeś bossa i awansowałeś na poziom $userLevel! +50 monet", 
+                Toast.LENGTH_LONG).show()
+            
+            // Aktualizuj UI
+            playerLevelText.text = "Level $userLevel"
+        }
+        
+        // Dodaj brązową zbroję, jeśli uzyskano 3 gwiazdki i jeśli jest to wymagane
+        if (stars == 3 && shouldAddBronzeArmor) {
+            addBronzeArmorToUserEquipment()
         }
         
         // Save to Firebase
@@ -457,6 +536,78 @@ class DuelsActivity : AppCompatActivity() {
         
         // Update UI
         updateUI()
+    }
+    
+    // Metoda do dodawania brązowej zbroi do ekwipunku gracza
+    private fun addBronzeArmorToUserEquipment() {
+        // Najpierw sprawdź, czy użytkownik jest zalogowany
+        if (userId == null) return
+        
+        val userRef = database.reference.child("users").child(userId!!)
+        
+        // Pobierz aktualny ekwipunek użytkownika
+        userRef.child("equipment").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                try {
+                    // Odczytaj dane ekwipunku
+                    val armorTierRaw = snapshot.child("armorTier").getValue()
+                    val armorTier = when {
+                        armorTierRaw is Long -> armorTierRaw.toInt()
+                        armorTierRaw is Int -> armorTierRaw
+                        armorTierRaw is String -> try { armorTierRaw.toInt() } catch (e: Exception) { 0 }
+                        else -> 0
+                    }
+                    
+                    val bronzeArmorCount = when {
+                        snapshot.child("bronzeArmorCount").getValue(Long::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(Long::class.java)!!.toInt()
+                        snapshot.child("bronzeArmorCount").getValue(Int::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(Int::class.java)!!
+                        snapshot.child("bronzeArmorCount").getValue(String::class.java) != null ->
+                            snapshot.child("bronzeArmorCount").getValue(String::class.java)!!.toInt()
+                        else -> 0
+                    }
+                    
+                    // Zwiększ liczbę brązowych zbroi o 1
+                    val newBronzeArmorCount = bronzeArmorCount + 1
+                    
+                    // Sprawdź, czy następuje awans zbroi (co 10 sztuk)
+                    val newArmorTier = if (newBronzeArmorCount >= 10) {
+                        // Resetuj licznik i zwiększ poziom zbroi
+                        userRef.child("equipment").child("bronzeArmorCount").setValue(0)
+                        armorTier + 1 // Awans do następnego poziomu
+                    } else {
+                        // Aktualizuj tylko liczbę brązowych zbroi
+                        userRef.child("equipment").child("bronzeArmorCount").setValue(newBronzeArmorCount)
+                        armorTier // Zachowaj ten sam poziom
+                    }
+                    
+                    // Jeśli nastąpił awans, zaktualizuj poziom zbroi
+                    if (newArmorTier > armorTier) {
+                        userRef.child("equipment").child("armorTier").setValue(newArmorTier)
+                        
+                        // Pokaż informację o awansie zbroi
+                        Toast.makeText(this@DuelsActivity, 
+                            "Gratulacje! Twoja zbroja została ulepszona do poziomu $newArmorTier!\n" +
+                            "Odblokowano nowy wygląd postaci z lepszą ochroną!", 
+                            Toast.LENGTH_LONG).show()
+                    } else {
+                        // Pokaż informację o zbieraniu zbroi
+                        Toast.makeText(this@DuelsActivity, 
+                            "Zdobyłeś brązową zbroję! ($newBronzeArmorCount/10)\n" +
+                            "Zbierz jeszcze ${10 - newBronzeArmorCount} sztuk, aby awansować na wyższy poziom.", 
+                            Toast.LENGTH_LONG).show()
+                    }
+                    
+                } catch (e: Exception) {
+                    Log.e("DuelsActivity", "Błąd podczas dodawania brązowej zbroi: ${e.message}")
+                }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelsActivity", "Błąd podczas pobierania ekwipunku: ${error.message}")
+            }
+        })
     }
     
     private fun limitMapScrolling() {

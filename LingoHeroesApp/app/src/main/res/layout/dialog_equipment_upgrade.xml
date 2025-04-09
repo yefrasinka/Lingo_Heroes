@@ -153,6 +153,33 @@
                                 android:layout_marginStart="4dp"/>
                         </LinearLayout>
                     </LinearLayout>
+                    
+                    <!-- Extra info about armor count or wand effects -->
+                    <TextView
+                        android:id="@+id/extraInfoText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Zebrane zbroje: 0/10"
+                        android:textSize="14sp"
+                        android:textColor="#757575"
+                        android:visibility="gone"/>
+                    
+                    <!-- Container for informacje o zbrojach -->
+                    <LinearLayout
+                        android:id="@+id/extraInfoLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="16dp"/>
+                    
+                    <!-- Container for extra UI elements like wand type buttons -->
+                    <LinearLayout
+                        android:id="@+id/extraInfoContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

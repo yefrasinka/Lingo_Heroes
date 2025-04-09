@@ -84,6 +84,15 @@
                     android:progressTint="#4CAF50" />
 
                 <TextView
+                    android:id="@+id/playerHealthText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="100/100"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp" />
+
+                <TextView
                     android:id="@+id/playerScoreText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -167,6 +176,15 @@
                     android:layout_marginStart="8dp"
                     android:progress="100"
                     android:progressTint="#F44336" />
+
+                <TextView
+                    android:id="@+id/opponentHealthText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="100/100"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp" />
 
                 <TextView
                     android:layout_width="wrap_content"

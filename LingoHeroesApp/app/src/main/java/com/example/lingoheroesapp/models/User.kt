@@ -1,7 +1,8 @@
 package com.example.lingoheroesapp.models
 
-import com.google.firebase.database.PropertyName
+import com.google.firebase.database.Exclude
 import com.google.firebase.database.IgnoreExtraProperties
+import com.google.firebase.database.PropertyName
 
 @IgnoreExtraProperties
 data class User(
@@ -12,8 +13,8 @@ data class User(
     val xp: Int = 0,                      // Punkty doświadczenia
     val coins: Int = 0,                   // Waluta w grze
     val purchasedItems: List<String> = emptyList(),
-    val topicsProgress: Map<String, TopicProgress> = mapOf(),  // Postęp w tematach
-    val achievements: Map<String, Achievement> = mapOf(),      // Osiągnięcia użytkownika
+    @PropertyName("topicsProgress") val topicsProgress: Map<String, TopicProgress> = mapOf(),  // Postęp w tematach
+    @PropertyName("achievements") val achievements: Map<String, Achievement> = mapOf(),      // Osiągnięcia użytkownika
     val streakDays: Int = 0,              // Seria dni nauki
     val perfectScores: Int = 0,           // Liczba idealnych wyników
     val tasksCompleted: Int = 0,          // Liczba ukończonych zadań
@@ -21,16 +22,16 @@ data class User(
     val equipment: Equipment = Equipment(), // Ekwipunek postaci gracza
     
     // Pola dla systemu wyzwań
-    val challenges: Map<String, Challenge> = mapOf(),  // Wyzwania użytkownika
+    @PropertyName("challenges") val challenges: Map<String, Challenge> = mapOf(),  // Wyzwania użytkownika
     val lastDayTasksCount: Int = 0,       // Liczba zadań z ostatniego dnia
     val lastDayTimestamp: Long = 0,       // Timestamp ostatniego dnia
     val todaysPerfectTasks: Int = 0,      // Liczba perfekcyjnych zadań dzisiaj
     val todaysTotalTasks: Int = 0,        // Całkowita liczba zadań dzisiaj
     val lastPerfectDay: Long = 0,          // Timestamp ostatniego perfekcyjnego dnia
     val character: Character? = null,
-    val stagesCompleted: Map<String, Boolean> = mapOf(),
-    val stageStars: Map<String, Int> = mapOf(),
-    val inventory: Map<String, Int> = mapOf()
+    @PropertyName("stagesCompleted") val stagesCompleted: Map<String, Boolean> = mapOf(),
+    @PropertyName("stageStars") val stageStars: Map<String, Int> = mapOf(),
+    @PropertyName("inventory") val inventory: Map<String, Int> = mapOf()
 ) {
     // Konstruktor bezargumentowy wymagany przez Firebase
     constructor() : this(
