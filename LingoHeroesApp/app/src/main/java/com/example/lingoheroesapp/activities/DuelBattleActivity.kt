@@ -43,6 +43,9 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
+// Dodatkowe importy
+import com.example.lingoheroesapp.utils.DuelAnimationManager
+
 class DuelBattleActivity : AppCompatActivity() {
 
     // UI Components
@@ -56,8 +59,6 @@ class DuelBattleActivity : AppCompatActivity() {
     private lateinit var playerDamageText: TextView
     private lateinit var opponentDamageText: TextView
     private lateinit var feedbackText: TextView
-    private lateinit var playerAvatar: ImageView
-    private lateinit var opponentAvatar: ImageView
     private lateinit var playerElementBadge: ImageView
     private lateinit var opponentElementBadge: ImageView
     private lateinit var playerName: TextView
@@ -72,8 +73,6 @@ class DuelBattleActivity : AppCompatActivity() {
     private lateinit var opponentHealthText: TextView
     private lateinit var playerNameText: TextView
     private lateinit var opponentNameText: TextView
-    private lateinit var playerCharacterImage: ImageView
-    private lateinit var opponentCharacterImage: ImageView
     
     // Element effectiveness UI
     private lateinit var elementEffectivenessContainer: LinearLayout
@@ -134,6 +133,20 @@ class DuelBattleActivity : AppCompatActivity() {
     
     // Dodaję flagę do śledzenia wyświetlenia raportu
     private var reportShown = false
+    
+    // Dodajemy nowe referencje do elementów UI
+    private lateinit var playerCharacterView: ImageView
+    private lateinit var monsterCharacterView: ImageView
+    private lateinit var attackAnimationContainer: FrameLayout
+    private lateinit var playerAttackAnimation: ImageView
+    private lateinit var monsterAttackAnimation: ImageView
+    private lateinit var questionContainer: CardView
+    
+    // Menedżer animacji
+    private lateinit var animationManager: DuelAnimationManager
+    
+    // Flagi stanu animacji
+    private var isAnimationInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -160,6 +173,9 @@ class DuelBattleActivity : AppCompatActivity() {
         // Teraz ładujemy prawdziwe dane postaci z Firebase
         loadPlayerCharacter()
         loadEnemyForStage()
+        
+        // Inicjalizacja menedżera animacji
+        animationManager = DuelAnimationManager()
     }
     
     private fun initViews() {
@@ -178,8 +194,9 @@ class DuelBattleActivity : AppCompatActivity() {
         playerDamageText = findViewById(R.id.playerDamageText)
         opponentDamageText = findViewById(R.id.opponentDamageText)
         feedbackText = findViewById(R.id.feedbackText)
-        playerAvatar = findViewById(R.id.playerAvatar)
-        opponentAvatar = findViewById(R.id.opponentAvatar)
+        
+        // Usunięto odwołania do playerAvatar i opponentAvatar
+        
         playerElementBadge = findViewById(R.id.playerElementBadge)
         opponentElementBadge = findViewById(R.id.opponentElementBadge)
         playerName = findViewById(R.id.playerName)
@@ -206,8 +223,19 @@ class DuelBattleActivity : AppCompatActivity() {
         // Referencje do elementów potrzebnych przy aktualizowaniu UI
         playerNameText = playerName
         opponentNameText = opponentName
-        playerCharacterImage = playerAvatar
-        opponentCharacterImage = opponentAvatar
+        
+        // Inicjalizacja nowych elementów UI
+        playerCharacterView = findViewById(R.id.playerCharacter)
+        monsterCharacterView = findViewById(R.id.monsterCharacter)
+        attackAnimationContainer = findViewById(R.id.attackAnimationContainer)
+        playerAttackAnimation = findViewById(R.id.playerAttackAnimation)
+        monsterAttackAnimation = findViewById(R.id.monsterAttackAnimation)
+        questionContainer = findViewById(R.id.questionContainer)
+        
+        // Ustawienie widoczności kontenerów animacji
+        attackAnimationContainer.visibility = View.GONE
+        playerAttackAnimation.visibility = View.GONE
+        monsterAttackAnimation.visibility = View.GONE
         
         // Set up answer button click listeners
         answerButtons.forEachIndexed { index, button ->
@@ -540,6 +568,9 @@ class DuelBattleActivity : AppCompatActivity() {
         
         // Aktualizuj tekst specjalnej zdolności
         updateSpecialAbilityButtonText()
+        
+        // Zaktualizuj obrazek postaci gracza (poprawiona ścieżka do zasobu)
+        playerCharacterView.setImageResource(R.drawable.duels_characters_wizard)
     }
     
     private fun updateEnemyUI() {
@@ -558,10 +589,13 @@ class DuelBattleActivity : AppCompatActivity() {
         // Aktualizuj tekst HP
         opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
         
-        // Możemy dostosować awatar przeciwnika, jeśli mamy odpowiednie zasoby
-        if (enemyCharacter.imageResId != 0) {
-            opponentAvatar.setImageResource(enemyCharacter.imageResId)
+        // Zaktualizuj obrazek potwora na podstawie etapu (poprawione ścieżki do zasobów)
+        val monsterDrawable = when (stageNumber % 3) {
+            0 -> R.drawable.duels_monsters_ogr_removebg_preview
+            1 -> R.drawable.duels_monsters_goblin_removebg_preview
+            else -> R.drawable.duels_monsters_bat_removebg_preview
         }
+        monsterCharacterView.setImageResource(monsterDrawable)
     }
     
     private fun updateElementEffectivenessUI() {
@@ -609,8 +643,39 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun useSpecialAbility() {
-        if (!isSpecialAbilityAvailable) return
+        if (specialAbilityCooldown > 0 || isAnimationInProgress) {
+            return
+        }
         
+        isAnimationInProgress = true
+        
+        // Wywołaj animację specjalnej zdolności
+        animationManager.animateSpecialAbility(
+            elementEffectContainer,
+            elementEffectImage,
+            playerCharacter.element.toWandType()
+        ) {
+            // Zastosuj efekt specjalnej zdolności
+            applySpecialAbilityEffect()
+            
+            // Ustaw cooldown
+            specialAbilityCooldown = playerCharacter.specialAbilityCooldown
+            updateSpecialAbilityButtonText()
+            
+            isAnimationInProgress = false
+        }
+    }
+    
+    // Rozszerzenie dla ElementType, które konwertuje go na WandType
+    private fun ElementType.toWandType(): WandType {
+        return when (this) {
+            ElementType.FIRE -> WandType.FIRE
+            ElementType.ICE -> WandType.ICE
+            ElementType.LIGHTNING -> WandType.LIGHTNING
+        }
+    }
+    
+    private fun applySpecialAbilityEffect() {
         // Zastosuj efekt specjalnej zdolności w zależności od elementu
         when (playerCharacter.element) {
             ElementType.FIRE -> {
@@ -676,11 +741,6 @@ class DuelBattleActivity : AppCompatActivity() {
         // Aktualizuj UI
         updateScoreAndHealth()
         
-        // Resetuj dostępność specjalnej zdolności i ustaw cooldown
-        isSpecialAbilityAvailable = false
-        specialAbilityCooldown = playerCharacter.specialAbilityCooldown
-        updateSpecialAbilityButtonText()
-        
         // Sprawdź, czy gra się skończyła
         if (opponentHealth <= 0) {
             Handler(Looper.getMainLooper()).postDelayed({
@@ -718,9 +778,10 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun handleAnswerSelection(selectedIndex: Int) {
-        if (isAnswerSelected) return
+        if (isAnswerSelected || isAnimationInProgress) return
         
         isAnswerSelected = true
+        isAnimationInProgress = true
         timer?.cancel()
         
         val isCorrect = selectedIndex == correctAnswerIndex
@@ -731,6 +792,15 @@ class DuelBattleActivity : AppCompatActivity() {
             mistakes.add("Pytanie: ${question.question}\n" +
                         "Twoja odpowiedź: ${answerButtons[selectedIndex].text}\n" +
                         "Poprawna odpowiedź: ${question.correctAnswer}")
+            
+            // Podświetl niepoprawną odpowiedź
+            animationManager.animateIncorrectAnswer(answerButtons[selectedIndex])
+            
+            // Podświetl poprawną odpowiedź
+            animationManager.animateCorrectAnswer(answerButtons[correctAnswerIndex])
+        } else {
+            // Podświetl poprawną odpowiedź
+            animationManager.animateCorrectAnswer(answerButtons[selectedIndex])
         }
         
         // Calculate damage based on correctness and time
@@ -751,18 +821,53 @@ class DuelBattleActivity : AppCompatActivity() {
         updateScoreAndHealth()
         showFeedback(isCorrect, damage)
         
-        // Check if the game is over
-        if (playerHealth <= 0 || opponentHealth <= 0) {
-            stageCompleted = opponentHealth <= 0
-            Handler(Looper.getMainLooper()).postDelayed({
-                showResults()
-            }, 1500)
-        } else {
-            // Move to next question after delay
-            Handler(Looper.getMainLooper()).postDelayed({
-                currentQuestionIndex++
-                displayQuestion()
-            }, 2000)
+        // Ukryj pytanie z animacją
+        animationManager.animateQuestionDisappear(questionContainer) {
+            // Wykonaj animację ataku
+            if (isCorrect) {
+                // Animacja ataku gracza
+                animationManager.animatePlayerAttack(
+                    playerCharacterView,
+                    monsterCharacterView,
+                    attackAnimationContainer,
+                    playerAttackAnimation,
+                    playerCharacter.element.toWandType(),
+                    opponentDamageText,
+                    damage
+                ) {
+                    // Sprawdź, czy gra się skończyła
+                    if (playerHealth <= 0 || opponentHealth <= 0) {
+                        stageCompleted = opponentHealth <= 0
+                        showResults()
+                    } else {
+                        // Przejdź do następnego pytania
+                        currentQuestionIndex++
+                        isAnimationInProgress = false
+                        displayQuestion()
+                    }
+                }
+            } else {
+                // Animacja ataku przeciwnika
+                animationManager.animateMonsterAttack(
+                    playerCharacterView,
+                    monsterCharacterView,
+                    attackAnimationContainer,
+                    monsterAttackAnimation,
+                    playerDamageText,
+                    damage
+                ) {
+                    // Sprawdź, czy gra się skończyła
+                    if (playerHealth <= 0 || opponentHealth <= 0) {
+                        stageCompleted = opponentHealth <= 0
+                        showResults()
+                    } else {
+                        // Przejdź do następnego pytania
+                        currentQuestionIndex++
+                        isAnimationInProgress = false
+                        displayQuestion()
+                    }
+                }
+            }
         }
     }
     
@@ -949,68 +1054,46 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun displayQuestion() {
-        // Jeśli skończą się pytania, ładuj kolejną porcję lub zacznij od początku
         if (currentQuestionIndex >= questions.size) {
-            // Jeśli nie ma już więcej pytań, zacznij od początku lub załaduj nowe pytania
-            currentQuestionIndex = 0
-            
-            // Można też dodać więcej pytań z bazy danych, jeśli są dostępne
-            loadMoreQuestionsIfNeeded()
-        }
-        
-        // Kontynuuj tylko jeśli gra się nie skończyła
-        if (playerHealth <= 0 || opponentHealth <= 0) {
+            // Gdy skończą się pytania, pokaż wyniki
             showResults()
             return
         }
-        
-        val question = questions[currentQuestionIndex]
-        
-        // Display question text
-        questionText.text = question.question
-        
-        // Get all possible answers including the correct one
-        val answers = ArrayList<String>()
-        answers.addAll(question.incorrectAnswers)
-        answers.add(question.correctAnswer)
-        
-        // Shuffle answers
-        answers.shuffle()
-        
-        // Find index of correct answer
-        correctAnswerIndex = answers.indexOf(question.correctAnswer)
-        
-        // Display answers on buttons
-        for (i in answerButtons.indices) {
-            if (i < answers.size) {
-                answerButtons[i].text = answers[i]
-                answerButtons[i].visibility = View.VISIBLE
-            } else {
-                answerButtons[i].visibility = View.GONE
-            }
-        }
-        
-        // Reset UI state for new question
+
+        // Resetuj stan
         isAnswerSelected = false
-        for (button in answerButtons) {
-            button.isEnabled = true
-            button.setBackgroundResource(R.drawable.button_normal)
-            button.setTypeface(null, Typeface.NORMAL)
+        
+        // Pokaż pytanie z animacją
+        animationManager.animateQuestionAppear(questionContainer) {
+            // Pokaż przyciski odpowiedzi
+            answerButtons.forEach { it.isEnabled = true }
+            
+            // Ustaw pytanie
+            val question = questions[currentQuestionIndex]
+            questionText.text = question.question
+            
+            // Ustaw odpowiedzi - używamy właściwości answers z klasy Question zamiast własnej metody
+            val answers = ArrayList(question.answers)
+            // Losowo mieszamy odpowiedzi
+            answers.shuffle()
+            
+            answerButtons.forEachIndexed { index, button ->
+                button.text = answers[index]
+                button.background = ContextCompat.getDrawable(this, R.drawable.button_answer_normal)
+            }
+            
+            // Zapisz poprawną odpowiedź
+            correctAnswerIndex = answers.indexOf(question.correctAnswer)
+            
+            // Rozpocznij licznik czasu
+            startQuestionTimer()
+            
+            // Zapamiętaj czas rozpoczęcia pytania
+            currentQuestionStartTime = System.currentTimeMillis()
         }
-        
-        // Reset feedback and damage texts
-        feedbackText.visibility = View.INVISIBLE
-        playerDamageText.visibility = View.INVISIBLE
-        opponentDamageText.visibility = View.INVISIBLE
-        
-        // Start timer
-        startTimer()
-        
-        // Start battle timer
-        currentQuestionStartTime = System.currentTimeMillis()
     }
     
-    private fun startTimer() {
+    private fun startQuestionTimer() {
         // Cancel existing timer if any
         timer?.cancel()
         

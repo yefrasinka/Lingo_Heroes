@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background_duel_battle"
+    android:background="@drawable/duels_duels_background_bg_photoroom"
     tools:context=".activities.DuelBattleActivity">
 
     <!-- Górny pasek z informacjami o graczach -->
@@ -15,6 +15,7 @@
         android:orientation="horizontal"
         android:padding="16dp"
         android:gravity="center_vertical"
+        android:background="#80000000"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -33,18 +34,9 @@
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:id="@+id/playerAvatar"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_player_avatar"
-                    android:contentDescription="Player Avatar" />
-
-                <ImageView
                     android:id="@+id/playerElementBadge"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginStart="-12dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:src="@drawable/ic_fire"
                     android:contentDescription="Player Element" />
 
@@ -55,7 +47,7 @@
                     android:layout_marginStart="8dp"
                     android:text="Gracz"
                     android:textStyle="bold"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textColor="@android:color/white" />
             </LinearLayout>
 
@@ -71,13 +63,13 @@
                     android:layout_height="wrap_content"
                     android:text="HP:"
                     android:textColor="@android:color/white"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
 
                 <ProgressBar
                     android:id="@+id/playerHealthBar"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="10dp"
                     android:layout_weight="1"
                     android:layout_marginStart="4dp"
                     android:progress="100"
@@ -90,7 +82,7 @@
                     android:layout_marginStart="4dp"
                     android:text="100/100"
                     android:textColor="@android:color/white"
-                    android:textSize="10sp" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:id="@+id/playerScoreText"
@@ -98,7 +90,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="0"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#FFC107" />
             </LinearLayout>
@@ -131,24 +123,16 @@
                     android:layout_height="wrap_content"
                     android:text="Przeciwnik"
                     android:textStyle="bold"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textColor="@android:color/white" />
 
                 <ImageView
                     android:id="@+id/opponentElementBadge"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/ic_ice"
                     android:contentDescription="Opponent Element" />
-
-                <ImageView
-                    android:id="@+id/opponentAvatar"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_ice_enemy"
-                    android:contentDescription="Opponent Avatar" />
             </LinearLayout>
 
             <LinearLayout
@@ -163,7 +147,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#FFC107" />
 
@@ -171,7 +155,7 @@
                     android:id="@+id/opponentHealthBar"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="10dp"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:progress="100"
@@ -184,7 +168,7 @@
                     android:layout_marginStart="4dp"
                     android:text="100/100"
                     android:textColor="@android:color/white"
-                    android:textSize="10sp" />
+                    android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -192,12 +176,74 @@
                     android:layout_marginStart="4dp"
                     android:text="HP:"
                     android:textColor="@android:color/white"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Wskaźnik efektywności elementów -->
+    <!-- Obszar walki - postacie na scenie -->
+    <FrameLayout
+        android:id="@+id/battleArena"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintBottom_toTopOf="@id/questionContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Postać użytkownika po lewej stronie -->
+        <ImageView
+            android:id="@+id/playerCharacter"
+            android:layout_width="160dp"
+            android:layout_height="200dp"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="24dp"
+            android:layout_marginBottom="20dp"
+            android:src="@drawable/duels_characters_wizard"
+            android:scaleType="fitCenter"
+            android:contentDescription="Postać gracza" />
+
+        <!-- Postać przeciwnika po prawej stronie -->
+        <ImageView
+            android:id="@+id/monsterCharacter"
+            android:layout_width="160dp"
+            android:layout_height="200dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="20dp"
+            android:src="@drawable/duels_monsters_goblin_removebg_preview"
+            android:scaleType="fitCenter"
+            android:contentDescription="Potwór przeciwnika" />
+
+        <!-- Obszar na animacje ataków -->
+        <FrameLayout
+            android:id="@+id/attackAnimationContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <!-- Animacja ataku gracza (fireball, ice shard, lightning bolt) -->
+            <ImageView
+                android:id="@+id/playerAttackAnimation"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:contentDescription="Animacja ataku gracza" />
+
+            <!-- Animacja ataku potwora -->
+            <ImageView
+                android:id="@+id/monsterAttackAnimation"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:contentDescription="Animacja ataku potwora" />
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <!-- Wskaźnik efektywności elementów (nad polem bitwy) -->
     <LinearLayout
         android:id="@+id/elementEffectivenessContainer"
         android:layout_width="wrap_content"
@@ -205,7 +251,9 @@
         android:orientation="horizontal"
         android:background="@drawable/button_special_ability"
         android:padding="8dp"
+        android:layout_marginTop="8dp"
         android:gravity="center"
+        android:visibility="visible"
         app:layout_constraintTop_toBottomOf="@id/topBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -243,131 +291,35 @@
             android:textStyle="bold"/>
     </LinearLayout>
 
-    <!-- Przycisk specjalnej zdolności -->
-    <Button
-        android:id="@+id/specialAbilityButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Specjalna zdolność"
-        android:background="@drawable/button_special_ability"
-        android:padding="8dp"
-        android:layout_marginTop="16dp"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/elementEffectivenessContainer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <!-- Timer Progress Bar -->
-    <ProgressBar
-        android:id="@+id/timerProgressBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:progressTint="#FF9800"
-        app:layout_constraintTop_toBottomOf="@id/specialAbilityButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Question Text -->
-    <TextView
-        android:id="@+id/questionText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="#33000000"
-        android:gravity="center"
-        android:padding="16dp"
-        android:text="Pytanie"
-        android:textColor="@android:color/white"
-        android:textSize="20sp"
-        app:layout_constraintTop_toBottomOf="@id/timerProgressBar" />
-
-    <!-- Answer Buttons -->
-    <Button
-        android:id="@+id/answerButton1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="#33FFFFFF"
-        android:padding="12dp"
-        android:text="Odpowiedź 1"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/questionText" />
-
-    <Button
-        android:id="@+id/answerButton2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:background="#33FFFFFF"
-        android:padding="12dp"
-        android:text="Odpowiedź 2"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/answerButton1" />
-
-    <Button
-        android:id="@+id/answerButton3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:background="#33FFFFFF"
-        android:padding="12dp"
-        android:text="Odpowiedź 3"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/answerButton2" />
-
-    <Button
-        android:id="@+id/answerButton4"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:background="#33FFFFFF"
-        android:padding="12dp"
-        android:text="Odpowiedź 4"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/answerButton3" />
-
-    <!-- Feedback Text -->
+    <!-- Kontener na feedback po odpowiedzi -->
     <TextView
         android:id="@+id/feedbackText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:background="#50000000"
-        android:padding="8dp"
-        android:text="Feedback"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
+        android:text="Poprawna odpowiedź!"
+        android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/answerButton4"
+        android:textAlignment="center"
+        android:textColor="@android:color/white"
+        android:background="#803CAF50"
+        android:padding="8dp"
+        android:visibility="invisible"
+        app:layout_constraintTop_toTopOf="@id/battleArena"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Result Card -->
+    <!-- Kontener na pytania i odpowiedzi (na dole ekranu) -->
     <androidx.cardview.widget.CardView
-        android:id="@+id/resultCard"
+        android:id="@+id/questionContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="32dp"
-        app:cardBackgroundColor="#80000000"
         app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:cardBackgroundColor="#80000000"
+        app:cardElevation="6dp"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toTopOf="@id/timerProgressBarContainer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -376,57 +328,93 @@
             android:padding="16dp">
 
             <TextView
-                android:id="@+id/resultText"
+                android:id="@+id/questionText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="Wynik"
+                android:text="Pytanie pojawi się tutaj..."
+                android:textSize="18sp"
+                android:textStyle="bold"
                 android:textColor="@android:color/white"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="16dp" />
 
             <Button
-                android:id="@+id/continueButton"
+                android:id="@+id/answerButton1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="#4CAF50"
-                android:text="Kontynuuj"
-                android:textColor="@android:color/white" />
+                android:text="Odpowiedź 1"
+                android:layout_marginBottom="8dp"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/answerButton2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Odpowiedź 2"
+                android:layout_marginBottom="8dp"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/answerButton3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Odpowiedź 3"
+                android:layout_marginBottom="8dp"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/answerButton4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Odpowiedź 4"
+                android:textAllCaps="false" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Damage Text dla gracza - inicjalnie niewidoczne -->
-    <TextView
-        android:id="@+id/playerDamageText"
-        android:layout_width="wrap_content"
+    <!-- Kontener na timer -->
+    <LinearLayout
+        android:id="@+id/timerProgressBarContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="-10"
-        android:textColor="#F44336"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:visibility="invisible"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@id/specialAbilityButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        android:layout_marginStart="64dp"
-        android:layout_marginTop="32dp"/>
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Damage Text dla przeciwnika - inicjalnie niewidoczne -->
-    <TextView
-        android:id="@+id/opponentDamageText"
-        android:layout_width="wrap_content"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Czas:"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="8dp" />
+
+        <ProgressBar
+            android:id="@+id/timerProgressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="12dp"
+            android:layout_weight="1"
+            android:progress="100"
+            android:progressTint="#FFC107" />
+    </LinearLayout>
+
+    <!-- Przycisk specjalnej zdolności -->
+    <Button
+        android:id="@+id/specialAbilityButton"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="-10"
-        android:textColor="#4CAF50"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        android:layout_marginEnd="64dp"
-        android:layout_marginTop="32dp"/>
+        android:text="Specjalna zdolność (3)"
+        android:layout_margin="16dp"
+        android:background="@drawable/button_special_ability"
+        android:textColor="@android:color/white"
+        android:textAllCaps="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Kontener dla animacji efektu żywiołu - inicjalnie niewidoczny -->
+    <!-- Element effect container -->
     <FrameLayout
         android:id="@+id/elementEffectContainer"
         android:layout_width="match_parent"
@@ -439,11 +427,77 @@
 
         <ImageView
             android:id="@+id/elementEffectImage"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:layout_gravity="center"
-            android:src="@drawable/effect_fire"
-            android:contentDescription="Element Effect"/>
+            android:contentDescription="Element Effect" />
     </FrameLayout>
 
+    <!-- Teksty obrażeń -->
+    <TextView
+        android:id="@+id/playerDamageText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-25"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FF5722"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@id/battleArena"
+        app:layout_constraintStart_toStartOf="@id/playerCharacter"
+        app:layout_constraintEnd_toEndOf="@id/playerCharacter"
+        app:layout_constraintTop_toTopOf="@id/playerCharacter" />
+
+    <TextView
+        android:id="@+id/opponentDamageText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-25"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FF5722"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@id/battleArena"
+        app:layout_constraintStart_toStartOf="@id/monsterCharacter"
+        app:layout_constraintEnd_toEndOf="@id/monsterCharacter"
+        app:layout_constraintTop_toTopOf="@id/monsterCharacter" />
+
+    <!-- Card wyników (ukryte domyślnie) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/resultCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="10dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:id="@+id/resultText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Zwycięstwo!"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textAlignment="center"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/continueButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kontynuuj"
+                android:textAllCaps="false" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout> 
