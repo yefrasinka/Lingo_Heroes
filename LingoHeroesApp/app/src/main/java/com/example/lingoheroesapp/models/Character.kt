@@ -1,5 +1,7 @@
 package com.example.lingoheroesapp.models
 
+import com.google.firebase.database.PropertyName
+
 data class Character(
     val id: String = "",
     val name: String = "",
@@ -9,7 +11,13 @@ data class Character(
     val baseDefense: Int = 5,
     val specialAbilityName: String = "",
     val specialAbilityDescription: String = "",
-    val specialAbilityCooldown: Int = 3
+    val specialAbilityCooldown: Int = 3,
+    @get:PropertyName("hp")
+    @set:PropertyName("hp")
+    var hp: Int = 100,
+    @get:PropertyName("defense")
+    @set:PropertyName("defense")
+    var defense: Int = 5
 ) {
     // Konstruktor bezargumentowy potrzebny dla Firebase
     constructor() : this(
@@ -20,7 +28,10 @@ data class Character(
         baseAttack = 10,
         baseDefense = 5,
         specialAbilityName = "",
-        specialAbilityDescription = ""
+        specialAbilityDescription = "",
+        specialAbilityCooldown = 3,
+        hp = 100,
+        defense = 5
     )
     
     // Metoda konwertująca element do string dla Firebase
@@ -45,12 +56,14 @@ data class Character(
             baseDefense: Int = 5,
             specialAbilityName: String = "",
             specialAbilityDescription: String = "",
-            specialAbilityCooldown: Int = 3
+            specialAbilityCooldown: Int = 3,
+            hp: Int = 100,
+            defense: Int = 5
         ): Character {
             return Character(
                 id, name, ElementType.fromString(elementValue), imageResId,
                 baseAttack, baseDefense, specialAbilityName, specialAbilityDescription,
-                specialAbilityCooldown
+                specialAbilityCooldown, hp, defense
             )
         }
     }

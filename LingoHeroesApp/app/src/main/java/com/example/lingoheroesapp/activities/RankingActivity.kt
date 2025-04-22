@@ -56,12 +56,23 @@ class RankingActivity : AppCompatActivity() {
             database.child("users").child(currentUserId)
                 .addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        val user = snapshot.getValue(User::class.java)
-                        if (user != null) {
+                        try {
+                            // Ręczne odczytanie danych użytkownika zamiast automatycznej deserializacji
+                            val uid = snapshot.child("uid").getValue(String::class.java) ?: currentUserId
+                            val username = snapshot.child("username").getValue(String::class.java) ?: "Użytkownik"
+                            val xp = snapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
+                            
+                            // Tworzymy uproszczony obiekt użytkownika
+                            val user = User(
+                                uid = uid,
+                                username = username,
+                                xp = xp
+                            )
+                            
                             updateUserRankCard(user)
                             loadTop100Users()
-                        } else {
-                            showError("Nie można załadować danych użytkownika")
+                        } catch (e: Exception) {
+                            showError("Nie można załadować danych użytkownika: ${e.message}")
                         }
                     }
 
@@ -93,9 +104,26 @@ class RankingActivity : AppCompatActivity() {
                     try {
                         val users = mutableListOf<User>()
                         for (userSnapshot in snapshot.children) {
-                            val user = userSnapshot.getValue(User::class.java)
-                            if (user != null) {
+                            try {
+                                // Ręczne odczytanie danych użytkownika
+                                val uid = userSnapshot.child("uid").getValue(String::class.java) 
+                                    ?: userSnapshot.key ?: ""
+                                val username = userSnapshot.child("username").getValue(String::class.java) ?: "Użytkownik"
+                                val xp = userSnapshot.child("xp").getValue(Long::class.java)?.toInt() 
+                                    ?: userSnapshot.child("xp").getValue(Int::class.java) 
+                                    ?: 0
+                                
+                                // Tworzymy uproszczony obiekt użytkownika
+                                val user = User(
+                                    uid = uid,
+                                    username = username,
+                                    xp = xp
+                                )
+                                
                                 users.add(user)
+                            } catch (e: Exception) {
+                                // Ignoruj błędne dane i kontynuuj
+                                continue
                             }
                         }
                         
@@ -115,7 +143,7 @@ class RankingActivity : AppCompatActivity() {
                         // Aktualizuj listę
                         rankingAdapter.submitList(users)
                     } catch (e: Exception) {
-                        showError("Błąd podczas przetwarzania danych rankingu")
+                        showError("Błąd podczas przetwarzania danych rankingu: ${e.message}")
                     }
                 }
 

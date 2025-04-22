@@ -131,6 +131,9 @@ class DuelBattleActivity : AppCompatActivity() {
     
     private val battleTime: Long
         get() = System.currentTimeMillis() - battleStartTime
+    
+    // Dodaję flagę do śledzenia wyświetlenia raportu
+    private var reportShown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -238,8 +241,8 @@ class DuelBattleActivity : AppCompatActivity() {
         opponentHealthBar.progress = opponentHealth
         
         // Initialize health texts
-        playerHealthText.text = "$playerHealth/100"
-        opponentHealthText.text = "$opponentHealth/100"
+        playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
+        opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
         
         // Initialize score texts
         playerScoreText.text = "0"
@@ -253,7 +256,7 @@ class DuelBattleActivity : AppCompatActivity() {
             return
         }
         
-        // Pobierz nazwę użytkownika z bazy danych
+        // Pobierz nazwę użytkownika i ekwipunek z bazy danych
         val userRef = database.reference
             .child("users")
             .child(currentUser!!.uid)
@@ -265,6 +268,55 @@ class DuelBattleActivity : AppCompatActivity() {
                     ?: currentUser?.displayName
                     ?: "Gracz"
                 
+                // Pobierz ekwipunek
+                val equipmentSnapshot = snapshot.child("equipment")
+                var baseHp = 100
+                var baseDamage = 10
+                var wandType = WandType.FIRE
+                
+                if (equipmentSnapshot.exists()) {
+                    try {
+                        // Spróbuj odczytać ekwipunek
+                        val equipment = equipmentSnapshot.getValue(Equipment::class.java)
+                        if (equipment != null) {
+                            baseHp = equipment.getCurrentHp()
+                            baseDamage = equipment.getCurrentDamage()
+                            wandType = equipment.wandType
+                        } else {
+                            // Ręczne odczytanie wartości ekwipunku
+                            val armorLevel = equipmentSnapshot.child("armorLevel").getValue(Long::class.java)?.toInt() ?: 1
+                            val wandLevel = equipmentSnapshot.child("wandLevel").getValue(Long::class.java)?.toInt() ?: 1
+                            val baseHpRaw = equipmentSnapshot.child("baseHp").getValue(Long::class.java)?.toInt() ?: 100
+                            val baseDamageRaw = equipmentSnapshot.child("baseDamage").getValue(Long::class.java)?.toInt() ?: 10
+                            
+                            // Odczytaj armorTier
+                            val armorTierRaw = equipmentSnapshot.child("armorTier").getValue()
+                            val armorTier = ArmorTier.fromAny(armorTierRaw)
+                            
+                            // Odczytaj wandType
+                            val wandTypeStr = equipmentSnapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
+                            wandType = try {
+                                WandType.valueOf(wandTypeStr)
+                            } catch (e: Exception) {
+                                WandType.FIRE
+                            }
+                            
+                            // Oblicz HP na podstawie poziomu zbroi i tier
+                            val tierMultiplier = when (armorTier) {
+                                ArmorTier.BRONZE -> 1.0
+                                ArmorTier.SILVER -> 1.2
+                                ArmorTier.GOLD -> 1.5
+                            }
+                            baseHp = (baseHpRaw * (1 + (armorLevel - 1) * 0.1) * tierMultiplier).toInt()
+                            
+                            // Oblicz obrażenia na podstawie poziomu różdżki
+                            baseDamage = (baseDamageRaw * (1 + (wandLevel - 1) * 0.1)).toInt()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DuelBattleActivity", "Błąd podczas wczytywania ekwipunku: ${e.message}")
+                    }
+                }
+                
                 // Sprawdź, czy użytkownik ma już postać
                 val characterSnapshot = snapshot.child("character")
                 if (characterSnapshot.exists()) {
@@ -272,12 +324,14 @@ class DuelBattleActivity : AppCompatActivity() {
                         // Pobierz poszczególne pola zamiast całego obiektu
                         val elementStr = characterSnapshot.child("elementValue").getValue(String::class.java) 
                             ?: characterSnapshot.child("element").getValue(String::class.java)
-                            ?: "FIRE"
+                            ?: wandType.name // Użyj typu różdżki jako wartości domyślnej
                         val element = ElementType.fromString(elementStr)
                         
                         val imageResId = characterSnapshot.child("imageResId").getValue(Int::class.java) ?: R.drawable.ic_player_avatar
-                        val baseAttack = characterSnapshot.child("baseAttack").getValue(Int::class.java) ?: 12
-                        val baseDefense = characterSnapshot.child("baseDefense").getValue(Int::class.java) ?: 8
+                        
+                        // Użyj wartości z ekwipunku jako wartości bazowych
+                        val baseAttack = characterSnapshot.child("baseAttack").getValue(Int::class.java) ?: baseDamage
+                        val baseDefense = characterSnapshot.child("baseDefense").getValue(Int::class.java) ?: (baseHp / 10)
                         
                         val specialAbilityName = when (element) {
                             ElementType.FIRE -> "Ściana Ognia"
@@ -302,18 +356,27 @@ class DuelBattleActivity : AppCompatActivity() {
                             baseDefense = baseDefense,
                             specialAbilityName = specialAbilityName,
                             specialAbilityDescription = specialAbilityDescription,
-                            specialAbilityCooldown = 3
+                            specialAbilityCooldown = 3,
+                            hp = baseHp
                         )
+                        
+                        // Ustaw wartość początkową zdrowia gracza
+                        playerHealth = baseHp
                     } catch (e: Exception) {
                         Log.e("DuelBattleActivity", "Błąd deserializacji postaci: ${e.message}")
-                        createDefaultPlayerCharacter(username)
+                        createDefaultPlayerCharacter(username, baseHp, baseDamage, wandType)
                     }
                 } else {
-                    // Utwórz domyślną postać, jeśli nie ma jej w bazie
-                    createDefaultPlayerCharacter(username)
+                    // Utwórz domyślną postać, jeśli nie ma jej w bazie, ale z wartościami z ekwipunku
+                    createDefaultPlayerCharacter(username, baseHp, baseDamage, wandType)
                     // Zapisz domyślną postać do bazy
                     userRef.child("character").setValue(playerCharacter)
                 }
+                
+                // Aktualizuj max zdrowie w pasku zdrowia
+                playerHealthBar.max = playerCharacter.hp
+                playerHealthBar.progress = playerHealth
+                playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
                 
                 // Aktualizuj UI postaci gracza
                 updatePlayerCharacterUI()
@@ -331,32 +394,39 @@ class DuelBattleActivity : AppCompatActivity() {
         })
     }
     
-    private fun createDefaultPlayerCharacter(username: String? = null): DuelBattleCharacter {
-        // Losowy typ elementu dla nowego gracza
-        val elementTypes = ElementType.values()
-        val randomElement = elementTypes[random.nextInt(elementTypes.size)]
+    private fun createDefaultPlayerCharacter(username: String? = null, baseHp: Int = 100, baseDamage: Int = 10, wandType: WandType = WandType.FIRE): DuelBattleCharacter {
+        // Użyj typu różdżki jako domyślnego elementu
+        val elementType = when (wandType) {
+            WandType.FIRE -> ElementType.FIRE
+            WandType.ICE -> ElementType.ICE
+            WandType.LIGHTNING -> ElementType.LIGHTNING
+        }
         
         playerCharacter = DuelBattleCharacter(
             id = "player_" + (currentUser?.uid ?: "default"),
             name = username ?: currentUser?.displayName ?: "Gracz",
-            element = randomElement,
+            element = elementType,
             imageResId = R.drawable.ic_player_avatar,
-            baseAttack = 12,
-            baseDefense = 8,
-            specialAbilityName = when (randomElement) {
+            baseAttack = baseDamage,
+            baseDefense = baseHp / 10,
+            specialAbilityName = when (elementType) {
                 ElementType.FIRE -> "Ściana Ognia"
                 ElementType.ICE -> "Lodowa Zbroja"
                 ElementType.LIGHTNING -> "Porażenie"
                 else -> "Specjalna Zdolność"
             },
-            specialAbilityDescription = when (randomElement) {
+            specialAbilityDescription = when (elementType) {
                 ElementType.FIRE -> "Zadaje większe obrażenia przeciwnikowi"
                 ElementType.ICE -> "Zmniejsza otrzymywane obrażenia"
                 ElementType.LIGHTNING -> "Zwiększa precyzję odpowiedzi"
                 else -> "Specjalna zdolność postaci"
             },
-            specialAbilityCooldown = 3
+            specialAbilityCooldown = 3,
+            hp = baseHp
         )
+        
+        // Ustaw wartość początkową zdrowia gracza
+        playerHealth = baseHp
         
         return playerCharacter
     }
@@ -1025,6 +1095,14 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun showResults() {
+        // Jeśli raport już został wyświetlony, nie pokazuj go ponownie
+        if (reportShown) {
+            return
+        }
+        
+        // Ustawiam flagę na true, aby zapobiec ponownemu wyświetleniu
+        reportShown = true
+        
         // Zablokuj interakcję użytkownika, aby zapobiec kolejnym akcjom
         window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
         
@@ -1098,8 +1176,6 @@ class DuelBattleActivity : AppCompatActivity() {
                 "${report.correctAnswers}/${report.totalAnswers}"
             dialogReference.findViewById<TextView>(R.id.timeSpentText).text = 
                 formatTime(report.timeSpent)
-            dialogReference.findViewById<TextView>(R.id.xpGainedText).text = 
-                "+${report.xpGained}"
             dialogReference.findViewById<TextView>(R.id.coinsGainedText).text = 
                 "+${report.coinsGained}"
             
@@ -1195,13 +1271,9 @@ class DuelBattleActivity : AppCompatActivity() {
             
             // Oblicz nagrody
             val timeSpent = System.currentTimeMillis() - battleStartTime
-            val xpGained = calculateXpReward()
+            val xpGained = 0 // Ustawiam XP na 0, aby nie przyznawać XP za pojedynki
             val coinsGained = calculateCoinsReward()
             val stars = calculateStars()
-            
-            // Teraz dodawanie zbroi jest obsługiwane w DuelsActivity
-            // Nie dodajemy jej już tutaj, będzie to robione przez DuelsActivity
-            // w zależności od poprzednich gwiazdek
             
             // Utwórz mapę statystyk
             val stats = mapOf(
@@ -1225,27 +1297,25 @@ class DuelBattleActivity : AppCompatActivity() {
                 .addOnSuccessListener {
                     Log.d("DuelBattleActivity", "Statystyki zapisane pomyślnie")
                     
-                    // Zaktualizuj także XP i monety użytkownika
+                    // Zaktualizuj monety użytkownika (bez XP)
                     if (stageCompleted) {
                         val userRef = database.reference.child("users").child(currentUser!!.uid)
                         userRef.addListenerForSingleValueEvent(object : ValueEventListener {
                             override fun onDataChange(snapshot: DataSnapshot) {
                                 // Pobierz obecne wartości
-                                val currentXp = snapshot.child("xp").getValue(Int::class.java) ?: 0
                                 val currentCoins = snapshot.child("coins").getValue(Int::class.java) ?: 0
                                 
-                                // Dodaj nagrody
+                                // Dodaj nagrody (tylko monety)
                                 val updatedValues = HashMap<String, Any>()
-                                updatedValues["xp"] = currentXp + xpGained
                                 updatedValues["coins"] = currentCoins + coinsGained
                                 
                                 // Aktualizuj wartości w bazie
                                 userRef.updateChildren(updatedValues)
                                     .addOnSuccessListener {
-                                        Log.d("DuelBattleActivity", "XP i monety zaktualizowane")
+                                        Log.d("DuelBattleActivity", "Monety zaktualizowane")
                                     }
                                     .addOnFailureListener { e ->
-                                        Log.e("DuelBattleActivity", "Błąd podczas aktualizacji XP i monet: ${e.message}")
+                                        Log.e("DuelBattleActivity", "Błąd podczas aktualizacji monet: ${e.message}")
                                     }
                             }
                             
@@ -1262,6 +1332,13 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun addBronzeArmorToUserEquipment(statsId: String = "") {
+        // Sprawdź najpierw, czy gracz zdobył 3 gwiazdki - tylko wtedy daj zbroję
+        val stars = calculateStars()
+        if (stars < 3) {
+            Log.d("DuelBattleActivity", "Nie dodano zbroi - zdobyto tylko $stars gwiazdki (wymagane 3)")
+            return
+        }
+        
         // Zapewnij, że użytkownik jest zalogowany
         if (currentUser == null) {
             Log.e("DuelBattleActivity", "Nie można dodać zbroi - użytkownik niezalogowany")
@@ -1474,6 +1551,11 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun calculateXpReward(): Int {
+        // Zawsze zwracamy 0, ponieważ nie przyznajemy XP za pojedynki
+        return 0
+        
+        // Stara implementacja (wykomentowana):
+        /*
         val baseXp = 100
         val timeBonus = when {
             battleTime < 60000 -> 1.5f  // Under 1 minute
@@ -1482,6 +1564,7 @@ class DuelBattleActivity : AppCompatActivity() {
         }
         val accuracyBonus = (correctAnswers.toFloat() / totalAnswers) * 1.5f
         return (baseXp * timeBonus * accuracyBonus).toInt()
+        */
     }
     
     private fun calculateCoinsReward(): Int {

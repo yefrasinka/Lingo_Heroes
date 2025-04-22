@@ -1,5 +1,7 @@
 package com.example.lingoheroesapp.models
 
+import com.google.firebase.database.PropertyName
+
 data class Achievement(
     val id: String = "",                  // Identyfikator osiągnięcia
     val title: String = "",               // Nazwa osiągnięcia
@@ -8,6 +10,8 @@ data class Achievement(
     val requiredValue: Int = 0,          // Wymagana wartość do zdobycia
     val type: AchievementType = AchievementType.XP,  // Typ osiągnięcia
     var progress: Int = 0,               // Aktualny postęp
+    @get:PropertyName("isUnlocked")
+    @set:PropertyName("isUnlocked")
     var isUnlocked: Boolean = false      // Czy osiągnięcie zostało odblokowane
 )
 
@@ -16,5 +20,7 @@ enum class AchievementType {
     LEVEL,             // Osiągnięcia związane z poziomem
     TASKS_COMPLETED,   // Osiągnięcia związane z ukończonymi zadaniami
     STREAK_DAYS,       // Osiągnięcia związane z serią dni nauki
-    PERFECT_SCORES     // Osiągnięcia związane z idealnymi wynikami
+    PERFECT_SCORES,    // Osiągnięcia związane z idealnymi wynikami
+    DUELS_COMPLETED,   // Osiągnięcia związane z ukończonymi pojedynkami
+    BOSS_DEFEATED      // Osiągnięcia związane z pokonaniem bossów
 } 

@@ -73,6 +73,8 @@ class AchievementsAdapter : RecyclerView.Adapter<AchievementsAdapter.Achievement
                 AchievementType.TASKS_COMPLETED -> R.drawable.ic_tasks
                 AchievementType.XP -> R.drawable.ic_trophy
                 AchievementType.LEVEL -> R.drawable.ic_trophy
+                AchievementType.DUELS_COMPLETED -> R.drawable.ic_tasks
+                AchievementType.BOSS_DEFEATED -> R.drawable.ic_trophy
             }
             icon.setImageResource(iconResource)
         }

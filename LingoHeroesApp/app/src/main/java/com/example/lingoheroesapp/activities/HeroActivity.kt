@@ -266,6 +266,10 @@ class HeroActivity : AppCompatActivity() {
             ContextCompat.getColorStateList(this, colorResId)?.let { colorStateList ->
                 armorProgressIndicator.progressTintList = colorStateList
             }
+            
+            // Aktualizacja statystyk bohatera na podstawie ekwipunku
+            hpTextView.text = equipment.getCurrentHp().toString()
+            atkTextView.text = equipment.getCurrentDamage().toString()
         }
     }
 
@@ -594,6 +598,7 @@ class HeroActivity : AppCompatActivity() {
                     
                     // Aktualizuj widok UI po ulepszeniu zbroi
                     updateArmorUI(newEquipment)
+                    coinsTextView.text = "$newCoins coins"
                     showSuccess("Zbroja ulepszona pomyślnie!")
                     
                     // Aktualizuj lokalny obiekt użytkownika
@@ -639,6 +644,7 @@ class HeroActivity : AppCompatActivity() {
                     
                     // Aktualizuj widok UI po ulepszeniu różdżki
                     updateArmorUI(newEquipment)
+                    coinsTextView.text = "$newCoins coins"
                     showSuccess("Różdżka ulepszona pomyślnie!")
                     
                     // Aktualizuj lokalny obiekt użytkownika

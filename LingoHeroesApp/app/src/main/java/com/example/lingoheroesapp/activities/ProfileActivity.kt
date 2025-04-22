@@ -80,15 +80,39 @@ class ProfileActivity : AppCompatActivity() {
             databaseRef.child("users").child(currentUser.uid)
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        val user = snapshot.getValue(User::class.java)
-                        user?.let { 
-                            updateUserUI(it)
+                        try {
+                            // Ręczne mapowanie danych zamiast automatycznej deserializacji
+                            val uid = snapshot.child("uid").getValue(String::class.java) ?: currentUser.uid
+                            val username = snapshot.child("username").getValue(String::class.java) ?: "Użytkownik"
+                            val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                            val level = snapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
+                            val xp = snapshot.child("xp").getValue(Long::class.java)?.toInt() ?: 0
+                            val coins = snapshot.child("coins").getValue(Long::class.java)?.toInt() ?: 0
+                            val streakDays = snapshot.child("streakDays").getValue(Long::class.java)?.toInt() ?: 0
+                            
+                            // Utwórz obiekt User tylko z potrzebnymi polami
+                            val user = User(
+                                uid = uid,
+                                username = username,
+                                email = email,
+                                level = level,
+                                xp = xp,
+                                coins = coins,
+                                streakDays = streakDays
+                            )
+                            
+                            // Zaktualizuj UI
+                            updateUserUI(user)
                             
                             // Synchronizuj osiągnięcia z aktualnymi danymi użytkownika
                             AchievementManager.syncAchievements(currentUser.uid)
+                            
+                            // Załaduj wyzwania i osiągnięcia
+                            loadChallengesData(currentUser.uid)
+                            loadAchievements(currentUser.uid)
+                        } catch (e: Exception) {
+                            showError("Błąd podczas przetwarzania danych: ${e.message}")
                         }
-                        loadChallengesData(currentUser.uid)
-                        loadAchievements(currentUser.uid)
                     }
 
                     override fun onCancelled(error: DatabaseError) {

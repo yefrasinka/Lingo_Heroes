@@ -87,6 +87,49 @@ object AchievementManager {
             description = "Zdobądź 50 perfekcyjnych wyników",
             type = AchievementType.PERFECT_SCORES,
             requiredValue = 50
+        ),
+        // Nowe osiągnięcia związane z pojedynkami
+        Achievement(
+            id = "duels_5",
+            title = "Początkujący wojownik",
+            description = "Ukończ 5 pojedynków",
+            type = AchievementType.DUELS_COMPLETED,
+            requiredValue = 5
+        ),
+        Achievement(
+            id = "duels_20",
+            title = "Doświadczony wojownik",
+            description = "Ukończ 20 pojedynków",
+            type = AchievementType.DUELS_COMPLETED,
+            requiredValue = 20
+        ),
+        Achievement(
+            id = "duels_50",
+            title = "Mistrz pojedynków",
+            description = "Ukończ 50 pojedynków",
+            type = AchievementType.DUELS_COMPLETED,
+            requiredValue = 50
+        ),
+        Achievement(
+            id = "boss_1",
+            title = "Pogromca wyzwań",
+            description = "Pokonaj pierwszego bossa",
+            type = AchievementType.BOSS_DEFEATED,
+            requiredValue = 1
+        ),
+        Achievement(
+            id = "boss_3",
+            title = "Łowca bossów",
+            description = "Pokonaj trzech bossów",
+            type = AchievementType.BOSS_DEFEATED,
+            requiredValue = 3
+        ),
+        Achievement(
+            id = "boss_all",
+            title = "Legenda pojedynków",
+            description = "Pokonaj wszystkich bossów",
+            type = AchievementType.BOSS_DEFEATED,
+            requiredValue = 4 // Zakładamy 4 bossów (etapy 3, 6, 9, 10)
         )
     )
     
@@ -118,72 +161,68 @@ object AchievementManager {
     /**
      * Aktualizuje osiągnięcia użytkownika na podstawie zmiany określonej statystyki
      */
-    fun updateAchievements(userId: String, statType: AchievementType, newValue: Int) {
-        val userRef = database.child("users").child(userId)
-        val achievementsRef = userRef.child("achievements")
-        
-        // Pobierz aktualne osiągnięcia użytkownika
-        achievementsRef.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (!snapshot.exists()) {
-                    // Jeśli nie ma osiągnięć, zainicjalizuj je
-                    initializeAchievementsForUser(userId)
-                    return
-                }
-                
-                // Filtruj osiągnięcia odpowiadające danemu typowi statystyki
-                val relevantAchievements = allAchievements.filter { it.type == statType }
-                val updates = HashMap<String, Any>()
-                
-                relevantAchievements.forEach { achievement ->
-                    val currentSnapshot = snapshot.child(achievement.id)
+    fun updateAchievements(userId: String, type: AchievementType, newValue: Int) {
+        // Get user achievements
+        database.child("users").child(userId).child("achievements")
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val userAchievements = mutableListOf<Achievement>()
                     
-                    // Pobierz istniejące dane lub użyj domyślnych
-                    val currentProgress = currentSnapshot.child("progress").getValue(Int::class.java) ?: 0
-                    val isUnlocked = currentSnapshot.child("isUnlocked").getValue(Boolean::class.java) ?: false
+                    // Convert snapshot to Achievement objects
+                    for (achievementSnapshot in snapshot.children) {
+                        val achievement = achievementSnapshot.getValue(Achievement::class.java)
+                        achievement?.let { userAchievements.add(it) }
+                    }
                     
-                    // Zaktualizuj postęp tylko jeśli osiągnięcie nie zostało jeszcze odblokowane
-                    if (!isUnlocked) {
-                        // Sprawdź czy nowa wartość oznacza ukończenie osiągnięcia
-                        val shouldUnlock = newValue >= achievement.requiredValue
-                        
-                        // Zaktualizuj osiągnięcie
-                        updates["${achievement.id}/progress"] = newValue
-                        
-                        if (shouldUnlock && !isUnlocked) {
-                            updates["${achievement.id}/isUnlocked"] = true
-                            
-                            // Wyślij powiadomienie o odblokowaniu osiągnięcia (opcjonalnie)
-                            Log.d(TAG, "Osiągnięcie ${achievement.title} zostało odblokowane dla użytkownika $userId")
-                            
-                            // Tutaj można dodać system nagród za osiągnięcia
-                            rewardAchievement(userRef, achievement)
+                    // Filter achievements by type
+                    val typeAchievements = userAchievements.filter { it.type == type }
+                    
+                    // Update each achievement of the specified type
+                    for (achievement in typeAchievements) {
+                        val progress = when (type) {
+                            AchievementType.XP -> newValue
+                            AchievementType.LEVEL -> newValue
+                            AchievementType.TASKS_COMPLETED -> newValue
+                            AchievementType.STREAK_DAYS -> newValue
+                            AchievementType.PERFECT_SCORES -> newValue
+                            AchievementType.DUELS_COMPLETED -> newValue // Nowy typ osiągnięcia
+                            AchievementType.BOSS_DEFEATED -> newValue   // Nowy typ osiągnięcia
                         }
+                        
+                        // Update the achievement progress
+                        achievement.progress = progress
+                        
+                        // Check if achievement should be unlocked
+                        if (progress >= achievement.requiredValue && !achievement.isUnlocked) {
+                            achievement.isUnlocked = true
+                            
+                            // Reward the user for unlocking this achievement
+                            rewardAchievement(userId, achievement)
+                            
+                            // Notify with toast if app is in foreground
+                            // (this would need AppContext implementation in a real app)
+                            // For simplicity, we'll log it instead
+                            Log.d("AchievementManager", "Achievement unlocked: ${achievement.title}")
+                        }
+                        
+                        // Update the achievement in Firebase
+                        database.child("users").child(userId).child("achievements")
+                            .child(achievement.id.toString()).setValue(achievement)
                     }
                 }
                 
-                // Jeśli są jakieś aktualizacje, wyślij je do Firebase
-                if (updates.isNotEmpty()) {
-                    achievementsRef.updateChildren(updates)
-                        .addOnSuccessListener {
-                            Log.d(TAG, "Pomyślnie zaktualizowano osiągnięcia dla użytkownika $userId")
-                        }
-                        .addOnFailureListener { error ->
-                            Log.e(TAG, "Błąd podczas aktualizacji osiągnięć: ${error.message}")
-                        }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("AchievementManager", "Error updating achievements: ${error.message}")
                 }
-            }
-            
-            override fun onCancelled(error: DatabaseError) {
-                Log.e(TAG, "Błąd podczas pobierania osiągnięć: ${error.message}")
-            }
-        })
+            })
     }
     
     /**
      * Przyznaje nagrodę za odblokowanie osiągnięcia
      */
-    private fun rewardAchievement(userRef: DatabaseReference, achievement: Achievement) {
+    private fun rewardAchievement(userId: String, achievement: Achievement) {
+        val userRef = database.child("users").child(userId)
+        
         // Przykładowe nagrody za osiągnięcia
         val coinReward = when (achievement.type) {
             AchievementType.XP -> 50 * (achievement.requiredValue / 1000)
@@ -191,6 +230,8 @@ object AchievementManager {
             AchievementType.TASKS_COMPLETED -> 30 * (achievement.requiredValue / 50)
             AchievementType.STREAK_DAYS -> 50 * (achievement.requiredValue / 7)
             AchievementType.PERFECT_SCORES -> 40 * (achievement.requiredValue / 10)
+            AchievementType.DUELS_COMPLETED -> 60 * (achievement.requiredValue / 5) // Większa nagroda za pojedynki
+            AchievementType.BOSS_DEFEATED -> 100 * achievement.requiredValue // Duża nagroda za pokonanie bossów
         }
         
         // Minimum 50 monet
@@ -266,12 +307,18 @@ object AchievementManager {
                 val streakDays = snapshot.child("streakDays").getValue(Int::class.java) ?: 0
                 val perfectScores = snapshot.child("perfectScores").getValue(Int::class.java) ?: 0
                 
+                // Pobierz statystyki pojedynków
+                val duelsCompleted = snapshot.child("duelsCompleted").getValue(Int::class.java) ?: 0
+                val bossesDefeated = snapshot.child("bossesDefeated").getValue(Int::class.java) ?: 0
+                
                 // Zaktualizuj osiągnięcia dla każdego typu
                 updateAchievements(userId, AchievementType.XP, xp)
                 updateAchievements(userId, AchievementType.LEVEL, level)
                 updateAchievements(userId, AchievementType.TASKS_COMPLETED, tasksCompleted)
                 updateAchievements(userId, AchievementType.STREAK_DAYS, streakDays)
                 updateAchievements(userId, AchievementType.PERFECT_SCORES, perfectScores)
+                updateAchievements(userId, AchievementType.DUELS_COMPLETED, duelsCompleted)
+                updateAchievements(userId, AchievementType.BOSS_DEFEATED, bossesDefeated)
             }
             
             override fun onCancelled(error: DatabaseError) {

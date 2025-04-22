@@ -222,15 +222,9 @@ class DuelsActivity : AppCompatActivity() {
             }
             
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@DuelsActivity, 
-                    "Błąd ładowania danych: ${error.message}", 
-                    Toast.LENGTH_SHORT).show()
-                
-                // Show empty state or retry option
+                // Ukryj wskaźnik ładowania i pokaż komunikat o błędzie
                 loadingIndicator.visibility = View.GONE
-                
-                // Pokaż przycisk ponowienia próby
-                showRetryButton()
+                Toast.makeText(this@DuelsActivity, "Błąd ładowania danych: ${error.message}", Toast.LENGTH_LONG).show()
             }
         })
     }
@@ -382,73 +376,66 @@ class DuelsActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == REQUEST_DUEL_BATTLE && resultCode == RESULT_OK && data != null) {
+            // Odczytaj informacje o ukończonym etapie
             val completedStage = data.getIntExtra("COMPLETED_STAGE", -1)
             val stars = data.getIntExtra("STAGE_STARS", 0)
-            var xpGained = data.getIntExtra("XP_GAINED", 0)
+            var xpGained = 0 // Zawsze 0, nie przyznajemy XP za pojedynki
             var coinsGained = data.getIntExtra("COINS_GAINED", 0)
-            var shouldAddBronzeArmor = stars == 3
             
+            // Sprawdź czy etap został ukończony
             if (completedStage > 0) {
-                // Sprawdź, czy etap był już wcześniej ukończony i z iloma gwiazdkami
+                // Przyznaj nagrody oraz odblokuj nowy etap
+                var shouldAddBronzeArmor = stars == 3 // Dodaj brązową zbroję tylko dla 3 gwiazdek
+                
+                // Sprawdź poprzedni najlepszy wynik dla tego etapu
                 val previousStars = stageStars[completedStage] ?: 0
                 
-                // Jeśli etap był już ukończony, dostosuj nagrody
-                if (completedStage in completedStages) {
-                    when {
-                        // Jeśli wcześniej ukończono na 3 gwiazdki, nie ma dodatkowych nagród
-                        previousStars == 3 -> {
-                            xpGained = 0
-                            coinsGained = 0
-                            shouldAddBronzeArmor = false
-                            
-                            Toast.makeText(this, 
-                                "Etap $completedStage już został ukończony na 3 gwiazdki! Brak dodatkowych nagród.", 
-                                Toast.LENGTH_LONG).show()
-                            
-                            // Nie aktualizuj liczby gwiazdek, tylko wyjdź
-                            return
-                        }
+                // Zmodyfikuj nagrody na podstawie poprzedniego wyniku
+                when {
+                    // Jeśli poprzednio było 3 gwiazdki, nie dodawaj zbroi
+                    previousStars == 3 -> {
+                        // Brak nagród za ponowne ukończenie etapu na 3 gwiazdki
+                        xpGained = 0
+                        coinsGained = 0
+                        shouldAddBronzeArmor = false
                         
-                        // Jeśli gracz poprawił swój wynik (więcej gwiazdek)
-                        stars > previousStars -> {
-                            // Zredukowane nagrody za poprawę wyniku
-                            xpGained = (xpGained * 0.5).toInt()
-                            
-                            // Zachowaj pełne monety
-                            // Zachowaj nagrodę za zbroję, jeśli osiągnięto 3 gwiazdki
-                            shouldAddBronzeArmor = stars == 3
-                            
-                            Toast.makeText(this, 
-                                "Poprawiłeś swój wynik z $previousStars na $stars gwiazdki! Zdobyto: $xpGained XP, $coinsGained monet" + 
-                                    (if (shouldAddBronzeArmor) ", +brązowa zbroja" else ""), 
-                                Toast.LENGTH_LONG).show()
-                        }
+                        Toast.makeText(this, 
+                            "Etap $completedStage już został ukończony na 3 gwiazdki! Brak dodatkowych nagród.", 
+                            Toast.LENGTH_LONG).show()
                         
-                        // Jeśli liczba gwiazdek jest taka sama lub niższa
-                        else -> {
-                            // Minimalna nagroda za ponowne ukończenie
-                            xpGained = 0
-                            coinsGained = (coinsGained * 0.25).toInt()
-                            shouldAddBronzeArmor = false
-                            
-                            Toast.makeText(this, 
-                                "Etap $completedStage już został ukończony z lepszym wynikiem. Zdobyto: $coinsGained monet.", 
-                                Toast.LENGTH_LONG).show()
-                        }
+                        // Nie aktualizuj liczby gwiazdek, tylko wyjdź
+                        return
                     }
-                } else {
-                    // Pierwsze ukończenie etapu - pełne nagrody
-                    Toast.makeText(this, 
-                        "Etap $completedStage ukończony! Zdobyto: $xpGained XP, $coinsGained monet, $stars ⭐" +
-                            (if (shouldAddBronzeArmor) ", +brązowa zbroja" else ""), 
-                        Toast.LENGTH_LONG).show()
+                    
+                    // Jeśli gracz poprawił swój wynik (więcej gwiazdek)
+                    stars > previousStars -> {
+                        // Zachowaj tylko nagrody monetowe
+                        // Zachowaj nagrodę za zbroję, jeśli osiągnięto 3 gwiazdki
+                        shouldAddBronzeArmor = stars == 3
+                        
+                        Toast.makeText(this, 
+                            "Poprawiłeś swój wynik z $previousStars na $stars gwiazdki! Zdobyto: $coinsGained monet" + 
+                                (if (shouldAddBronzeArmor) ", +brązowa zbroja" else ""), 
+                            Toast.LENGTH_LONG).show()
+                    }
+                    
+                    // Jeśli liczba gwiazdek jest taka sama lub niższa
+                    else -> {
+                        // Minimalna nagroda za ponowne ukończenie
+                        coinsGained = (coinsGained * 0.25).toInt()
+                        shouldAddBronzeArmor = false
+                        
+                        Toast.makeText(this, 
+                            "Etap $completedStage już został ukończony z lepszym wynikiem. Zdobyto: $coinsGained monet.", 
+                            Toast.LENGTH_LONG).show()
+                    }
                 }
                 
                 // Aktualizuj etap w danych gracza
                 completeStage(completedStage, stars, shouldAddBronzeArmor)
                 
-                // Dodajemy zdobyte XP i monety (mogą być zredukowane)
-                if (xpGained > 0 || coinsGained > 0) {
+                // Dodajemy zdobyte monety (bez XP)
+                if (coinsGained > 0) {
                     updateRewards(xpGained, coinsGained)
                 }
             }
@@ -524,6 +511,9 @@ class DuelsActivity : AppCompatActivity() {
             
             // Aktualizuj UI
             playerLevelText.text = "Level $userLevel"
+            
+            // Aktualizuj statystykę bossesDefeated
+            updateBossesDefeatedStat()
         }
         
         // Dodaj brązową zbroję, jeśli uzyskano 3 gwiazdki i jeśli jest to wymagane
@@ -531,11 +521,80 @@ class DuelsActivity : AppCompatActivity() {
             addBronzeArmorToUserEquipment()
         }
         
+        // Aktualizuj licznik ukończonych pojedynków
+        updateDuelsCompletedStat()
+        
         // Save to Firebase
         saveUserData()
         
         // Update UI
         updateUI()
+    }
+    
+    /**
+     * Aktualizuje statystykę ukończonych pojedynków
+     */
+    private fun updateDuelsCompletedStat() {
+        if (userId == null) return
+        
+        val userRef = database.reference.child("users").child(userId!!)
+        
+        userRef.child("duelsCompleted").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val currentDuelsCompleted = snapshot.getValue(Int::class.java) ?: 0
+                val newDuelsCompleted = currentDuelsCompleted + 1
+                
+                // Aktualizuj liczbę ukończonych pojedynków
+                userRef.child("duelsCompleted").setValue(newDuelsCompleted)
+                    .addOnSuccessListener {
+                        // Powiadom AchievementManager o aktualizacji
+                        com.example.lingoheroesapp.utils.AchievementManager.updateAchievements(
+                            userId!!, 
+                            com.example.lingoheroesapp.models.AchievementType.DUELS_COMPLETED, 
+                            newDuelsCompleted
+                        )
+                        
+                        Log.d("DuelsActivity", "Zaktualizowano liczbę ukończonych pojedynków: $newDuelsCompleted")
+                    }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelsActivity", "Błąd podczas aktualizacji statystyki pojedynków: ${error.message}")
+            }
+        })
+    }
+    
+    /**
+     * Aktualizuje statystykę pokonanych bossów
+     */
+    private fun updateBossesDefeatedStat() {
+        if (userId == null) return
+        
+        val userRef = database.reference.child("users").child(userId!!)
+        
+        userRef.child("bossesDefeated").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val currentBossesDefeated = snapshot.getValue(Int::class.java) ?: 0
+                val newBossesDefeated = currentBossesDefeated + 1
+                
+                // Aktualizuj liczbę pokonanych bossów
+                userRef.child("bossesDefeated").setValue(newBossesDefeated)
+                    .addOnSuccessListener {
+                        // Powiadom AchievementManager o aktualizacji
+                        com.example.lingoheroesapp.utils.AchievementManager.updateAchievements(
+                            userId!!, 
+                            com.example.lingoheroesapp.models.AchievementType.BOSS_DEFEATED, 
+                            newBossesDefeated
+                        )
+                        
+                        Log.d("DuelsActivity", "Zaktualizowano liczbę pokonanych bossów: $newBossesDefeated")
+                    }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelsActivity", "Błąd podczas aktualizacji statystyki bossów: ${error.message}")
+            }
+        })
     }
     
     // Metoda do dodawania brązowej zbroi do ekwipunku gracza
@@ -571,7 +630,7 @@ class DuelsActivity : AppCompatActivity() {
                     // Zwiększ liczbę brązowych zbroi o 1
                     val newBronzeArmorCount = bronzeArmorCount + 1
                     
-                    // Sprawdź, czy następuje awans zbroi (co 10 sztuk)
+                    // Sprawdź, czy nastąpił awans zbroi (co 10 sztuk)
                     val newArmorTier = if (newBronzeArmorCount >= 10) {
                         // Resetuj licznik i zwiększ poziom zbroi
                         userRef.child("equipment").child("bronzeArmorCount").setValue(0)
