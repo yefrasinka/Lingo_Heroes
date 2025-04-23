@@ -592,9 +592,15 @@ class DuelBattleActivity : AppCompatActivity() {
         
         // Aktualizuj tekst specjalnej zdolności
         updateSpecialAbilityButtonText()
+
+        val playerDrawableId = when (playerCharacter.element) {
+            ElementType.FIRE -> R.drawable.ic_warrior_fire
+            ElementType.ICE -> R.drawable.ic_warrior_ice
+            ElementType.LIGHTNING -> R.drawable.ic_warrior_lightning
+        }
         
         // Zaktualizuj obrazek postaci gracza (poprawiona ścieżka do zasobu)
-        playerCharacterView.setImageResource(R.drawable.duels_characters_wizard)
+        playerCharacterView.setImageResource(playerDrawableId)
     }
     
     private fun updateEnemyUI() {
@@ -658,10 +664,6 @@ class DuelBattleActivity : AppCompatActivity() {
     private fun updateSpecialAbilityButtonText() {
         // Ta funkcja nie jest już potrzebna, ponieważ używamy updateSuperPowerButtonState()
         // Pozostawiamy pustą implementację dla zachowania wywołań w innych miejscach
-    }
-    
-    private fun useSpecialAbility() {
-        // Usunięto implementację - zastąpiono przez showSuperPowerSelectionDialog()
     }
     
     // Rozszerzenie dla ElementType, które konwertuje go na WandType

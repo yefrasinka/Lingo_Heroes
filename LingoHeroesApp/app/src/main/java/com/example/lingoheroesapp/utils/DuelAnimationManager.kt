@@ -51,7 +51,7 @@ class DuelAnimationManager {
         
         // Ustaw początkową pozycję (przy graczu)
         attackAnimation.translationX = -300f
-        attackAnimation.translationY = 0f
+        attackAnimation.translationY = 450f
         attackAnimation.alpha = 0f
         
         // Animuj pojawienie się
