@@ -116,7 +116,7 @@ data class Duel(
 @IgnoreExtraProperties
 data class ActiveSuperPower(
     val superPowerId: String = "",          // ID supermocy
-    val remainingDuration: Int = 0,         // Pozostała liczba tur działania
+    var remainingDuration: Int = 0,         // Pozostała liczba tur działania
     val appliedAt: Long = System.currentTimeMillis(), // Czas zastosowania
     val superPowerData: SuperPower? = null  // Dane supermocy
 ) {

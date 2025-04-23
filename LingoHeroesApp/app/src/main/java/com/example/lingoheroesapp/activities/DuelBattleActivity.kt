@@ -2,6 +2,7 @@ package com.example.lingoheroesapp.activities
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.Dialog
@@ -91,6 +92,7 @@ class DuelBattleActivity : AppCompatActivity() {
     
     // Game variables
     private val questions = ArrayList<com.example.lingoheroesapp.models.Question>()
+    private val additionalQuestions = ArrayList<com.example.lingoheroesapp.models.Question>()
     private var currentQuestionIndex = 0
     private var playerHealth = 100
     private var opponentHealth = 100
@@ -100,6 +102,11 @@ class DuelBattleActivity : AppCompatActivity() {
     private var isAnswerSelected = false
     private var timer: CountDownTimer? = null
     private val random = Random()
+    
+    // Dodaję zmienną przechowującą czas rozpoczęcia pytania
+    private var questionStartTime: Long = 0
+    // Licznik poprawnych odpowiedzi
+    private var correctAnswersDisplayed = 0
     
     // Character and enemy instances
     private lateinit var playerCharacter: DuelBattleCharacter
@@ -131,9 +138,6 @@ class DuelBattleActivity : AppCompatActivity() {
     private val battleTime: Long
         get() = System.currentTimeMillis() - battleStartTime
     
-    // Dodaję flagę do śledzenia wyświetlenia raportu
-    private var reportShown = false
-    
     // Dodajemy nowe referencje do elementów UI
     private lateinit var playerCharacterView: ImageView
     private lateinit var monsterCharacterView: ImageView
@@ -147,7 +151,15 @@ class DuelBattleActivity : AppCompatActivity() {
     
     // Flagi stanu animacji
     private var isAnimationInProgress = false
-
+    
+    // Track correct answers count for superpowers
+    private var correctAnswersCount = 0
+    private var nextSuperPowerUnlockAt = 3
+    private val activeSuperPowers = mutableListOf<ActiveSuperPower>()
+    
+    // Dodaję flagę do śledzenia wyświetlenia raportu
+    private var reportShown = false
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_duel_battle)
@@ -174,8 +186,25 @@ class DuelBattleActivity : AppCompatActivity() {
         loadPlayerCharacter()
         loadEnemyForStage()
         
+        // Resetujemy licznik poprawnych odpowiedzi dla nowego pojedynku
+        correctAnswersCount = 0
+        correctAnswers = 0
+        nextSuperPowerUnlockAt = 3
+        activeSuperPowers.clear()
+        
+        // Wczytujemy ewentualne aktywne supermoce, ale tylko dla istniejącego użytkownika
+        if (currentUser != null) {
+            loadSuperPowersFromFirebase()
+        }
+        
         // Inicjalizacja menedżera animacji
         animationManager = DuelAnimationManager()
+        
+        // Aktualizacja stanu przycisku supermocy
+        updateSuperPowerButtonState()
+        
+        // Log dla debugowania
+        Log.d("DuelBattleActivity", "Inicjalizacja aktywności zakończona. Stan przycisku supermocy zaktualizowany.")
     }
     
     private fun initViews() {
@@ -194,8 +223,6 @@ class DuelBattleActivity : AppCompatActivity() {
         playerDamageText = findViewById(R.id.playerDamageText)
         opponentDamageText = findViewById(R.id.opponentDamageText)
         feedbackText = findViewById(R.id.feedbackText)
-        
-        // Usunięto odwołania do playerAvatar i opponentAvatar
         
         playerElementBadge = findViewById(R.id.playerElementBadge)
         opponentElementBadge = findViewById(R.id.opponentElementBadge)
@@ -251,7 +278,11 @@ class DuelBattleActivity : AppCompatActivity() {
         
         // Set up special ability button
         specialAbilityButton.setOnClickListener {
-            useSpecialAbility()
+            if (correctAnswersCount >= 3) {
+                showSuperPowerSelectionDialog()
+            } else {
+                Toast.makeText(this, "Odpowiedz poprawnie na więcej pytań, aby odblokować super moc!", Toast.LENGTH_SHORT).show()
+            }
         }
         
         // Initialize UI state
@@ -275,6 +306,9 @@ class DuelBattleActivity : AppCompatActivity() {
         // Initialize score texts
         playerScoreText.text = "0"
         opponentScoreText.text = "0"
+        
+        // Initialize superpower button
+        updateSuperPowerButtonState()
     }
     
     private fun loadPlayerCharacter() {
@@ -437,18 +471,8 @@ class DuelBattleActivity : AppCompatActivity() {
             imageResId = R.drawable.ic_player_avatar,
             baseAttack = baseDamage,
             baseDefense = baseHp / 10,
-            specialAbilityName = when (elementType) {
-                ElementType.FIRE -> "Ściana Ognia"
-                ElementType.ICE -> "Lodowa Zbroja"
-                ElementType.LIGHTNING -> "Porażenie"
-                else -> "Specjalna Zdolność"
-            },
-            specialAbilityDescription = when (elementType) {
-                ElementType.FIRE -> "Zadaje większe obrażenia przeciwnikowi"
-                ElementType.ICE -> "Zmniejsza otrzymywane obrażenia"
-                ElementType.LIGHTNING -> "Zwiększa precyzję odpowiedzi"
-                else -> "Specjalna zdolność postaci"
-            },
+            specialAbilityName = "Super Moc", // Zmieniono z elementowo-specyficznych na ogólną nazwę
+            specialAbilityDescription = "Aktywuje specjalną zdolność w zależności od wybranej mocy",
             specialAbilityCooldown = 3,
             hp = baseHp
         )
@@ -632,38 +656,12 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun updateSpecialAbilityButtonText() {
-        if (specialAbilityCooldown > 0) {
-            specialAbilityButton.text = "${playerCharacter.specialAbilityName} (cooldown: $specialAbilityCooldown)"
-            specialAbilityButton.isEnabled = false
-        } else {
-            specialAbilityButton.text = playerCharacter.specialAbilityName
-            specialAbilityButton.isEnabled = true
-            isSpecialAbilityAvailable = true
-        }
+        // Ta funkcja nie jest już potrzebna, ponieważ używamy updateSuperPowerButtonState()
+        // Pozostawiamy pustą implementację dla zachowania wywołań w innych miejscach
     }
     
     private fun useSpecialAbility() {
-        if (specialAbilityCooldown > 0 || isAnimationInProgress) {
-            return
-        }
-        
-        isAnimationInProgress = true
-        
-        // Wywołaj animację specjalnej zdolności
-        animationManager.animateSpecialAbility(
-            elementEffectContainer,
-            elementEffectImage,
-            playerCharacter.element.toWandType()
-        ) {
-            // Zastosuj efekt specjalnej zdolności
-            applySpecialAbilityEffect()
-            
-            // Ustaw cooldown
-            specialAbilityCooldown = playerCharacter.specialAbilityCooldown
-            updateSpecialAbilityButtonText()
-            
-            isAnimationInProgress = false
-        }
+        // Usunięto implementację - zastąpiono przez showSuperPowerSelectionDialog()
     }
     
     // Rozszerzenie dla ElementType, które konwertuje go na WandType
@@ -676,77 +674,7 @@ class DuelBattleActivity : AppCompatActivity() {
     }
     
     private fun applySpecialAbilityEffect() {
-        // Zastosuj efekt specjalnej zdolności w zależności od elementu
-        when (playerCharacter.element) {
-            ElementType.FIRE -> {
-                // Ściana Ognia - zadaje dodatkowe obrażenia
-                val damage = calculateDamage(true, 0) * 1.5f
-                opponentHealth -= damage.toInt()
-                
-                // Dodaj do całkowitych obrażeń
-                totalDamageDealt += damage.toInt()
-                
-                // Pokaż efekt ognia
-                showElementEffect(ElementType.FIRE)
-                
-                // Pokaż obrażenia
-                opponentDamageText.text = "-${damage.toInt()}"
-                opponentDamageText.visibility = View.VISIBLE
-                animateDamageText(opponentDamageText)
-                
-                // Pokaż informację zwrotną
-                feedbackText.text = "Ściana Ognia!"
-                feedbackText.setTextColor(resources.getColor(R.color.fire_red, theme))
-                feedbackText.visibility = View.VISIBLE
-            }
-            ElementType.ICE -> {
-                // Lodowa Zbroja - zwiększa obronę na jedną turę
-                playerHealth += 20
-                if (playerHealth > 100) playerHealth = 100
-                
-                // Pokaż efekt lodu
-                showElementEffect(ElementType.ICE)
-                
-                // Pokaż informację zwrotną
-                feedbackText.text = "Lodowa Zbroja!"
-                feedbackText.setTextColor(resources.getColor(R.color.ice_blue, theme))
-                feedbackText.visibility = View.VISIBLE
-            }
-            ElementType.LIGHTNING -> {
-                // Porażenie - blokuje przeciwnika na jedną turę
-                // Zwiększamy swój wynik
-                playerScore += 15
-                
-                // Pokaż efekt błyskawicy
-                showElementEffect(ElementType.LIGHTNING)
-                
-                // Pokaż informację zwrotną
-                feedbackText.text = "Porażenie!"
-                feedbackText.setTextColor(resources.getColor(R.color.lightning_yellow, theme))
-                feedbackText.visibility = View.VISIBLE
-            }
-            else -> {
-                // Generyczna zdolność dla nieznanych typów
-                playerScore += 10
-                playerHealth += 10
-                if (playerHealth > 100) playerHealth = 100
-                
-                // Pokaż informację zwrotną
-                feedbackText.text = "Specjalna Zdolność!"
-                feedbackText.setTextColor(resources.getColor(R.color.colorAccent, theme))
-                feedbackText.visibility = View.VISIBLE
-            }
-        }
-        
-        // Aktualizuj UI
-        updateScoreAndHealth()
-        
-        // Sprawdź, czy gra się skończyła
-        if (opponentHealth <= 0) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                showResults()
-            }, 1500)
-        }
+        // Usunięto implementację - zastąpiono przez applySuperPower() z różnymi typami supermocy
     }
     
     private fun showElementEffect(elementType: ElementType) {
@@ -779,7 +707,7 @@ class DuelBattleActivity : AppCompatActivity() {
     
     private fun handleAnswerSelection(selectedIndex: Int) {
         if (isAnswerSelected || isAnimationInProgress) return
-        
+
         isAnswerSelected = true
         isAnimationInProgress = true
         timer?.cancel()
@@ -787,32 +715,178 @@ class DuelBattleActivity : AppCompatActivity() {
         val isCorrect = selectedIndex == correctAnswerIndex
         val timeSpent = System.currentTimeMillis() - currentQuestionStartTime
         
+        // Debugowanie
+        Log.d("DuelBattleActivity", "Wybrano odpowiedź: $selectedIndex, poprawna: $correctAnswerIndex, isCorrect: $isCorrect")
+        
         if (!isCorrect) {
             val question = questions[currentQuestionIndex]
             mistakes.add("Pytanie: ${question.question}\n" +
-                        "Twoja odpowiedź: ${answerButtons[selectedIndex].text}\n" +
+                        "Twoja odpowiedź: ${if (selectedIndex >= 0 && selectedIndex < answerButtons.size) answerButtons[selectedIndex].text else "Brak odpowiedzi"}\n" +
                         "Poprawna odpowiedź: ${question.correctAnswer}")
             
             // Podświetl niepoprawną odpowiedź
-            animationManager.animateIncorrectAnswer(answerButtons[selectedIndex])
+            if (selectedIndex >= 0 && selectedIndex < answerButtons.size) {
+                animationManager.animateIncorrectAnswer(answerButtons[selectedIndex])
+            }
             
             // Podświetl poprawną odpowiedź
             animationManager.animateCorrectAnswer(answerButtons[correctAnswerIndex])
         } else {
             // Podświetl poprawną odpowiedź
             animationManager.animateCorrectAnswer(answerButtons[selectedIndex])
+            
+            // Zwiększ licznik poprawnych odpowiedzi tylko przy poprawnej odpowiedzi
+            increaseCorrectAnswers()
         }
         
         // Calculate damage based on correctness and time
-        val damage = calculateDamage(isCorrect, timeSpent)
+        var damage = calculateDamage(isCorrect, timeSpent)
         
         if (isCorrect) {
+            // Sprawdź czy są aktywne wzmocnienia obrażeń (damage_boost)
+            val damageBoostSuperPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "damage_boost" }
+            
+            if (damageBoostSuperPowers.isNotEmpty()) {
+                // Wzmocnij obrażenia i pokaż informację
+                val originalDamage = damage
+                
+                for (boost in damageBoostSuperPowers) {
+                    val superPower = boost.superPowerData!!
+                    val boostValue = if (superPower.isPercentage) {
+                        originalDamage * superPower.effectValue / 100
+                    } else {
+                        superPower.effectValue
+                    }
+                    
+                    damage += boostValue.toInt()
+                    
+                    // Pokaż informację o wzmocnieniu
+                    feedbackText.text = "${superPower.name}: +${boostValue.toInt()} obrażeń!"
+                    feedbackText.visibility = View.VISIBLE
+                    
+                    // Usuń tę supermoc jeśli trwa tylko 1 turę
+                    if (boost.remainingDuration <= 1) {
+                        activeSuperPowers.remove(boost)
+                    } else {
+                        boost.remainingDuration--
+                    }
+                }
+            }
+            
+            // Sprawdź, czy aktywna jest supermoc egzekucji (execute)
+            val executeSuperPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "execute" }
+            
+            if (executeSuperPowers.isNotEmpty() && opponentHealth > 0) {
+                val maxHealth = enemyCharacter.hp
+                val currentHealthPercent = (opponentHealth * 100) / maxHealth
+                
+                for (execute in executeSuperPowers) {
+                    val superPower = execute.superPowerData!!
+                    
+                    // Sprawdź warunek egzekucji
+                    val executionThreshold = if (superPower.id == "armageddon") 25 else 30
+                    
+                    if (currentHealthPercent < executionThreshold) {
+                        val originalDamage = damage
+                        val executeBonus = if (superPower.isPercentage) {
+                            originalDamage * superPower.effectValue / 100
+                        } else {
+                            superPower.effectValue
+                        }
+                        
+                        damage += executeBonus.toInt()
+                        
+                        // Pokaż informację o egzekucji
+                        feedbackText.text = "${superPower.name}: +${executeBonus.toInt()} obrażeń!"
+                        feedbackText.visibility = View.VISIBLE
+                    }
+                    
+                    // Usuń tę supermoc jeśli trwa tylko 1 turę
+                    if (execute.remainingDuration <= 1) {
+                        activeSuperPowers.remove(execute)
+                    } else {
+                        execute.remainingDuration--
+                    }
+                }
+            }
+            
             playerScore += damage
             opponentHealth -= damage
-            correctAnswers++
+            
+            // Sprawdź czy aktywna jest supermoc kradzieży życia (life_steal)
+            val lifeStealSuperPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "life_steal" }
+            
+            if (lifeStealSuperPowers.isNotEmpty()) {
+                for (lifesteal in lifeStealSuperPowers) {
+                    val superPower = lifesteal.superPowerData!!
+                    val healAmount = if (superPower.isPercentage) {
+                        damage * superPower.effectValue / 100
+                    } else {
+                        superPower.effectValue
+                    }
+                    
+                    // Dodaj życie graczowi
+                    val maxHealth = playerCharacter.hp
+                    val oldHealth = playerHealth
+                    playerHealth = (playerHealth + healAmount.toInt()).coerceAtMost(maxHealth)
+                    
+                    // Pokaż tekst leczenia tylko jeśli faktycznie uleczono
+                    if (playerHealth > oldHealth) {
+                        playerDamageText.text = "+${playerHealth - oldHealth}"
+                        playerDamageText.setTextColor(resources.getColor(R.color.health_good, theme))
+                        playerDamageText.visibility = View.VISIBLE
+                        animateDamageText(playerDamageText)
+                        
+                        // Resetuj kolor po animacji
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            playerDamageText.setTextColor(resources.getColor(R.color.damage_red, theme))
+                        }, 1500)
+                        
+                        // Pokaż informację o wampirze
+                        feedbackText.text = "${superPower.name}: odzyskano ${playerHealth - oldHealth} HP!"
+                        feedbackText.visibility = View.VISIBLE
+                    }
+                    
+                    // Usuń tę supermoc jeśli trwa tylko 1 turę
+                    if (lifesteal.remainingDuration <= 1) {
+                        activeSuperPowers.remove(lifesteal)
+                    } else {
+                        lifesteal.remainingDuration--
+                    }
+                }
+            }
+            
+            // Dodaj do całkowitych obrażeń zadanych
+            totalDamageDealt += damage
         } else {
-            opponentScore += damage
-            playerHealth -= damage
+            // Sprawdź czy przeciwnik jest zamrożony (freeze) lub ogłuszony (stun)
+            val isEnemyDisabled = isEnemyStunnedOrFrozen()
+            
+            // Obrażenia zadawane tylko jeśli przeciwnik nie jest zamrożony/ogłuszony
+            if (!isEnemyDisabled) {
+                // Sprawdź, czy trzeba zastosować efekty obronne
+                val reducedDamage = applyDefensiveSuperPowers(damage)
+                
+                // Log dla debugowania
+                Log.d("DuelBattleActivity", "Początkowe obrażenia: $damage, po zastosowaniu obron: $reducedDamage")
+                
+                // Zastosuj obrażenia tylko jeśli faktycznie zostały zadane (mogą być 0 przez unik)
+                if (reducedDamage > 0) {
+                    opponentScore += reducedDamage
+                    playerHealth -= reducedDamage
+                    
+                    // Dodaj do całkowitych obrażeń otrzymanych
+                    totalDamageTaken += reducedDamage
+                }
+            } else {
+                // Przeciwnik jest zamrożony/ogłuszony - nie atakuje
+                feedbackText.text = "Przeciwnik nie może atakować!"
+                feedbackText.setTextColor(resources.getColor(R.color.ice_blue, theme))
+                feedbackText.visibility = View.VISIBLE
+                
+                // Log dla debugowania
+                Log.d("DuelBattleActivity", "Przeciwnik zamrożony/ogłuszony - omija turę ataku")
+            }
         }
         
         totalAnswers++
@@ -821,54 +895,119 @@ class DuelBattleActivity : AppCompatActivity() {
         updateScoreAndHealth()
         showFeedback(isCorrect, damage)
         
-        // Ukryj pytanie z animacją
-        animationManager.animateQuestionDisappear(questionContainer) {
-            // Wykonaj animację ataku
-            if (isCorrect) {
-                // Animacja ataku gracza
-                animationManager.animatePlayerAttack(
-                    playerCharacterView,
-                    monsterCharacterView,
-                    attackAnimationContainer,
-                    playerAttackAnimation,
-                    playerCharacter.element.toWandType(),
-                    opponentDamageText,
-                    damage
-                ) {
-                    // Sprawdź, czy gra się skończyła
-                    if (playerHealth <= 0 || opponentHealth <= 0) {
-                        stageCompleted = opponentHealth <= 0
-                        showResults()
+        // Opóźnienie przed rozpoczęciem animacji znikania pytania
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Ukryj pytanie z animacją
+            if (questionContainer.visibility == View.VISIBLE) {
+                animationManager.animateQuestionDisappear(questionContainer) {
+                    // Wykonaj animację ataku
+                    if (isCorrect) {
+                        // Animacja ataku gracza
+                        animationManager.animatePlayerAttack(
+                            playerCharacterView,
+                            monsterCharacterView,
+                            attackAnimationContainer,
+                            playerAttackAnimation,
+                            playerCharacter.element.toWandType(),
+                            opponentDamageText,
+                            damage
+                        ) {
+                            // Sprawdź, czy gra się skończyła
+                            if (playerHealth <= 0 || opponentHealth <= 0) {
+                                stageCompleted = opponentHealth <= 0
+                                showResults()
+                            } else {
+                                // Przejdź do następnego pytania
+                                currentQuestionIndex++
+                                isAnimationInProgress = false
+                                displayQuestion()
+                            }
+                        }
                     } else {
-                        // Przejdź do następnego pytania
-                        currentQuestionIndex++
-                        isAnimationInProgress = false
-                        displayQuestion()
+                        // Sprawdź czy przeciwnik jest zamrożony/ogłuszony
+                        val isEnemyDisabled = isEnemyStunnedOrFrozen()
+                        
+                        if (isEnemyDisabled) {
+                            // Przeciwnik nie atakuje - pomiń animację ataku i przechodź do następnego pytania
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                if (playerHealth <= 0 || opponentHealth <= 0) {
+                                    stageCompleted = opponentHealth <= 0
+                                    showResults()
+                                } else {
+                                    // Przejdź do następnego pytania
+                                    currentQuestionIndex++
+                                    isAnimationInProgress = false
+                                    displayQuestion()
+                                }
+                            }, 1000)
+                        } else {
+                            // Zwykła animacja ataku przeciwnika
+                            animationManager.animateMonsterAttack(
+                                playerCharacterView,
+                                monsterCharacterView,
+                                attackAnimationContainer,
+                                monsterAttackAnimation,
+                                playerDamageText,
+                                if (playerHealth < playerHealth + damage) damage else 0 // Pokaż 0 jeśli był unik
+                            ) {
+                                // Sprawdź, czy gra się skończyła
+                                if (playerHealth <= 0 || opponentHealth <= 0) {
+                                    stageCompleted = opponentHealth <= 0
+                                    showResults()
+                                } else {
+                                    // Przejdź do następnego pytania
+                                    currentQuestionIndex++
+                                    isAnimationInProgress = false
+                                    displayQuestion()
+                                }
+                            }
+                        }
                     }
                 }
             } else {
-                // Animacja ataku przeciwnika
-                animationManager.animateMonsterAttack(
-                    playerCharacterView,
-                    monsterCharacterView,
-                    attackAnimationContainer,
-                    monsterAttackAnimation,
-                    playerDamageText,
-                    damage
-                ) {
-                    // Sprawdź, czy gra się skończyła
-                    if (playerHealth <= 0 || opponentHealth <= 0) {
-                        stageCompleted = opponentHealth <= 0
-                        showResults()
-                    } else {
-                        // Przejdź do następnego pytania
-                        currentQuestionIndex++
-                        isAnimationInProgress = false
-                        displayQuestion()
+                Log.e("DuelBattleActivity", "Kontener pytania jest już niewidoczny")
+                
+                // Awaryjna obsługa - wykonaj animację ataku bezpośrednio
+                if (isCorrect) {
+                    animationManager.animatePlayerAttack(
+                        playerCharacterView,
+                        monsterCharacterView,
+                        attackAnimationContainer,
+                        playerAttackAnimation,
+                        playerCharacter.element.toWandType(),
+                        opponentDamageText,
+                        damage
+                    ) {
+                        if (playerHealth <= 0 || opponentHealth <= 0) {
+                            stageCompleted = opponentHealth <= 0
+                            showResults()
+                        } else {
+                            currentQuestionIndex++
+                            isAnimationInProgress = false
+                            displayQuestion()
+                        }
+                    }
+                } else {
+                    animationManager.animateMonsterAttack(
+                        playerCharacterView,
+                        monsterCharacterView,
+                        attackAnimationContainer,
+                        monsterAttackAnimation,
+                        playerDamageText,
+                        if (playerHealth < playerHealth + damage) damage else 0 // Pokaż 0 jeśli był unik
+                    ) {
+                        if (playerHealth <= 0 || opponentHealth <= 0) {
+                            stageCompleted = opponentHealth <= 0
+                            showResults()
+                        } else {
+                            currentQuestionIndex++
+                            isAnimationInProgress = false
+                            displayQuestion()
+                        }
                     }
                 }
             }
-        }
+        }, 1000) // 1 sekunda opóźnienia, aby pokazać feedback
     }
     
     private fun calculateDamage(isCorrect: Boolean, timeSpent: Long): Int {
@@ -937,6 +1076,12 @@ class DuelBattleActivity : AppCompatActivity() {
                     saveDemoQuestionsToFirebase()
                 }
                 
+                // Ładuj dodatkowe pytania
+                loadAdditionalQuestions()
+                
+                // Dodaj debugowanie
+                Log.d("DuelBattleActivity", "Załadowano ${questions.size} pytań głównych")
+                
                 // Jeśli nadal nie ma pytań (mimo prób utworzenia domyślnych),
                 // należy obsłużyć taki przypadek
                 if (questions.isEmpty()) {
@@ -948,6 +1093,7 @@ class DuelBattleActivity : AppCompatActivity() {
                 }
                 
                 // Rozpocznij pojedynek - wyświetl pierwsze pytanie
+                currentQuestionIndex = 0
                 displayQuestion()
             }
             
@@ -958,6 +1104,130 @@ class DuelBattleActivity : AppCompatActivity() {
                 finish()
             }
         })
+    }
+    
+    // Ładowanie dodatkowych pytań
+    private fun loadAdditionalQuestions() {
+        val additionalQuestionsRef = database.reference.child("duelStages").child(stageNumber.toString()).child("additionalQuestions")
+        
+        additionalQuestionsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                additionalQuestions.clear()
+                
+                if (snapshot.exists() && snapshot.childrenCount > 0) {
+                    // Wczytaj dodatkowe pytania z Firebase
+                    for (questionSnapshot in snapshot.children) {
+                        try {
+                            val questionText = questionSnapshot.child("question").getValue(String::class.java) ?: ""
+                            val correctAnswer = questionSnapshot.child("correctAnswer").getValue(String::class.java) ?: ""
+                            
+                            val incorrectAnswers = mutableListOf<String>()
+                            val incorrectAnswersSnapshot = questionSnapshot.child("incorrectAnswers")
+                            if (incorrectAnswersSnapshot.exists()) {
+                                for (answerSnapshot in incorrectAnswersSnapshot.children) {
+                                    val answer = answerSnapshot.getValue(String::class.java)
+                                    if (answer != null) {
+                                        incorrectAnswers.add(answer)
+                                    }
+                                }
+                            }
+                            
+                            val question = com.example.lingoheroesapp.models.Question(
+                                question = questionText,
+                                correctAnswer = correctAnswer,
+                                incorrectAnswers = incorrectAnswers
+                            )
+                            
+                            additionalQuestions.add(question)
+                        } catch (e: Exception) {
+                            Log.e("DuelBattleActivity", "Błąd podczas parsowania dodatkowego pytania: ${e.message}")
+                        }
+                    }
+                } else {
+                    // Jeśli nie ma dodatkowych pytań, generujemy je
+                    createAdditionalQuestions()
+                    
+                    // Zapisujemy dodatkowe pytania do Firebase
+                    saveAdditionalQuestionsToFirebase(additionalQuestions)
+                }
+                
+                Log.d("DuelBattleActivity", "Załadowano ${additionalQuestions.size} dodatkowych pytań")
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelBattleActivity", "Błąd ładowania dodatkowych pytań: ${error.message}")
+            }
+        })
+    }
+    
+    // Tworzenie dodatkowych pytań
+    private fun createAdditionalQuestions() {
+        // W zależności od poziomu generujemy różne dodatkowe pytania
+        when (stageNumber) {
+            1 -> {
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Goodbye' po polsku?",
+                    correctAnswer = "Do widzenia",
+                    incorrectAnswers = listOf("Witaj", "Przepraszam", "Dzień dobry")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Please' po polsku?",
+                    correctAnswer = "Proszę",
+                    incorrectAnswers = listOf("Przepraszam", "Dziękuję", "Nie ma za co")
+                ))
+            }
+            2 -> {
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Bird' po polsku?",
+                    correctAnswer = "Ptak",
+                    incorrectAnswers = listOf("Ryba", "Żaba", "Wąż")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Fish' po polsku?",
+                    correctAnswer = "Ryba",
+                    incorrectAnswers = listOf("Ptak", "Delfin", "Żółw")
+                ))
+            }
+            3 -> {
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Co oznacza 'Carrot' po polsku?",
+                    correctAnswer = "Marchewka",
+                    incorrectAnswers = listOf("Ziemniak", "Cebula", "Burak")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Jak powiedzieć 'Milk' po polsku?",
+                    correctAnswer = "Mleko",
+                    incorrectAnswers = listOf("Woda", "Sok", "Kawa")
+                ))
+            }
+            else -> {
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Dodatkowe pytanie 1 dla poziomu $stageNumber",
+                    correctAnswer = "Poprawna odpowiedź",
+                    incorrectAnswers = listOf("Błędna 1", "Błędna 2", "Błędna 3")
+                ))
+                additionalQuestions.add(com.example.lingoheroesapp.models.Question(
+                    question = "Dodatkowe pytanie 2 dla poziomu $stageNumber",
+                    correctAnswer = "Poprawna odpowiedź",
+                    incorrectAnswers = listOf("Niepoprawna A", "Niepoprawna B", "Niepoprawna C")
+                ))
+            }
+        }
+    }
+    
+    // Zapisywanie dodatkowych pytań do Firebase
+    private fun saveAdditionalQuestionsToFirebase(additionalQuestions: List<com.example.lingoheroesapp.models.Question>) {
+        val questionsRef = database.reference.child("duelStages").child(stageNumber.toString()).child("additionalQuestions")
+        
+        for (i in additionalQuestions.indices) {
+            val question = additionalQuestions[i]
+            val questionMap = mapOf(
+                "question" to question.question,
+                "correctAnswer" to question.correctAnswer,
+                "incorrectAnswers" to question.incorrectAnswers
+            )
+            questionsRef.child("question_$i").setValue(questionMap)
+        }
     }
     
     private fun createDefaultQuestions() {
@@ -1053,43 +1323,80 @@ class DuelBattleActivity : AppCompatActivity() {
         }
     }
     
+    // Display current question
     private fun displayQuestion() {
+        isAnswerSelected = false
+        
+        // Zapisujemy czas rozpoczęcia pytania
+        questionStartTime = System.currentTimeMillis()
+        currentQuestionStartTime = System.currentTimeMillis()
+        
+        // Sprawdź czy mamy jeszcze pytania
         if (currentQuestionIndex >= questions.size) {
-            // Gdy skończą się pytania, pokaż wyniki
+            // Sprawdź czy mamy dodatkowe pytania
+            if (additionalQuestions.isNotEmpty()) {
+                // Dodaj dodatkowe pytania do głównej puli
+                questions.addAll(additionalQuestions)
+                additionalQuestions.clear()
+            } else {
+                // Jeśli brakuje pytań, stwórz dodatkowe
+                val moreQuestions = createMoreDefaultQuestions()
+                questions.addAll(moreQuestions)
+            }
+        }
+        
+        // Get the current question
+        val currentQuestion = 
+            if (currentQuestionIndex < questions.size) questions[currentQuestionIndex]
+            else {
+                // Awaryjnie stworzone pytanie
+                Log.e("DuelBattleActivity", "Brak pytania na indeksie $currentQuestionIndex, generowanie awaryjne")
+                createMoreDefaultQuestions().first()
+            }
+        
+        // Process superpower effects at the start of the turn
+        processSuperPowerEffects()
+        
+        // If player/opponent is defeated, show results
+        if (playerHealth <= 0 || opponentHealth <= 0) {
             showResults()
             return
         }
-
-        // Resetuj stan
-        isAnswerSelected = false
         
-        // Pokaż pytanie z animacją
-        animationManager.animateQuestionAppear(questionContainer) {
-            // Pokaż przyciski odpowiedzi
-            answerButtons.forEach { it.isEnabled = true }
-            
-            // Ustaw pytanie
-            val question = questions[currentQuestionIndex]
-            questionText.text = question.question
-            
-            // Ustaw odpowiedzi - używamy właściwości answers z klasy Question zamiast własnej metody
-            val answers = ArrayList(question.answers)
-            // Losowo mieszamy odpowiedzi
-            answers.shuffle()
-            
-            answerButtons.forEachIndexed { index, button ->
-                button.text = answers[index]
-                button.background = ContextCompat.getDrawable(this, R.drawable.button_answer_normal)
+        // Update question text
+        questionText.text = currentQuestion.question
+        
+        // Shuffle answers
+        val allAnswers = mutableListOf<String>()
+        allAnswers.add(currentQuestion.correctAnswer)
+        allAnswers.addAll(currentQuestion.incorrectAnswers)
+        allAnswers.shuffle()
+        
+        // Store the correct answer index
+        correctAnswerIndex = allAnswers.indexOf(currentQuestion.correctAnswer)
+        
+        // Set answer button texts
+        answerButtons.forEachIndexed { index, button ->
+            if (index < allAnswers.size) {
+                button.text = allAnswers[index]
+                button.visibility = View.VISIBLE
+            } else {
+                button.visibility = View.GONE
             }
-            
-            // Zapisz poprawną odpowiedź
-            correctAnswerIndex = answers.indexOf(question.correctAnswer)
-            
-            // Rozpocznij licznik czasu
+        }
+        
+        // Ukryj feedback
+        feedbackText.visibility = View.INVISIBLE
+        playerDamageText.visibility = View.INVISIBLE
+        opponentDamageText.visibility = View.INVISIBLE
+        
+        // Inicjalnie ustaw kontener pytania jako niewidoczny, aby go zanimować
+        questionContainer.visibility = View.INVISIBLE
+        
+        // Animuj pojawienie się pytania
+        animationManager.animateQuestionAppear(questionContainer) {
+            // Start timer for this question po zakończeniu animacji pojawienia się
             startQuestionTimer()
-            
-            // Zapamiętaj czas rozpoczęcia pytania
-            currentQuestionStartTime = System.currentTimeMillis()
         }
     }
     
@@ -1099,6 +1406,9 @@ class DuelBattleActivity : AppCompatActivity() {
         
         // Reset progress bar
         timerProgressBar.progress = 100
+        
+        // Zapisz aktualny czas na rozpoczęciu pytania
+        currentQuestionStartTime = System.currentTimeMillis()
         
         // Create and start new timer
         timer = object : CountDownTimer(10000, 100) {
@@ -1197,6 +1507,9 @@ class DuelBattleActivity : AppCompatActivity() {
         // Check who won
         val playerWon = opponentHealth <= 0 || playerScore > opponentScore
         stageCompleted = playerWon
+        
+        // Resetujemy licznik poprawnych odpowiedzi przy zakończeniu pojedynku
+        correctAnswersCount = 0
         
         // Create a DuelReport object
         val duelReport = DuelReport(
@@ -1957,24 +2270,41 @@ class DuelBattleActivity : AppCompatActivity() {
         return additionalQuestions
     }
 
-    private fun saveAdditionalQuestionsToFirebase(additionalQuestions: List<com.example.lingoheroesapp.models.Question>) {
-        val questionsRef = database.reference.child("duelStages").child(stageNumber.toString()).child("additionalQuestions")
+    private fun increaseCorrectAnswers() {
+        correctAnswers++
+        correctAnswersCount++
         
-        for (i in additionalQuestions.indices) {
-            val question = additionalQuestions[i]
-            val questionMap = mapOf(
-                "question" to question.question,
-                "correctAnswer" to question.correctAnswer,
-                "incorrectAnswers" to question.incorrectAnswers
-            )
-            questionsRef.child("additionalQuestion_$i").setValue(questionMap)
+        // Zaktualizuj stan przycisku supermocy
+        updateSuperPowerButtonState()
+        
+        // Log dla debugowania
+        Log.d("DuelBattleActivity", "Poprawne odpowiedzi: $correctAnswersCount / próg: 3")
+        
+        // Wyświetl Toast z informacją, gdy odblokuje się możliwość użycia supermocy
+        if (correctAnswersCount == 3) {
+            Toast.makeText(this, "Odblokowano Super Moc! Kliknij przycisk, aby użyć.", Toast.LENGTH_SHORT).show()
+        } else if (correctAnswersCount == 6) {
+            Toast.makeText(this, "Odblokowano średnie Super Moce!", Toast.LENGTH_SHORT).show()
+        } else if (correctAnswersCount == 9) {
+            Toast.makeText(this, "Odblokowano potężne Super Moce!", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun handleCorrectAnswer() {
-        // Increase player score
+        // Increase player score and correct answers count
         playerScore += 10
         playerScoreText.text = playerScore.toString()
+        correctAnswersCount++
+        
+        // Check if player unlocked a superpower
+        if (correctAnswersCount == nextSuperPowerUnlockAt) {
+            updateSuperPowerButtonState()
+            showSuperPowerSelectionDialog()
+            // Set next milestone (every 3 correct answers)
+            nextSuperPowerUnlockAt = correctAnswersCount + 3
+        } else {
+            updateSuperPowerButtonState()
+        }
         
         // Check if special ability effect is triggered (zastępuje sprawdzanie efektu różdżki)
         val isSpecialEffectTriggered = random.nextFloat() < 0.25f // 25% szans na aktywację
@@ -2006,42 +2336,12 @@ class DuelBattleActivity : AppCompatActivity() {
         
         // Check if opponent is defeated
         if (opponentHealth <= 0) {
-            showResults()
-            return
+            handleEnemyDefeated()
+        } else {
+            // Increment correct answers count and continue
+            correctAnswersDisplayed++
+            continueAfterAnswer()
         }
-        
-        // Play correct answer animation and feedback
-        feedbackText.text = "Poprawna odpowiedź!"
-        feedbackText.setTextColor(resources.getColor(R.color.correct_green, theme))
-        feedbackText.visibility = View.VISIBLE
-        
-        // Load next question after delay
-        Handler(Looper.getMainLooper()).postDelayed({
-            feedbackText.visibility = View.INVISIBLE
-            playerDamageText.visibility = View.INVISIBLE
-            
-            // Proceed to next question
-            if (currentQuestionIndex < questions.size - 1) {
-                currentQuestionIndex++
-                displayQuestion()
-            } else {
-                // If we've gone through all questions but neither player nor opponent is defeated,
-                // determine winner by score
-                showResults()
-            }
-        }, 1500)
-    }
-
-    private fun calculateDamage(attack: Int, defense: Int, isSpecialEffectTriggered: Boolean): Int {
-        val baseDamage = (attack - defense * 0.5).coerceAtLeast(1.0).toInt()
-        
-        // Apply element effect multiplier if triggered
-        if (isSpecialEffectTriggered && playerCharacter.element == ElementType.FIRE) {
-            val multiplier = playerCharacter.element.getEffectiveness(ElementType.FIRE)
-            return (baseDamage * multiplier).toInt()
-        }
-        
-        return baseDamage
     }
 
     private fun applyElementEffect(elementType: ElementType) {
@@ -2062,7 +2362,7 @@ class DuelBattleActivity : AppCompatActivity() {
             ElementType.FIRE -> {
                 // Fire effect: opponent takes additional damage
                 val additionalDamage = calculateDamage(playerCharacter.baseAttack, enemyCharacter.defense, false)
-                opponentHealth -= additionalDamage
+                opponentHealth = (opponentHealth - additionalDamage).coerceAtLeast(0)
                 opponentDamageText.text = "-${additionalDamage}"
                 opponentDamageText.visibility = View.VISIBLE
                 animateDamageText(opponentDamageText)
@@ -2094,37 +2394,24 @@ class DuelBattleActivity : AppCompatActivity() {
     }
 
     private fun handleIncorrectAnswer() {
-        // Check if ice shield effect is active
-        var defenseMod = 1.0
-        if (playerDefenseIncreased) {
-            defenseMod = 1.2 // 20% bonus to defense from ice element
-            playerDefenseIncreased = false
-        }
-        
-        // Check if opponent defense is reduced
-        var attackMod = 1.0
-        if (enemyDefenseReduced) {
-            attackMod = 1.3 // 30% bonus to attack against reduced defense
-            enemyDefenseReduced = false
-        }
-        
-        // Calculate damage based on enemy character stats
-        val damage = calculateEnemyDamage(
-            enemyCharacter.baseAttack,
-            playerCharacter.defense,
-            defenseMod,
-            attackMod
+        // Opponent attacks player
+        val opponentDamage = calculateEnemyDamage(
+            enemyCharacter.attack,
+            playerCharacter.baseDefense
         )
-
+        
+        // Apply active superpowers that affect damage taken
+        val modifiedDamage = applyDefensiveSuperPowers(opponentDamage)
+        
         // Apply damage to player
-        playerHealth = (playerHealth - damage).coerceAtLeast(0)
+        playerHealth = (playerHealth - modifiedDamage).coerceAtLeast(0)
         
         // Show damage text
-        opponentDamageText.text = "+" + damage.toString()
+        opponentDamageText.text = "-" + modifiedDamage.toString()
         opponentDamageText.visibility = View.VISIBLE
         animateDamageText(opponentDamageText)
         
-        // Update health bar
+        // Update player's health bar
         animateHealthBar(playerHealthBar, playerHealthBar.progress, playerHealth)
         updateHealthBarColor(playerHealthBar, playerHealth)
         playerHealthText.text = "$playerHealth/${playerCharacter.hp}"
@@ -2160,7 +2447,7 @@ class DuelBattleActivity : AppCompatActivity() {
     private fun calculateEnemyDamage(attack: Int, defense: Int, defenseMod: Double = 1.0, attackMod: Double = 1.0): Int {
         val modifiedAttack = (attack * attackMod).toInt()
         val modifiedDefense = (defense * defenseMod).toInt()
-        val baseDamage = (modifiedAttack - modifiedDefense * 0.5).coerceAtLeast(1.0).toInt()
+        val baseDamage = (modifiedAttack - (modifiedDefense * 0.5).toInt()).coerceAtLeast(1)
         
         // Add some randomness
         val minDamage = (baseDamage * 0.8).toInt()
@@ -2207,5 +2494,755 @@ class DuelBattleActivity : AppCompatActivity() {
             description = "Przeciwnik poziomu $stageNumber",
             stageId = stageNumber
         )
+    }
+
+    // Handle player defeated
+    private fun handlePlayerDefeated() {
+        // Show defeat message
+        feedbackText.text = "Zostałeś pokonany!"
+        feedbackText.setTextColor(resources.getColor(R.color.incorrect_red, theme))
+        feedbackText.visibility = View.VISIBLE
+        
+        // Show results
+        Handler(Looper.getMainLooper()).postDelayed({
+            showResults()
+        }, 1500)
+    }
+    
+    // Handle enemy defeated
+    private fun handleEnemyDefeated() {
+        // Show victory message
+        feedbackText.text = "Pokonałeś przeciwnika!"
+        feedbackText.setTextColor(resources.getColor(R.color.correct_green, theme))
+        feedbackText.visibility = View.VISIBLE
+        
+        // Show results
+        Handler(Looper.getMainLooper()).postDelayed({
+            showResults()
+        }, 1500)
+    }
+    
+    // Continue to next question after answering
+    private fun continueAfterAnswer() {
+        // Display feedback
+        if (feedbackText.text.isEmpty()) {
+            feedbackText.text = "Następne pytanie..."
+            feedbackText.setTextColor(resources.getColor(R.color.purple_500, theme))
+        }
+        
+        feedbackText.visibility = View.VISIBLE
+        
+        // Load next question after delay
+        Handler(Looper.getMainLooper()).postDelayed({
+            feedbackText.visibility = View.INVISIBLE
+            playerDamageText.visibility = View.INVISIBLE
+            opponentDamageText.visibility = View.INVISIBLE
+            
+            // Proceed to next question
+            if (currentQuestionIndex < questions.size - 1) {
+                currentQuestionIndex++
+                displayQuestion()
+            } else {
+                // If we've gone through all questions but neither player nor opponent is defeated,
+                // determine winner by score
+                showResults()
+            }
+        }, 1500)
+    }
+    
+    // Show superpower selection dialog
+    private fun showSuperPowerSelectionDialog() {
+        // Zatrzymaj timer przed pokazaniem dialogu supermocy
+        timer?.cancel()
+        
+        val dialog = com.example.lingoheroesapp.dialogs.SuperPowerSelectionDialog(
+            this,
+            correctAnswersCount
+        ) { selectedSuperPower ->
+            // Apply the selected superpower
+            applySuperPower(selectedSuperPower)
+            
+            // Resetuj licznik poprawnych odpowiedzi po użyciu supermocy
+            correctAnswersCount = 0
+            
+            // Log potwierdzający reset
+            Log.d("DuelBattleActivity", "Reset licznika po użyciu supermocy. Nowa wartość: $correctAnswersCount")
+            
+            // Aktualizuj stan przycisku
+            updateSuperPowerButtonState()
+        }
+        
+        // Ustaw anulowanie dialogu
+        dialog.setOnCancelListener {
+            // Zrestartuj timer po anulowaniu
+            startQuestionTimer()
+        }
+        
+        // Wyświetl dialog
+        dialog.show()
+    }
+    
+    // Apply selected superpower
+    private fun applySuperPower(superPower: SuperPower) {
+        // Dodaj log dla debugowania
+        Log.d("DuelBattleActivity", "Używam supermocy: ${superPower.name}, typ: ${superPower.effectType}")
+        
+        // Create active superpower instance
+        val activeSuperPower = ActiveSuperPower(
+            superPowerId = superPower.id,
+            remainingDuration = superPower.duration,
+            appliedAt = System.currentTimeMillis(),
+            superPowerData = superPower
+        )
+        
+        // Dodaj do aktywnych supermocy (z usunięciem duplikatów tego samego typu)
+        val existingSuperPowerIndex = activeSuperPowers.indexOfFirst { 
+            it.superPowerData?.effectType == superPower.effectType 
+        }
+        
+        if (existingSuperPowerIndex >= 0) {
+            // Zastąp istniejącą supermoc nową
+            activeSuperPowers[existingSuperPowerIndex] = activeSuperPower
+        } else {
+            // Dodaj nową supermoc
+            activeSuperPowers.add(activeSuperPower)
+        }
+        
+        // Apply immediate effects
+        when (superPower.effectType) {
+            "damage" -> {
+                // Immediate damage (e.g. Iskra)
+                val baseDamage = playerCharacter.baseAttack
+                val additionalDamage = if (superPower.isPercentage) {
+                    (baseDamage * superPower.effectValue / 100).toInt()
+                } else {
+                    superPower.effectValue.toInt()
+                }
+                
+                opponentHealth = (opponentHealth - additionalDamage).coerceAtLeast(0)
+                
+                // Show damage text
+                opponentDamageText.text = "-$additionalDamage"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+                
+                // Update opponent's health bar
+                animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                updateHealthBarColor(opponentHealthBar, opponentHealth)
+                opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                
+                // Show feedback text
+                feedbackText.text = superPower.name
+                feedbackText.visibility = View.VISIBLE
+                
+                // Check if opponent is defeated
+                if (opponentHealth <= 0) {
+                    handleEnemyDefeated()
+                } else {
+                    // Continue game after delay
+                    continueSuperPowerEffect()
+                }
+            }
+            "healing" -> {
+                // Immediate healing (e.g. Małe leczenie)
+                val maxHealth = playerCharacter.hp
+                val healAmount = if (superPower.isPercentage) {
+                    (maxHealth * superPower.effectValue / 100).toInt()
+                } else {
+                    superPower.effectValue.toInt()
+                }
+                
+                playerHealth = (playerHealth + healAmount).coerceAtMost(maxHealth)
+                
+                // Show healing text
+                playerDamageText.text = "+$healAmount"
+                playerDamageText.setTextColor(resources.getColor(R.color.health_good, theme))
+                playerDamageText.visibility = View.VISIBLE
+                animateDamageText(playerDamageText)
+                
+                // Reset text color after animation
+                Handler(Looper.getMainLooper()).postDelayed({
+                    playerDamageText.setTextColor(resources.getColor(R.color.damage_red, theme))
+                }, 1500)
+                
+                // Update player's health bar
+                animateHealthBar(playerHealthBar, playerHealthBar.progress, playerHealth)
+                updateHealthBarColor(playerHealthBar, playerHealth)
+                playerHealthText.text = "$playerHealth/$maxHealth"
+                
+                // Show feedback text
+                feedbackText.text = superPower.name
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "dodge" -> {
+                // Unik - następny atak potwora nie trafi (e.g. Unik)
+                feedbackText.text = "Przygotowano ${superPower.name}!"
+                feedbackText.setTextColor(resources.getColor(R.color.health_good, theme))
+                feedbackText.visibility = View.VISIBLE
+                
+                // Log dla debugowania
+                Log.d("DuelBattleActivity", "Aktywowano supermoc ${superPower.name}. Następny atak potwora chybi.")
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "double_attack" -> {
+                if (superPower.duration == 1) {
+                    // Immediate double attack (e.g. Podwójne uderzenie)
+                    val damage = calculateDamage(
+                        playerCharacter.baseAttack,
+                        enemyCharacter.defense,
+                        false
+                    )
+                    
+                    opponentHealth = (opponentHealth - damage).coerceAtLeast(0)
+                    
+                    // Show damage text
+                    opponentDamageText.text = "-$damage"
+                    opponentDamageText.visibility = View.VISIBLE
+                    animateDamageText(opponentDamageText)
+                    
+                    // Update opponent's health bar
+                    animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                    updateHealthBarColor(opponentHealthBar, opponentHealth)
+                    opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                    
+                    // Show feedback text
+                    feedbackText.text = "${superPower.name}!"
+                    feedbackText.visibility = View.VISIBLE
+                    
+                    // Check if opponent is defeated
+                    if (opponentHealth <= 0) {
+                        handleEnemyDefeated()
+                    } else {
+                        // Continue game after delay
+                        continueSuperPowerEffect()
+                    }
+                } else {
+                    // Passive effect for multiple turns (e.g. Czas chaosu)
+                    feedbackText.text = "${superPower.name} aktywowano na ${superPower.duration} tury!"
+                    feedbackText.visibility = View.VISIBLE
+                    
+                    // Continue game after delay
+                    continueSuperPowerEffect()
+                }
+            }
+            "damage_boost" -> {
+                // Passive effect - increased damage on next attack (e.g. Mini-kryt, Cios krytyczny)
+                feedbackText.text = "${superPower.name} - następny atak zada ${superPower.effectValue.toInt()}% więcej obrażeń!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "damage_reduction" -> {
+                // Passive effect - reduced damage (e.g. Tarcza energetyczna, Odporność)
+                val durationText = if (superPower.duration > 1) " przez ${superPower.duration} tury" else ""
+                feedbackText.text = "${superPower.name} - obrażenia zmniejszone o ${superPower.effectValue.toInt()}%$durationText!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "damage_over_time" -> {
+                // Passive effect - damage over time (e.g. Ognista burza)
+                feedbackText.text = "${superPower.name} - zadaje ${superPower.effectValue.toInt()}% obrażeń przez ${superPower.duration} tury!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "stun" -> {
+                // Passive effect - enemy can't attack (e.g. Paraliż furii)
+                feedbackText.text = "${superPower.name} - przeciwnik nie może atakować przez ${superPower.duration} tury!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "execute" -> {
+                // Execute effect for low HP targets (e.g. Pieczęć zagłady, Armagedon)
+                val maxHealth = enemyCharacter.hp
+                val currentHealthPercent = (opponentHealth * 100) / maxHealth
+                
+                // Sprawdź warunek dla egzekucji
+                val executionThreshold = if (superPower.id == "armageddon") 25 else 30
+                
+                if (currentHealthPercent < executionThreshold) {
+                    // Oblicz dodatkowe obrażenia
+                    val baseDamage = playerCharacter.baseAttack
+                    val additionalDamage = if (superPower.isPercentage) {
+                        (baseDamage * superPower.effectValue / 100).toInt()
+                    } else {
+                        superPower.effectValue.toInt()
+                    }
+                    
+                    opponentHealth = (opponentHealth - additionalDamage).coerceAtLeast(0)
+                    
+                    // Show damage text
+                    opponentDamageText.text = "-$additionalDamage"
+                    opponentDamageText.visibility = View.VISIBLE
+                    animateDamageText(opponentDamageText)
+                    
+                    // Update opponent's health bar
+                    animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                    updateHealthBarColor(opponentHealthBar, opponentHealth)
+                    opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                    
+                    // Show feedback text
+                    feedbackText.text = "${superPower.name} - egzekucja!"
+                    feedbackText.visibility = View.VISIBLE
+                    
+                    // Check if opponent is defeated
+                    if (opponentHealth <= 0) {
+                        handleEnemyDefeated()
+                    } else {
+                        // Continue game after delay
+                        continueSuperPowerEffect()
+                    }
+                } else {
+                    // Nie spełniono warunku egzekucji
+                    feedbackText.text = "${superPower.name} - przeciwnik ma za dużo HP (${currentHealthPercent}%)!"
+                    feedbackText.visibility = View.VISIBLE
+                    
+                    // Continue game after delay
+                    continueSuperPowerEffect()
+                }
+            }
+            "reflect" -> {
+                // Passive effect - reflect damage (e.g. Odbicie mocy)
+                feedbackText.text = "${superPower.name} - następny atak zostanie odbity!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "life_steal" -> {
+                // Passive effect - steal health (e.g. Wampiryzm)
+                feedbackText.text = "${superPower.name} - odzyskasz ${superPower.effectValue.toInt()}% zadanych obrażeń jako HP!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "stun_damage" -> {
+                // Immediate stun + damage (e.g. Grom z nieba)
+                val baseDamage = playerCharacter.baseAttack
+                val additionalDamage = if (superPower.isPercentage) {
+                    (baseDamage * superPower.effectValue / 100).toInt()
+                } else {
+                    superPower.effectValue.toInt()
+                }
+                
+                opponentHealth = (opponentHealth - additionalDamage).coerceAtLeast(0)
+                
+                // Show damage text
+                opponentDamageText.text = "-$additionalDamage"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+                
+                // Update opponent's health bar
+                animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                updateHealthBarColor(opponentHealthBar, opponentHealth)
+                opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                
+                // Show feedback text
+                feedbackText.text = "${superPower.name} - paraliż + obrażenia!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Check if opponent is defeated
+                if (opponentHealth <= 0) {
+                    handleEnemyDefeated()
+                } else {
+                    // Continue game after delay
+                    continueSuperPowerEffect()
+                }
+            }
+            "freeze" -> {
+                // Passive effect - freeze enemy (e.g. Lodowa burza)
+                feedbackText.text = "${superPower.name} - przeciwnik zamrożony na ${superPower.duration} tury!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            "enemy_attack_reduction" -> {
+                // Passive effect - reduce enemy attack (e.g. Rozproszenie)
+                feedbackText.text = "${superPower.name} - siła ataku przeciwnika zmniejszona o ${superPower.effectValue.toInt()}%!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+            else -> {
+                // Show feedback text for other effects
+                feedbackText.text = "${superPower.name} aktywowano!"
+                feedbackText.visibility = View.VISIBLE
+                
+                // Continue game after delay
+                continueSuperPowerEffect()
+            }
+        }
+        
+        // Save active superpowers to Firebase
+        saveSuperPowersToFirebase()
+    }
+    
+    // Calculate damage with superpower modifiers
+    private fun calculateDamage(attack: Int, defense: Int, isSpecialEffectTriggered: Boolean = false): Int {
+        var damageMultiplier = 1.0
+        
+        // Apply element effect multiplier if triggered
+        if (isSpecialEffectTriggered && playerCharacter.element == ElementType.FIRE) {
+            val multiplier = playerCharacter.element.getEffectiveness(ElementType.FIRE)
+            damageMultiplier *= multiplier
+        }
+        
+        // Apply damage boost superpowers
+        activeSuperPowers.forEach { activeSuperPower ->
+            val superPower = activeSuperPower.superPowerData
+            if (superPower != null) {
+                when (superPower.effectType) {
+                    "damage_boost" -> {
+                        damageMultiplier += superPower.effectValue / 100.0
+                    }
+                }
+            }
+        }
+        
+        // Special effect multiplier (from wand)
+        val specialEffectMultiplier = if (isSpecialEffectTriggered) 1.5 else 1.0
+        
+        // Calculate base damage
+        val baseDamage = (attack - (defense * 0.5).toInt()).coerceAtLeast(1)
+        
+        // Apply randomness and multipliers
+        val minDamage = (baseDamage * 0.8).toInt()
+        val maxDamage = (baseDamage * 1.2).toInt()
+        val randomDamage = random.nextInt(maxDamage - minDamage + 1) + minDamage
+        
+        // Final damage with multipliers
+        return (randomDamage * damageMultiplier * specialEffectMultiplier).toInt()
+    }
+    
+    // Apply defensive superpowers to reduce incoming damage
+    private fun applyDefensiveSuperPowers(incomingDamage: Int): Int {
+        var damageReduction = 0.0
+        var dodgeChance = 0.0
+        var reflectDamage = false
+        
+        // Sprawdź czy są aktywne jakiekolwiek supermoce
+        Log.d("DuelBattleActivity", "Sprawdzam ${activeSuperPowers.size} aktywnych supermocy")
+        
+        // Apply defensive superpowers
+        activeSuperPowers.forEach { activeSuperPower ->
+            val superPower = activeSuperPower.superPowerData
+            if (superPower != null) {
+                Log.d("DuelBattleActivity", "Sprawdzam supermoc: ${superPower.name}, typ: ${superPower.effectType}")
+                
+                when (superPower.effectType) {
+                    "damage_reduction" -> {
+                        damageReduction += superPower.effectValue / 100.0
+                        Log.d("DuelBattleActivity", "Redukcja obrażeń o ${superPower.effectValue}%")
+                    }
+                    "dodge" -> {
+                        // Zagwarantowany unik (100% szans) dla supermocy Unik
+                        dodgeChance = 1.0 // 100% szans na unik
+                        Log.d("DuelBattleActivity", "Ustawiono 100% szans na unik dla supermocy ${superPower.name}")
+                    }
+                    "reflect" -> {
+                        reflectDamage = true
+                        Log.d("DuelBattleActivity", "Aktywowano odbicie obrażeń")
+                    }
+                }
+            }
+        }
+        
+        // Process dodge - jeśli mamy supermoc uniku, na pewno unikamy obrażeń
+        if (dodgeChance > 0) {
+            // Show dodge message
+            feedbackText.text = "Unik! Potwór nie trafia!"
+            feedbackText.setTextColor(resources.getColor(R.color.health_good, theme))
+            feedbackText.visibility = View.VISIBLE
+            
+            // Dodaj animację uniku
+            Handler(Looper.getMainLooper()).post {
+                val originalY = playerCharacterView.translationY
+                val dodgeAnimation = ObjectAnimator.ofFloat(playerCharacterView, "translationY", originalY, originalY - 50f, originalY)
+                dodgeAnimation.duration = 500
+                dodgeAnimation.start()
+            }
+            
+            // Log dla debugowania
+            Log.d("DuelBattleActivity", "Wykonano unik! Obrażenia zredukowane do 0")
+            
+            // Remove the dodge superpower after use (jednorazowa)
+            activeSuperPowers.removeIf { it.superPowerData?.effectType == "dodge" }
+            
+            // Zapisz zmiany w aktywnych supermocach
+            saveSuperPowersToFirebase()
+            
+            // Zawsze zwracaj 0 obrażeń dla uniku
+            return 0 // No damage taken
+        }
+        
+        // Process reflection
+        if (reflectDamage) {
+            // Apply reflected damage to opponent
+            opponentHealth = (opponentHealth - incomingDamage).coerceAtLeast(0)
+            
+            // Show reflection message
+            feedbackText.text = "Odbicie mocy! Przeciwnik otrzymuje własne obrażenia!"
+            feedbackText.setTextColor(resources.getColor(R.color.fire_red, theme))
+            feedbackText.visibility = View.VISIBLE
+            
+            // Update opponent's health bar
+            animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+            updateHealthBarColor(opponentHealthBar, opponentHealth)
+            opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+            
+            // Check if opponent is defeated
+            if (opponentHealth <= 0) {
+                handleEnemyDefeated()
+            }
+            
+            // Remove the reflect superpower after use (jednorazowa)
+            activeSuperPowers.removeIf { it.superPowerData?.effectType == "reflect" }
+            
+            // Zapisz zmiany w aktywnych supermocach
+            saveSuperPowersToFirebase()
+            
+            return 0 // No damage taken
+        }
+        
+        // Apply damage reduction (capped at 90%)
+        val damageMultiplier = 1.0 - damageReduction.coerceAtMost(0.9)
+        val reducedDamage = (incomingDamage * damageMultiplier).toInt()
+        
+        // Log dla debugowania
+        if (damageReduction > 0) {
+            Log.d("DuelBattleActivity", "Obrażenia zredukowane z $incomingDamage do $reducedDamage")
+        }
+        
+        return reducedDamage
+    }
+    
+    // Process superpower effects at the start of a new turn
+    private fun processSuperPowerEffects() {
+        // Process damage over time effects
+        val dotEffects = activeSuperPowers.filter { it.superPowerData?.effectType == "damage_over_time" }
+        
+        // Pokaż efekty DoT jeśli są aktywne
+        if (dotEffects.isNotEmpty()) {
+            var dotDamage = 0
+            
+            for (effect in dotEffects) {
+                val superPower = effect.superPowerData!!
+                val baseDamage = playerCharacter.baseAttack
+                val damage = if (superPower.isPercentage) {
+                    (baseDamage * superPower.effectValue / 100).toInt()
+                } else {
+                    superPower.effectValue.toInt()
+                }
+                
+                dotDamage += damage
+                
+                // Pokaż efekt w UI
+                feedbackText.text = "${superPower.name} (${effect.remainingDuration}): -$damage HP!"
+                feedbackText.visibility = View.VISIBLE
+            }
+            
+            if (dotDamage > 0) {
+                opponentHealth = (opponentHealth - dotDamage).coerceAtLeast(0)
+                
+                // Show damage text
+                opponentDamageText.text = "-$dotDamage"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+                
+                // Update opponent's health bar
+                animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                updateHealthBarColor(opponentHealthBar, opponentHealth)
+                opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                
+                // Check if opponent is defeated
+                if (opponentHealth <= 0) {
+                    handleEnemyDefeated()
+                    return
+                }
+            }
+        }
+        
+        // Efekty mrozące i paraliżujące (freeze, stun)
+        val stunEffects = activeSuperPowers.filter { 
+            it.superPowerData?.effectType == "stun" || it.superPowerData?.effectType == "stun_damage"
+        }
+        
+        val freezeEffects = activeSuperPowers.filter { 
+            it.superPowerData?.effectType == "freeze" 
+        }
+        
+        if (stunEffects.isNotEmpty()) {
+            // Pokaż informację o ogłuszeniu
+            val effect = stunEffects.first()
+            feedbackText.text = "Przeciwnik jest sparaliżowany - pozostało tur: ${effect.remainingDuration}!"
+            feedbackText.setTextColor(resources.getColor(R.color.lightning_yellow, theme))
+            feedbackText.visibility = View.VISIBLE
+        } else if (freezeEffects.isNotEmpty()) {
+            // Pokaż informację o zamrożeniu
+            val effect = freezeEffects.first()
+            feedbackText.text = "Przeciwnik jest zamrożony - pozostało tur: ${effect.remainingDuration}!"
+            feedbackText.setTextColor(resources.getColor(R.color.ice_blue, theme))
+            feedbackText.visibility = View.VISIBLE
+        }
+        
+        // Decrease remaining duration for all active superpowers
+        for (i in activeSuperPowers.size - 1 downTo 0) {
+            val activeSuperPower = activeSuperPowers[i]
+            activeSuperPower.remainingDuration--
+            
+            // Remove expired superpowers
+            if (activeSuperPower.remainingDuration <= 0) {
+                // Pokaż informację o zakończeniu efektu
+                val superPower = activeSuperPower.superPowerData
+                if (superPower != null) {
+                    Log.d("DuelBattleActivity", "Supermoc ${superPower.name} wygasła")
+                }
+                
+                activeSuperPowers.removeAt(i)
+            }
+        }
+        
+        // Save active superpowers to Firebase
+        saveSuperPowersToFirebase()
+    }
+    
+    // Save active superpowers to Firebase
+    private fun saveSuperPowersToFirebase() {
+        val userId = currentUser?.uid ?: return
+        val activeSuperPowersRef = database.reference.child("users").child(userId).child("activeSuperPowers")
+        
+        // Clear existing superpowers
+        activeSuperPowersRef.removeValue()
+        
+        // Add each active superpower
+        activeSuperPowers.forEachIndexed { index, activeSuperPower ->
+            activeSuperPowersRef.child(index.toString()).setValue(activeSuperPower)
+        }
+    }
+    
+    // Load active superpowers from Firebase
+    private fun loadSuperPowersFromFirebase() {
+        val userId = currentUser?.uid ?: return
+        val activeSuperPowersRef = database.reference.child("users").child(userId).child("activeSuperPowers")
+        
+        activeSuperPowersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    activeSuperPowers.clear()
+                    
+                    for (superPowerSnapshot in snapshot.children) {
+                        val activeSuperPower = superPowerSnapshot.getValue(ActiveSuperPower::class.java)
+                        if (activeSuperPower != null) {
+                            activeSuperPowers.add(activeSuperPower)
+                        }
+                    }
+                }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelBattleActivity", "Error loading active superpowers: ${error.message}")
+            }
+        })
+    }
+    
+    // Load game progress including correct answers count
+    private fun loadGameProgress() {
+        val userId = currentUser?.uid ?: return
+        val progressRef = database.reference.child("users").child(userId).child("duelProgress")
+        
+        progressRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    correctAnswersCount = snapshot.child("correctAnswersCount").getValue(Int::class.java) ?: 0
+                    
+                    // Calculate next superpower unlock milestone
+                    nextSuperPowerUnlockAt = (correctAnswersCount / 3 + 1) * 3
+                    
+                    // Aktualizuj stan przycisku supermocy
+                    updateSuperPowerButtonState()
+                }
+            }
+            
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DuelBattleActivity", "Error loading game progress: ${error.message}")
+            }
+        })
+    }
+    
+    // Save game progress including correct answers count
+    private fun saveGameProgress() {
+        val userId = currentUser?.uid ?: return
+        val progressRef = database.reference.child("users").child(userId).child("duelProgress")
+        
+        val progressMap = mapOf(
+            "correctAnswersCount" to correctAnswersCount,
+            "lastPlayedStage" to stageNumber,
+            "lastUpdated" to System.currentTimeMillis()
+        )
+        
+        progressRef.updateChildren(progressMap)
+    }
+
+    // Function that continues the game after using a superpower
+    private fun continueSuperPowerEffect() {
+        // Restart the timer
+        startQuestionTimer()
+        
+        // Restart the game flow
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Hide feedback text
+            feedbackText.visibility = View.INVISIBLE
+            playerDamageText.visibility = View.INVISIBLE
+            opponentDamageText.visibility = View.INVISIBLE
+            
+            // Continue with the current question
+            displayQuestion()
+        }, 1500) // Daj czas na zobaczenie efektu supermocy
+    }
+
+    // Function that updates the state of the superpower button
+    private fun updateSuperPowerButtonState() {
+        // The superpower button is active when we have at least 3 correct answers
+        val hasUnlockedSuperPower = correctAnswersCount >= 3
+        
+        // Update button appearance based on state
+        specialAbilityButton.isEnabled = hasUnlockedSuperPower
+        
+        // Update button text to show progress
+        val remainingAnswers = (3 - correctAnswersCount).coerceAtLeast(0)
+        if (hasUnlockedSuperPower) {
+            specialAbilityButton.text = "Super Moc" 
+            specialAbilityButton.alpha = 1.0f
+            // Set background color for the active button
+            specialAbilityButton.setBackgroundResource(R.drawable.button_special_ability_active)
+        } else {
+            specialAbilityButton.text = "Super Moc za $remainingAnswers odpowiedzi"
+            specialAbilityButton.alpha = 0.7f
+            // Set default background color for the inactive button
+            specialAbilityButton.setBackgroundResource(R.drawable.button_special_ability)
+        }
+    }
+
+    // Sprawdza czy przeciwnik jest ogłuszony lub zamrożony i nie może atakować
+    private fun isEnemyStunnedOrFrozen(): Boolean {
+        // Sprawdzenie czy którakolwiek z supermocy stun/freeze jest aktywna
+        return activeSuperPowers.any { 
+            val powerType = it.superPowerData?.effectType
+            powerType == "stun" || powerType == "stun_damage" || powerType == "freeze"
+        }
     }
 } 

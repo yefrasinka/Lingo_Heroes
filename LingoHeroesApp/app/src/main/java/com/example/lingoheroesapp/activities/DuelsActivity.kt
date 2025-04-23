@@ -85,6 +85,9 @@ class DuelsActivity : AppCompatActivity() {
         
         // Set up stage click listeners
         setupStageListeners()
+        
+        // Add test button for superpowers (remove in production)
+        setupTestSuperPowerButton()
     }
     
     private fun initializeViews() {
@@ -685,6 +688,28 @@ class DuelsActivity : AppCompatActivity() {
             val layoutParams = mapContainer.layoutParams
             layoutParams.height = bossBottomPosition
             mapContainer.layoutParams = layoutParams
+        }
+    }
+    
+    // Test method to show available superpowers
+    private fun setupTestSuperPowerButton() {
+        // Find the first stage button and add a long press action
+        stageButtons[0].setOnLongClickListener {
+            // Show superpower dialog for testing
+            val correctAnswersCount = 10 // Set to 3, 5, or 10 to test different power tiers
+            val dialog = com.example.lingoheroesapp.dialogs.SuperPowerSelectionDialog(
+                this,
+                correctAnswersCount
+            ) { selectedSuperPower ->
+                // Just show a toast with the selected power
+                Toast.makeText(
+                    this,
+                    "Wybrano supermoc: ${selectedSuperPower.name}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            dialog.show()
+            true
         }
     }
     

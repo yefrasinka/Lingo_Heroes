@@ -38,7 +38,7 @@ data class SuperPower(
     )
     
     companion object {
-        // Predefiniowane supermoce - słabe (łatwe)
+        // SŁABE SUPERMOCY (łatwe zadania)
         val DODGE = SuperPower(
             id = "dodge",
             name = "Unik",
@@ -130,7 +130,7 @@ data class SuperPower(
             isPercentage = true
         )
         
-        // Predefiniowane supermoce - średnie
+        // ŚREDNIE SUPERMOCY (średnie zadania)
         val DOUBLE_STRIKE = SuperPower(
             id = "double_strike",
             name = "Podwójne uderzenie",
@@ -170,7 +170,72 @@ data class SuperPower(
             isPercentage = true
         )
         
-        // Predefiniowane supermoce - mocne
+        val ELEMENTAL_SHIELD = SuperPower(
+            id = "elemental_shield",
+            name = "Tarcza żywiołów",
+            description = "Zmniejsza otrzymywane obrażenia o 25% przez 3 tury.",
+            iconUrl = "elemental_shield_icon",
+            difficulty = SuperPowerDifficulty.MEDIUM,
+            duration = 3,
+            cooldown = 4,
+            effectType = "damage_reduction",
+            effectValue = 25.0,
+            isPercentage = true
+        )
+        
+        val MANA_GATHERING = SuperPower(
+            id = "mana_gathering",
+            name = "Zbieranie many",
+            description = "Następny atak zadaje 150% obrażeń.",
+            iconUrl = "mana_gathering_icon",
+            difficulty = SuperPowerDifficulty.MEDIUM,
+            duration = 1,
+            cooldown = 4,
+            effectType = "damage_boost",
+            effectValue = 150.0,
+            isPercentage = true
+        )
+        
+        val DOOM_SEAL = SuperPower(
+            id = "doom_seal",
+            name = "Pieczęć zagłady",
+            description = "Jeśli potwór ma mniej niż 30% HP, zadaje dodatkowe 25% obrażeń.",
+            iconUrl = "doom_seal_icon",
+            difficulty = SuperPowerDifficulty.MEDIUM,
+            duration = 1,
+            cooldown = 4,
+            effectType = "execute",
+            effectValue = 25.0,
+            isPercentage = true
+        )
+        
+        val SUPER_ATTACK = SuperPower(
+            id = "super_attack",
+            name = "Superatak",
+            description = "Szansa na efekt supermocy laski zwiększona o 30%.",
+            iconUrl = "super_attack_icon",
+            difficulty = SuperPowerDifficulty.MEDIUM,
+            duration = 1,
+            cooldown = 4,
+            effectType = "wand_effect_boost",
+            effectValue = 30.0,
+            isPercentage = true
+        )
+        
+        val ELEMENTAL = SuperPower(
+            id = "elemental",
+            name = "Żywiołak",
+            description = "Dodaje losową kulę (ognistą/lodową/błyskawiczną) z 10% szansą na superatak.",
+            iconUrl = "elemental_icon",
+            difficulty = SuperPowerDifficulty.MEDIUM,
+            duration = 1,
+            cooldown = 4,
+            effectType = "random_element",
+            effectValue = 10.0,
+            isPercentage = true
+        )
+        
+        // MOCNE SUPERMOCY (trudne zadania)
         val FIRE_STORM = SuperPower(
             id = "fire_storm",
             name = "Ognista burza",
@@ -197,6 +262,84 @@ data class SuperPower(
             isPercentage = true
         )
         
+        val ARMAGEDDON = SuperPower(
+            id = "armageddon",
+            name = "Armagedon",
+            description = "Zadaje 300% obrażeń, jeśli potwór ma mniej niż 25% HP.",
+            iconUrl = "armageddon_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 1,
+            cooldown = 5,
+            effectType = "execute",
+            effectValue = 300.0,
+            isPercentage = true
+        )
+        
+        val POWER_REFLECTION = SuperPower(
+            id = "power_reflection",
+            name = "Odbicie mocy",
+            description = "Całkowicie odbija następny atak potwora, zadając mu tyle samo obrażeń.",
+            iconUrl = "power_reflection_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 1,
+            cooldown = 5,
+            effectType = "reflect",
+            effectValue = 100.0,
+            isPercentage = true
+        )
+        
+        val ICE_STORM = SuperPower(
+            id = "ice_storm",
+            name = "Lodowa burza",
+            description = "Zamraża potwora na 2 tury, niezależnie od rodzaju laski.",
+            iconUrl = "ice_storm_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 2,
+            cooldown = 5,
+            effectType = "freeze",
+            effectValue = 100.0,
+            isPercentage = true
+        )
+        
+        val THUNDER = SuperPower(
+            id = "thunder",
+            name = "Grom z nieba",
+            description = "Paraliżuje potwora i zadaje dodatkowo 30% obrażeń.",
+            iconUrl = "thunder_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 1,
+            cooldown = 5,
+            effectType = "stun_damage",
+            effectValue = 30.0,
+            isPercentage = true
+        )
+        
+        val MAGIC_FIELD = SuperPower(
+            id = "magic_field",
+            name = "Pole magiczne",
+            description = "Przez 3 tury wszystkie otrzymywane obrażenia są zmniejszone o 50%.",
+            iconUrl = "magic_field_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 3,
+            cooldown = 5,
+            effectType = "damage_reduction",
+            effectValue = 50.0,
+            isPercentage = true
+        )
+        
+        val CHAOS_TIME = SuperPower(
+            id = "chaos_time",
+            name = "Czas chaosu",
+            description = "Przez 3 tury bohater atakuje dwukrotnie.",
+            iconUrl = "chaos_time_icon",
+            difficulty = SuperPowerDifficulty.HARD,
+            duration = 3,
+            cooldown = 5,
+            effectType = "double_attack",
+            effectValue = 100.0,
+            isPercentage = true
+        )
+        
         // Pobierz wszystkie łatwe supermoce
         fun getEasySuperPowers(): List<SuperPower> {
             return listOf(DODGE, SPARK, SMALL_HEAL, ENERGY_SHIELD, MINI_CRIT, DISTRACTION, RESISTANCE)
@@ -204,12 +347,18 @@ data class SuperPower(
         
         // Pobierz wszystkie średnie supermoce
         fun getMediumSuperPowers(): List<SuperPower> {
-            return listOf(DOUBLE_STRIKE, VAMPIRISM, CRITICAL_HIT)
+            return listOf(
+                DOUBLE_STRIKE, VAMPIRISM, CRITICAL_HIT, ELEMENTAL_SHIELD, 
+                MANA_GATHERING, DOOM_SEAL, SUPER_ATTACK, ELEMENTAL
+            )
         }
         
         // Pobierz wszystkie trudne supermoce
         fun getHardSuperPowers(): List<SuperPower> {
-            return listOf(FIRE_STORM, FURY_PARALYSIS)
+            return listOf(
+                FIRE_STORM, FURY_PARALYSIS, ARMAGEDDON, POWER_REFLECTION, 
+                ICE_STORM, THUNDER, MAGIC_FIELD, CHAOS_TIME
+            )
         }
         
         // Pobierz losową supermoc o określonej trudności
@@ -220,6 +369,11 @@ data class SuperPower(
                 SuperPowerDifficulty.HARD -> getHardSuperPowers()
             }
             return powers.random()
+        }
+        
+        // Pobierz wszystkie supermoce
+        fun getAllSuperPowers(): List<SuperPower> {
+            return getEasySuperPowers() + getMediumSuperPowers() + getHardSuperPowers()
         }
     }
 } 

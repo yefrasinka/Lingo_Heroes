@@ -38,4 +38,10 @@
     <color name="health_good">#4CAF50</color>
     <color name="health_medium">#FFC107</color>
     <color name="health_low">#F44336</color>
+    <color name="health_high">#4CAF50</color>
+    <color name="easy_power_bg">#E6F7FF</color>
+    <color name="medium_power_bg">#FFF3E0</color>
+    <color name="hard_power_bg">#FFE5E5</color>
+    <!-- Kolor dla tekstów obrażeń -->
+    <color name="damage_red">#FF0000</color>
 </resources>

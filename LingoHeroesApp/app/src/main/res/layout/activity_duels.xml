@@ -113,10 +113,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage1"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage1"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage1"
-                app:layout_constraintStart_toStartOf="@+id/btnStage1"
-                app:layout_constraintTop_toTopOf="@+id/btnStage1" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage1" />
 
             <LinearLayout
                 android:id="@+id/starsStage1"
@@ -124,7 +124,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginTop="4dp"
-                app:layout_constraintTop_toBottomOf="@+id/btnStage1"
+                app:layout_constraintTop_toBottomOf="@+id/txtStage1"
                 app:layout_constraintStart_toStartOf="@+id/btnStage1"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage1">
 
@@ -199,10 +199,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage2"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage2"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage2"
-                app:layout_constraintStart_toStartOf="@+id/btnStage2"
-                app:layout_constraintTop_toTopOf="@+id/btnStage2" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage2" />
 
             <LinearLayout
                 android:id="@+id/starsStage2"
@@ -210,7 +210,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginTop="4dp"
-                app:layout_constraintTop_toBottomOf="@+id/btnStage2"
+                app:layout_constraintTop_toBottomOf="@+id/txtStage2"
                 app:layout_constraintStart_toStartOf="@+id/btnStage2"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage2">
 
@@ -285,10 +285,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage3"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage3"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage3"
-                app:layout_constraintStart_toStartOf="@+id/btnStage3"
-                app:layout_constraintTop_toTopOf="@+id/btnStage3" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage3" />
 
             <LinearLayout
                 android:id="@+id/starsStage3"
@@ -371,10 +371,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage4"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage4"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage4"
-                app:layout_constraintStart_toStartOf="@+id/btnStage4"
-                app:layout_constraintTop_toTopOf="@+id/btnStage4" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage4" />
 
             <LinearLayout
                 android:id="@+id/starsStage4"
@@ -457,10 +457,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage5"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage5"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage5"
-                app:layout_constraintStart_toStartOf="@+id/btnStage5"
-                app:layout_constraintTop_toTopOf="@+id/btnStage5" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage5" />
 
             <LinearLayout
                 android:id="@+id/starsStage5"
@@ -543,10 +543,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage6"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage6"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage6"
-                app:layout_constraintStart_toStartOf="@+id/btnStage6"
-                app:layout_constraintTop_toTopOf="@+id/btnStage6" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage6" />
 
             <LinearLayout
                 android:id="@+id/starsStage6"
@@ -629,10 +629,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage7"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage7"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage7"
-                app:layout_constraintStart_toStartOf="@+id/btnStage7"
-                app:layout_constraintTop_toTopOf="@+id/btnStage7" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage7" />
 
             <LinearLayout
                 android:id="@+id/starsStage7"
@@ -715,10 +715,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage8"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage8"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage8"
-                app:layout_constraintStart_toStartOf="@+id/btnStage8"
-                app:layout_constraintTop_toTopOf="@+id/btnStage8" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage8" />
 
             <LinearLayout
                 android:id="@+id/starsStage8"
@@ -801,10 +801,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage9"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage9"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage9"
-                app:layout_constraintStart_toStartOf="@+id/btnStage9"
-                app:layout_constraintTop_toTopOf="@+id/btnStage9" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage9" />
 
             <LinearLayout
                 android:id="@+id/starsStage9"
@@ -889,10 +889,10 @@
                 android:shadowDx="1"
                 android:shadowDy="1"
                 android:shadowRadius="2"
-                app:layout_constraintBottom_toBottomOf="@+id/btnStage10"
+                android:layout_marginTop="4dp"
+                app:layout_constraintTop_toBottomOf="@+id/btnStage10"
                 app:layout_constraintEnd_toEndOf="@+id/btnStage10"
-                app:layout_constraintStart_toStartOf="@+id/btnStage10"
-                app:layout_constraintTop_toTopOf="@+id/btnStage10" />
+                app:layout_constraintStart_toStartOf="@+id/btnStage10" />
 
             <LinearLayout
                 android:id="@+id/starsStage10"
