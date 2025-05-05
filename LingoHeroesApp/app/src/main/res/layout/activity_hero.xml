@@ -280,7 +280,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:progress="0"
-                    app:indicatorSize="102dp"
+                    app:indicatorSize="90dp"
                     app:trackThickness="3dp"
                     app:trackColor="#33FFFFFF"
                     app:indicatorColor="@color/progress_bronze" />

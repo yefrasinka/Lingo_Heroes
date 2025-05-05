@@ -32,7 +32,7 @@ enum class ArmorTier {
         return when (this) {
             BRONZE -> com.example.lingoheroesapp.R.drawable.ic_warrior_fire
             SILVER -> com.example.lingoheroesapp.R.drawable.ic_silver_fire
-            GOLD -> com.example.lingoheroesapp.R.drawable.ic_silver_lightning  // Tymczasowo używamy srebrnej zbroi dla złotego poziomu
+            GOLD -> com.example.lingoheroesapp.R.drawable.ic_silver_fire  // Tymczasowo używamy srebrnej zbroi dla złotego poziomu
         }
     }
     
