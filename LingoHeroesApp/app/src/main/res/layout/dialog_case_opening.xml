@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_background"
+    android:padding="16dp">
+
+    <!-- Tytuł skrzynki -->
+    <TextView
+        android:id="@+id/caseTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Otwieranie skrzyni"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Obrazek skrzyni, początkowo widoczny -->
+    <ImageView
+        android:id="@+id/caseImage"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/caseTitle"
+        app:layout_constraintBottom_toTopOf="@id/itemNameText"
+        android:layout_marginBottom="24dp"
+        tools:src="@drawable/ic_chest_standard" />
+
+    <!-- Kolorowy wskaźnik rzadkości przedmiotu -->
+    <View
+        android:id="@+id/rarityIndicator"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#4CAF50"
+        app:layout_constraintBottom_toTopOf="@id/itemNameText"
+        app:layout_constraintEnd_toEndOf="@id/itemImage"
+        app:layout_constraintStart_toStartOf="@id/itemImage"
+        android:visibility="invisible" />
+
+    <!-- Obrazek przedmiotu, początkowo niewidoczny -->
+    <ImageView
+        android:id="@+id/itemImage"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/caseTitle"
+        android:visibility="invisible"
+        tools:src="@drawable/ic_armor_silver" />
+
+    <!-- Nazwa przedmiotu -->
+    <TextView
+        android:id="@+id/itemNameText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/itemImage"
+        android:visibility="invisible"
+        tools:text="Srebrna zbroja" />
+
+    <!-- Opis przedmiotu -->
+    <TextView
+        android:id="@+id/itemDescriptionText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/itemNameText"
+        android:visibility="invisible"
+        tools:text="Fragment srebrnej zbroi, który możesz użyć do ulepszenia swojego ekwipunku." />
+
+    <!-- Przycisk zamknięcia -->
+    <Button
+        android:id="@+id/closeButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Zamknij"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/itemDescriptionText"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

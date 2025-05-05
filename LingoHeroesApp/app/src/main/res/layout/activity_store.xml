@@ -117,7 +117,7 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-    <!-- Główna zawartość z lepszym scrollowaniem -->
+    <!-- Główna zawartość sklepu -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -129,38 +129,48 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
-
-            <!-- Logo w karcie -->
-            <androidx.cardview.widget.CardView
+            android:orientation="vertical">
+            
+            <!-- Tytuł sekcji skrzynek -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
-
-                <ImageView
-                    android:id="@+id/logo"
-                    android:layout_width="match_parent"
-                    android:layout_height="350dp"
-                    android:src="@drawable/logo"
-                    android:contentDescription="Logo"
-                    android:scaleType="centerCrop"/>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Coming soon text z lepszą typografią -->
-            <TextView
-                android:id="@+id/comingSoonText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Coming soon..."
-                android:textAppearance="@style/TextAppearance.App.Headline1"
+                android:text="Skrzynie skarbów"
+                android:textSize="22sp"
+                android:textStyle="bold"
                 android:textColor="@color/purple_700"
-                android:layout_marginTop="24dp"
-                android:gravity="center" />
+                android:layout_marginBottom="16dp"/>
+                
+            <!-- Lista dostępnych skrzynek -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/casesRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:orientation="vertical"/>
+                
+            <!-- Miejsce na przyszłe sekcje -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Wkrótce więcej produktów..."
+                android:textAlignment="center"
+                android:textStyle="italic"
+                android:textColor="#757575"
+                android:layout_marginTop="24dp"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Wskaźnik ładowania -->
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- Dolna nawigacja z Material Design -->
     <com.google.android.material.bottomnavigation.BottomNavigationView

@@ -2020,7 +2020,7 @@ class DuelBattleActivity : AppCompatActivity() {
     
     @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
-        // Zamknij aktualnie otwarty dialog, jeśli istnieje
+        // Zamknij aktywny dialog, jeśli istnieje
         if (activeDialog?.isShowing == true) {
             activeDialog?.dismiss()
             activeDialog = null
@@ -2306,8 +2306,56 @@ class DuelBattleActivity : AppCompatActivity() {
             updateSuperPowerButtonState()
         }
         
-        // Check if special ability effect is triggered (zastępuje sprawdzanie efektu różdżki)
-        val isSpecialEffectTriggered = random.nextFloat() < 0.25f // 25% szans na aktywację
+        // Sprawdź, czy aktywna jest supermoc Superatak (wand_effect_boost)
+        var specialEffectChance = 0.25f // 25% szans na aktywację domyślnie
+        val wandEffectBoostPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "wand_effect_boost" }
+        
+        if (wandEffectBoostPowers.isNotEmpty()) {
+            val superPower = wandEffectBoostPowers.first().superPowerData!!
+            val additionalChance = (superPower.effectValue / 100.0).toFloat()
+            specialEffectChance += additionalChance
+            
+            // Pokaż informację o zwiększonej szansie
+            feedbackText.text = "${superPower.name}: szansa na specjalny efekt +${superPower.effectValue.toInt()}%!"
+            feedbackText.visibility = View.VISIBLE
+            
+            // Usuń tę supermoc, jeśli trwa tylko 1 turę
+            if (wandEffectBoostPowers.first().remainingDuration <= 1) {
+                activeSuperPowers.remove(wandEffectBoostPowers.first())
+            }
+        }
+        
+        // Sprawdź, czy aktywna jest supermoc Żywiołak (random_element)
+        val randomElementPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "random_element" }
+        var elementToUse = playerCharacter.element
+        var showRandomElementEffect = false
+        
+        if (randomElementPowers.isNotEmpty()) {
+            val superPower = randomElementPowers.first().superPowerData!!
+            // Losuj żywioł: ogień, lód lub błyskawica
+            val randomElement = when (random.nextInt(3)) {
+                0 -> ElementType.FIRE
+                1 -> ElementType.ICE
+                else -> ElementType.LIGHTNING
+            }
+            elementToUse = randomElement
+            showRandomElementEffect = true
+            
+            // Pokaż informację o losowym żywiole
+            feedbackText.text = "${superPower.name}: Użyto losowego żywiołu - ${randomElement.name}!"
+            feedbackText.visibility = View.VISIBLE
+            
+            // Zwiększona szansa na specjalny efekt
+            specialEffectChance += (superPower.effectValue / 100.0).toFloat()
+            
+            // Usuń tę supermoc, jeśli trwa tylko 1 turę
+            if (randomElementPowers.first().remainingDuration <= 1) {
+                activeSuperPowers.remove(randomElementPowers.first())
+            }
+        }
+        
+        // Check if special ability effect is triggered 
+        val isSpecialEffectTriggered = random.nextFloat() < specialEffectChance
         
         // Calculate damage based on character stats
         val damage = calculateDamage(
@@ -2316,23 +2364,69 @@ class DuelBattleActivity : AppCompatActivity() {
             isSpecialEffectTriggered
         )
         
-        // Apply element effect if triggered
-        if (isSpecialEffectTriggered) {
-            applyElementEffect(playerCharacter.element)
+        // Apply element effect if triggered or random element was used
+        if (isSpecialEffectTriggered || showRandomElementEffect) {
+            applyElementEffect(elementToUse)
         }
         
         // Apply damage to opponent
         opponentHealth = (opponentHealth - damage).coerceAtLeast(0)
         
         // Show damage text
-        playerDamageText.text = "+" + damage.toString()
-        playerDamageText.visibility = View.VISIBLE
-        animateDamageText(playerDamageText)
+        opponentDamageText.text = "-$damage"
+        opponentDamageText.visibility = View.VISIBLE
+        animateDamageText(opponentDamageText)
         
         // Update opponent's health bar
         animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
         updateHealthBarColor(opponentHealthBar, opponentHealth)
         opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+        
+        // Sprawdź, czy aktywna jest supermoc podwójnego ataku (double_attack)
+        val doubleAttackSuperPowers = activeSuperPowers.filter { it.superPowerData?.effectType == "double_attack" }
+        
+        if (doubleAttackSuperPowers.isNotEmpty()) {
+            // Wykonaj dodatkowy atak
+            val extraDamage = calculateDamage(
+                playerCharacter.baseAttack, 
+                enemyCharacter.defense,
+                false
+            )
+            
+            // Pokaż informację o dodatkowym ataku
+            feedbackText.text = "${doubleAttackSuperPowers.first().superPowerData?.name}: Podwójny atak!"
+            feedbackText.visibility = View.VISIBLE
+            
+            // Opóźnij dodatkowy atak dla lepszego efektu
+            Handler(Looper.getMainLooper()).postDelayed({
+                // Zadaj dodatkowe obrażenia
+                opponentHealth = (opponentHealth - extraDamage).coerceAtLeast(0)
+                
+                // Pokaż dodatkowe obrażenia
+                opponentDamageText.text = "-$extraDamage"
+                opponentDamageText.visibility = View.VISIBLE
+                animateDamageText(opponentDamageText)
+                
+                // Zaktualizuj pasek zdrowia przeciwnika
+                animateHealthBar(opponentHealthBar, opponentHealthBar.progress, opponentHealth)
+                updateHealthBarColor(opponentHealthBar, opponentHealth)
+                opponentHealthText.text = "$opponentHealth/${enemyCharacter.hp}"
+                
+                // Sprawdź, czy przeciwnik został pokonany
+                if (opponentHealth <= 0) {
+                    handleEnemyDefeated()
+                }
+                
+                // Zmniejsz czas trwania supermocy tylko dla jednorazowych
+                val superPower = doubleAttackSuperPowers.first()
+                if (superPower.superPowerData?.duration == 1) {
+                    activeSuperPowers.remove(superPower)
+                } else if (superPower.remainingDuration > 0) {
+                    // Dla wieloturowych mocy, zmniejszamy licznik tylko przy procesowaniu tury
+                    // Nie zmniejszamy tutaj, ponieważ zostanie to zrobione w processSuperPowerEffects()
+                }
+            }, 750) // Pół sekundy opóźnienia dla lepszego efektu
+        }
         
         // Check if opponent is defeated
         if (opponentHealth <= 0) {
@@ -2444,12 +2538,39 @@ class DuelBattleActivity : AppCompatActivity() {
         }, 1500)
     }
     
-    private fun calculateEnemyDamage(attack: Int, defense: Int, defenseMod: Double = 1.0, attackMod: Double = 1.0): Int {
-        val modifiedAttack = (attack * attackMod).toInt()
-        val modifiedDefense = (defense * defenseMod).toInt()
-        val baseDamage = (modifiedAttack - (modifiedDefense * 0.5).toInt()).coerceAtLeast(1)
+    private fun calculateEnemyDamage(attack: Int, defense: Int): Int {
+        var attackModifier = 1.0
         
-        // Add some randomness
+        // Apply attack reduction from "enemy_attack_reduction" superpower
+        val enemyAttackReductionPowers = activeSuperPowers.filter { 
+            it.superPowerData?.effectType == "enemy_attack_reduction" 
+        }
+        
+        // Apply all attack reduction effects
+        for (power in enemyAttackReductionPowers) {
+            val superPower = power.superPowerData!!
+            val reductionValue = superPower.effectValue / 100.0
+            attackModifier -= reductionValue
+            
+            // Log dla debugowania
+            Log.d("DuelBattleActivity", "Zredukowano atak przeciwnika o ${superPower.effectValue}%")
+            
+            // Usuń tę supermoc jeśli trwa tylko 1 turę
+            if (power.remainingDuration <= 1) {
+                activeSuperPowers.remove(power)
+            }
+        }
+        
+        // Prevent negative multiplier (minimum 10% of original attack)
+        attackModifier = attackModifier.coerceAtLeast(0.1)
+        
+        // Calculate modified attack
+        val modifiedAttack = (attack * attackModifier).toInt()
+        
+        // Calculate base damage
+        val baseDamage = (modifiedAttack - (defense * 0.3).toInt()).coerceAtLeast(1)
+        
+        // Apply randomness
         val minDamage = (baseDamage * 0.8).toInt()
         val maxDamage = (baseDamage * 1.2).toInt()
         return random.nextInt(maxDamage - minDamage + 1) + minDamage
@@ -2671,7 +2792,8 @@ class DuelBattleActivity : AppCompatActivity() {
                 playerHealthText.text = "$playerHealth/$maxHealth"
                 
                 // Show feedback text
-                feedbackText.text = superPower.name
+                feedbackText.text = "${superPower.name}: +$healAmount HP!"
+                feedbackText.setTextColor(resources.getColor(R.color.health_good, theme))
                 feedbackText.visibility = View.VISIBLE
                 
                 // Continue game after delay

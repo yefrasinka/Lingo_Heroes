@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.models.Task
 import com.google.firebase.auth.FirebaseAuth
@@ -66,6 +67,13 @@ class TaskDisplayActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_task_display)
+
+        // Rejestrujemy callback dla przycisku wstecz
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                showExitConfirmationDialog()
+            }
+        })
 
         // Inicjalizacja widoków
         questionTextView = findViewById(R.id.questionTextView)
@@ -697,10 +705,6 @@ class TaskDisplayActivity : AppCompatActivity() {
         mediaPlayer = null
         playAudioButton.isEnabled = true
         playAudioButton.alpha = 1.0f
-    }
-
-    override fun onBackPressed() {
-        showExitConfirmationDialog()
     }
 
     override fun onDestroy() {
