@@ -11,6 +11,9 @@ import com.example.lingoheroesapp.utils.AchievementManager
 import com.example.lingoheroesapp.utils.ChallengeManager
 import com.example.lingoheroesapp.utils.UserDataMigration
 import com.google.firebase.auth.FirebaseAuth
+import com.example.lingoheroesapp.utils.NotificationManager
+import com.example.lingoheroesapp.utils.AutomatedNotificationManager
+import com.example.lingoheroesapp.utils.NotificationScheduler
 
 
 class MainActivity : AppCompatActivity() {
@@ -20,11 +23,22 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Inicjalizacja powiadomień
+        NotificationManager.requestNotificationPermission(this)
+        
+        // Inicjalizacja menedżera automatycznych powiadomień
+        AutomatedNotificationManager.init(this)
+        
+        // Planowanie powiadomień
+        NotificationScheduler.scheduleNotifications(this)
+        
+        // Dodaj testowe powiadomienie
+        AutomatedNotificationManager.sendTestNotification(this, "Powiadomienie testowe z MainActivity")
+        
         auth = FirebaseAuth.getInstance()
         val currentUser = auth.currentUser
 
         if (currentUser == null) {
-            // Если пользователь не залогинен, переходим на экран логина
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         } else {
@@ -44,9 +58,11 @@ class MainActivity : AppCompatActivity() {
                 
                 // Sprawdzenie i zresetowanie wygasłych wyzwań
                 ChallengeManager.checkAndResetExpiredChallenges()
+
+                // Subskrybuj użytkownika na powiadomienia
+                AutomatedNotificationManager.subscribeUserToNotifications(userId)
             }
             
-            // Если пользователь авторизован, переходим в MainMenuActivity
             startActivity(Intent(this, MainMenuActivity::class.java))
             finish()
         }

@@ -10,7 +10,7 @@
         android:id="@+id/closeButton"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:contentDescription="Wróć do głównego menu"
+        android:contentDescription="@string/back"
         android:src="@drawable/ic_close"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
@@ -27,7 +27,7 @@
         android:layout_marginEnd="37dp"
         android:layout_marginBottom="16dp"
         android:layout_toStartOf="@+id/closeButton"
-        android:text="Przetłumacz słowo"
+        android:text="@string/test"
         android:textColor="@color/purple_dark"
         android:textSize="24sp"
         android:textStyle="bold" />
@@ -89,5 +89,14 @@
         android:textSize="20dp"
         android:contentDescription="Opcja 4"
         android:layout_below="@id/option3Button" />
+
+    <Button
+        android:id="@+id/nextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textSize="20dp"
+        android:contentDescription="@string/next"
+        android:layout_below="@id/option4Button" />
 
 </RelativeLayout>

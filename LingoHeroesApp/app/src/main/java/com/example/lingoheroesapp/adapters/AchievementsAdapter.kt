@@ -12,8 +12,9 @@ import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.models.Achievement
 import com.example.lingoheroesapp.models.AchievementType
 
-class AchievementsAdapter : RecyclerView.Adapter<AchievementsAdapter.AchievementViewHolder>() {
+class AchievementsAdapter(
     private var achievements: List<Achievement> = listOf()
+) : RecyclerView.Adapter<AchievementsAdapter.AchievementViewHolder>() {
 
     fun updateAchievements(newAchievements: List<Achievement>) {
         achievements = newAchievements

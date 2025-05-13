@@ -213,6 +213,11 @@ class ProfileActivity : AppCompatActivity() {
             startActivity(Intent(this, ChallengesActivity::class.java))
         }
 
+        // Dodanie przycisku znajomych
+        findViewById<Button>(R.id.friendsButton).setOnClickListener {
+            startActivity(Intent(this, FriendsActivity::class.java))
+        }
+
         // Dodanie obsługi kliknięć na sekcje wyzwań
         dailyChallengesLayout.setOnClickListener {
             val intent = Intent(this, ChallengesActivity::class.java)

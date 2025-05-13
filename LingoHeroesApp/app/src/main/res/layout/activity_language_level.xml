@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Wybierz swój poziom języka lub wykonaj test wstępny"
+        android:text="@string/select_language_level"
         android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
@@ -19,14 +19,14 @@
         android:id="@+id/testButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Wykonaj test wstępny"
+        android:text="@string/take_placement_test"
         android:layout_marginBottom="24dp"
         style="@style/ButtonStyle"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="lub wybierz poziom ręcznie:"
+        android:text="@string/or_select_manually"
         android:textSize="18sp"
         android:layout_marginBottom="16dp"/>
 
@@ -34,7 +34,7 @@
         android:id="@+id/levelA1Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="A1 - Początkujący"
+        android:text="@string/level_a1"
         android:layout_marginBottom="16dp"
         style="@style/ButtonStyle"/>
 
@@ -42,7 +42,7 @@
         android:id="@+id/levelA2Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="A2 - Podstawowy"
+        android:text="@string/level_a2"
         android:layout_marginBottom="16dp"
         style="@style/ButtonStyle"/>
 
@@ -50,7 +50,7 @@
         android:id="@+id/levelB1Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="B1 - Średniozaawansowany"
+        android:text="@string/level_b1"
         android:layout_marginBottom="16dp"
         style="@style/ButtonStyle"/>
 
@@ -58,7 +58,7 @@
         android:id="@+id/levelB2Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="B2 - Wyższy średniozaawansowany"
+        android:text="@string/level_b2"
         android:layout_marginBottom="32dp"
         style="@style/ButtonStyle"/>
 
@@ -66,7 +66,7 @@
         android:id="@+id/backButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Powrót"
+        android:text="@string/return_text"
         style="@style/ButtonStyle"/>
 
 </LinearLayout>

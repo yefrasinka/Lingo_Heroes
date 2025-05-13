@@ -29,7 +29,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:src="@drawable/ic_avatar_vector_main"
-                android:contentDescription="Avatar"
+                android:contentDescription="@string/avatar"
                 app:shapeAppearanceOverlay="@style/CircularImageView"
                 android:elevation="2dp"
                 android:padding="4dp"
@@ -68,7 +68,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_coin"
-                        android:contentDescription="Currency" />
+                        android:contentDescription="@string/currency" />
 
                     <TextView
                         android:id="@+id/currencyText"
@@ -102,7 +102,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_trophy"
-                        android:contentDescription="Experience" />
+                        android:contentDescription="@string/experience" />
 
                     <TextView
                         android:id="@+id/experienceText"
@@ -159,7 +159,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_heart"
-                        android:contentDescription="HP"
+                        android:contentDescription="@string/hp"
                         android:layout_marginStart="8dp"/>
 
                     <TextView
@@ -188,7 +188,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_sword"
-                        android:contentDescription="ATK"
+                        android:contentDescription="@string/atk"
                         android:layout_marginStart="8dp"/>
 
                     <TextView
@@ -212,7 +212,7 @@
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="8dp"
                 android:src="@drawable/ic_warrior_lightning"
-                android:contentDescription="Hero"
+                android:contentDescription="@string/hero"
                 android:scaleType="fitCenter" />
 
             <!-- Надпись "Różdżka" -->
@@ -223,7 +223,7 @@
                 android:layout_alignParentEnd="true"
                 android:layout_marginTop="12dp"
                 android:layout_marginEnd="72dp"
-                android:text="Różdżka"
+                android:text="@string/wand"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black" />
@@ -237,7 +237,7 @@
                 android:layout_alignParentStart="true"
                 android:layout_marginTop="12dp"
                 android:layout_marginStart="72dp"
-                android:text="Zbroja"
+                android:text="@string/armor"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/black" />
@@ -270,7 +270,7 @@
                     android:layout_height="96dp"
                     android:background="@drawable/staff_background"
                     android:src="@drawable/ic_armor_bronze"
-                    android:contentDescription="Zbroja"
+                    android:contentDescription="@string/armor"
                     android:scaleType="centerInside"
                     android:padding="12dp" />
 
@@ -297,7 +297,7 @@
                 android:layout_marginEnd="48dp"
                 android:background="@drawable/staff_background"
                 android:src="@drawable/ic_staff_lightning"
-                android:contentDescription="Różdżka"
+                android:contentDescription="@string/wand"
                 android:scaleType="centerInside"
                 android:padding="12dp" />
         </RelativeLayout>

@@ -28,6 +28,12 @@ class MainMenuActivity : AppCompatActivity() {
     private lateinit var xpTextView: TextView
     private lateinit var coinsTextView: TextView
     private lateinit var topicsContainer: LinearLayout
+    
+    // Zmienne do przechowywania referencji nasłuchiwania
+    private var userValueEventListener: ValueEventListener? = null
+    private var topicsProgressValueEventListener: ValueEventListener? = null
+    private var userRef: DatabaseReference? = null
+    private var topicsProgressRef: DatabaseReference? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,50 +95,73 @@ class MainMenuActivity : AppCompatActivity() {
     private fun checkUserAndLoadData() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
+            // Użytkownik jest zalogowany, możemy bezpiecznie załadować dane
             loadUserData(currentUser.uid)
             loadTopicsForUser(currentUser.uid)
         } else {
+            // Użytkownik nie jest zalogowany, przekieruj do logowania bez prób pobierania danych
             navigateToLogin()
         }
     }
 
     private fun loadUserData(userId: String) {
-        database.child("users").child(userId)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    try {
-                        // Używamy ręcznej konwersji zamiast automatycznego mapowania
-                        val uid = snapshot.child("uid").getValue(String::class.java) ?: userId
-                        val username = snapshot.child("username").getValue(String::class.java) ?: "User"
-                        val email = snapshot.child("email").getValue(String::class.java) ?: ""
-                        val level = snapshot.child("level").getValue(Int::class.java) ?: 1
-                        val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
-                        val coins = snapshot.child("coins").getValue(Int::class.java) ?: 0
-                        
-                        // Tworzymy obiekt User z podstawowych danych
-                        val user = User(
-                            uid = uid,
-                            username = username,
-                            email = email,
-                            level = level,
-                            xp = xp,
-                            coins = coins
-                        )
-                        
-                        updateUserUI(user)
-                    } catch (e: Exception) {
-                        Log.e("MainMenuActivity", "Error deserializing user data", e)
-                        showError("Wystąpił błąd podczas wczytywania danych użytkownika")
-                    }
+        // Usuwamy poprzednie nasłuchiwanie, jeśli istnieje
+        if (userValueEventListener != null && userRef != null) {
+            userRef?.removeEventListener(userValueEventListener!!)
+            userValueEventListener = null
+        }
+        
+        // Tworzymy nową referencję
+        userRef = database.child("users").child(userId)
+        
+        // Tworzymy i dodajemy nowe nasłuchiwanie
+        userValueEventListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                try {
+                    // Używamy ręcznej konwersji zamiast automatycznego mapowania
+                    val uid = snapshot.child("uid").getValue(String::class.java) ?: userId
+                    val username = snapshot.child("username").getValue(String::class.java) ?: "User"
+                    val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                    val level = snapshot.child("level").getValue(Int::class.java) ?: 1
+                    val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
+                    val coins = snapshot.child("coins").getValue(Int::class.java) ?: 0
+                    
+                    // Tworzymy obiekt User z podstawowych danych
+                    val user = User(
+                        uid = uid,
+                        username = username,
+                        email = email,
+                        level = level,
+                        xp = xp,
+                        coins = coins
+                    )
+                    
+                    updateUserUI(user)
+                } catch (e: Exception) {
+                    Log.e("MainMenuActivity", "Error deserializing user data", e)
+                    // Tylko wyświetl błąd w logach, nie pokazuj toast użytkownikowi
                 }
+            }
 
-                override fun onCancelled(error: DatabaseError) {
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("MainMenuActivity", "Failed to load user data: ${error.message}")
+                // Nie pokazuj błędów podczas ładowania jeśli użytkownik zmienił ekran
+                if (!isFinishing && !isDestroyed) {
                     showError("Failed to load user data: ${error.message}")
                 }
-            })
+            }
+        }
+        
+        // Dodajemy nasłuchiwanie
+        userRef?.addValueEventListener(userValueEventListener!!)
     }
 
     private fun updateUserUI(user: User) {
+        // Sprawdź, czy aktywność wciąż działa
+        if (isFinishing || isDestroyed) {
+            return
+        }
+        
         usernameTextView.text = user.username
         levelTextView.text = "Level ${user.level}"
         xpTextView.text = "${user.xp}"
@@ -140,31 +169,52 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun loadTopicsForUser(userId: String) {
+        // Sprawdź, czy aktywność wciąż działa
+        if (isFinishing || isDestroyed) {
+            return
+        }
+        
         topicsContainer.removeAllViews()
         
         database.child("topics").addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                // Sprawdź, czy aktywność wciąż działa
+                if (isFinishing || isDestroyed) {
+                    return
+                }
+                
                 // Logujemy całą strukturę danych
                 Log.d("TopicDebug", "Raw topics data from Firebase: ${snapshot.value}")
                 
                 val topics = mutableListOf<Topic>()
                 
                 for (topicSnapshot in snapshot.children) {
-                    val topic = topicSnapshot.getValue(Topic::class.java)
-                    if (topic != null) {
-                        topic.id = topicSnapshot.key ?: continue
-                        topics.add(topic)
-                        
-                        // Logujemy szczegóły każdego tematu
-                        Log.d("TopicDebug", """
-                            Topic details:
-                            ID: ${topic.id}
-                            Title: ${topic.title}
-                            Level: ${topic.level}
-                            Subtopics count: ${topic.subtopics.size}
-                            Subtopics: ${topic.subtopics.map { "${it.id}: ${it.title}" }}
-                        """.trimIndent())
+                    try {
+                        val topic = topicSnapshot.getValue(Topic::class.java)
+                        if (topic != null) {
+                            topic.id = topicSnapshot.key ?: continue
+                            topics.add(topic)
+                            
+                            // Logujemy szczegóły każdego tematu
+                            Log.d("TopicDebug", """
+                                Topic details:
+                                ID: ${topic.id}
+                                Title: ${topic.title}
+                                Level: ${topic.level}
+                                Subtopics count: ${topic.subtopics.size}
+                                Subtopics: ${topic.subtopics.map { "${it.id}: ${it.title}" }}
+                            """.trimIndent())
+                        }
+                    } catch (e: Exception) {
+                        Log.e("TopicDebug", "Error parsing topic: ${e.message}")
+                        // Kontynuuj z kolejnymi tematami
+                        continue
                     }
+                }
+                
+                if (topics.isEmpty()) {
+                    Log.w("TopicDebug", "No topics found or all topics failed to parse")
+                    return
                 }
                 
                 val sortedTopics = topics.sortedWith(compareBy({ it.level }, { it.id }))
@@ -172,32 +222,58 @@ class MainMenuActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                showError("Failed to load topics: ${error.message}")
+                // Loguj błąd, ale nie pokazuj go użytkownikowi
+                Log.e("TopicDebug", "Failed to load topics: ${error.message}")
+                
+                // Pokaż błąd tylko jeśli aktywność wciąż działa
+                if (!isFinishing && !isDestroyed) {
+                    showError("Failed to load topics: ${error.message}")
+                }
             }
         })
     }
 
     private fun loadProgressForTopics(topics: List<Topic>, userId: String) {
-        database.child("users").child(userId).child("topicsProgress")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val progressMap = mutableMapOf<String, TopicProgress>()
-                    
-                    try {
-                        for (topicSnapshot in snapshot.children) {
-                            val topicId = topicSnapshot.key ?: continue
-                            
-                            // Ręczne mapowanie danych TopicProgress
-                            val completedSubtopics = topicSnapshot.child("completedSubtopics").getValue(Int::class.java) ?: 0
-                            val totalSubtopics = topicSnapshot.child("totalSubtopics").getValue(Int::class.java) ?: 0
-                            val completedTasks = topicSnapshot.child("completedTasks").getValue(Int::class.java) ?: 0
-                            val totalTasks = topicSnapshot.child("totalTasks").getValue(Int::class.java) ?: 0
-                            
-                            // Mapa subtopics
-                            val subtopicsMap = mutableMapOf<String, SubtopicProgress>()
-                            val subtopicsSnapshot = topicSnapshot.child("subtopics")
-                            if (subtopicsSnapshot.exists()) {
-                                for (subtopicSnapshot in subtopicsSnapshot.children) {
+        // Sprawdź, czy aktywność wciąż działa
+        if (isFinishing || isDestroyed) {
+            return
+        }
+        
+        // Usuwamy poprzednie nasłuchiwanie, jeśli istnieje
+        if (topicsProgressValueEventListener != null && topicsProgressRef != null) {
+            topicsProgressRef?.removeEventListener(topicsProgressValueEventListener!!)
+            topicsProgressValueEventListener = null
+        }
+        
+        // Tworzymy nową referencję
+        topicsProgressRef = database.child("users").child(userId).child("topicsProgress")
+        
+        // Tworzymy i dodajemy nowe nasłuchiwanie
+        topicsProgressValueEventListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // Sprawdź, czy aktywność wciąż działa
+                if (isFinishing || isDestroyed) {
+                    return
+                }
+                
+                val progressMap = mutableMapOf<String, TopicProgress>()
+                
+                try {
+                    for (topicSnapshot in snapshot.children) {
+                        val topicId = topicSnapshot.key ?: continue
+                        
+                        // Ręczne mapowanie danych TopicProgress
+                        val completedSubtopics = topicSnapshot.child("completedSubtopics").getValue(Int::class.java) ?: 0
+                        val totalSubtopics = topicSnapshot.child("totalSubtopics").getValue(Int::class.java) ?: 0
+                        val completedTasks = topicSnapshot.child("completedTasks").getValue(Int::class.java) ?: 0
+                        val totalTasks = topicSnapshot.child("totalTasks").getValue(Int::class.java) ?: 0
+                        
+                        // Mapa subtopics
+                        val subtopicsMap = mutableMapOf<String, SubtopicProgress>()
+                        val subtopicsSnapshot = topicSnapshot.child("subtopics")
+                        if (subtopicsSnapshot.exists()) {
+                            for (subtopicSnapshot in subtopicsSnapshot.children) {
+                                try {
                                     val subtopicId = subtopicSnapshot.key ?: continue
                                     
                                     val subCompletedTasks = subtopicSnapshot.child("completedTasks").getValue(Int::class.java) ?: 0
@@ -211,50 +287,69 @@ class MainMenuActivity : AppCompatActivity() {
                                     )
                                     
                                     subtopicsMap[subtopicId] = subtopicProgress
+                                } catch (e: Exception) {
+                                    Log.e("TopicDebug", "Error parsing subtopic progress: ${e.message}")
+                                    continue
                                 }
                             }
-                            
-                            // Tworzymy obiekt postępu
-                            val progress = TopicProgress(
-                                completedSubtopics = completedSubtopics,
-                                totalSubtopics = totalSubtopics,
-                                completedTasks = completedTasks,
-                                totalTasks = totalTasks,
-                                subtopics = subtopicsMap
-                            )
-                            
-                            progressMap[topicId] = progress
-                            Log.d("TopicDebug", "Loaded progress for topic: $topicId")
                         }
-
-                        database.child("users").child(userId)
-                            .addListenerForSingleValueEvent(object : ValueEventListener {
-                                override fun onDataChange(userSnapshot: DataSnapshot) {
-                                    val userLevel = userSnapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
-                                    
-                                    topicsContainer.removeAllViews()
-                                    
-                                    topics.forEach { topic ->
-                                        val topicView = createTopicView(topic, progressMap[topic.id], topics, progressMap)
-                                        topicsContainer.addView(topicView)
-                                        Log.d("TopicDebug", "Added view for topic: ${topic.id} - ${topic.title}")
-                                    }
-                                }
-
-                                override fun onCancelled(error: DatabaseError) {
-                                    showError("Błąd podczas ładowania poziomu użytkownika")
-                                }
-                            })
-                    } catch (e: Exception) {
-                        Log.e("MainMenuActivity", "Error deserializing topics progress", e)
-                        showError("Wystąpił błąd podczas wczytywania postępu tematów")
+                        
+                        // Tworzymy obiekt postępu
+                        val progress = TopicProgress(
+                            completedSubtopics = completedSubtopics,
+                            totalSubtopics = totalSubtopics,
+                            completedTasks = completedTasks,
+                            totalTasks = totalTasks,
+                            subtopics = subtopicsMap
+                        )
+                        
+                        progressMap[topicId] = progress
+                        Log.d("TopicDebug", "Loaded progress for topic: $topicId")
                     }
-                }
 
-                override fun onCancelled(error: DatabaseError) {
-                    showError("Failed to load progress: ${error.message}")
+                    // Sprawdź, czy aktywność wciąż działa
+                    if (isFinishing || isDestroyed) {
+                        return
+                    }
+
+                    database.child("users").child(userId)
+                        .addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(userSnapshot: DataSnapshot) {
+                                // Sprawdź, czy aktywność wciąż działa
+                                if (isFinishing || isDestroyed) {
+                                    return
+                                }
+                                
+                                val userLevel = userSnapshot.child("level").getValue(Long::class.java)?.toInt() ?: 1
+                                
+                                topicsContainer.removeAllViews()
+                                
+                                topics.forEach { topic ->
+                                    val topicView = createTopicView(topic, progressMap[topic.id], topics, progressMap)
+                                    topicsContainer.addView(topicView)
+                                    Log.d("TopicDebug", "Added view for topic: ${topic.id} - ${topic.title}")
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                // Loguj błąd, ale nie pokazuj go użytkownikowi
+                                Log.e("TopicDebug", "Failed to load user level: ${error.message}")
+                            }
+                        })
+                } catch (e: Exception) {
+                    Log.e("TopicDebug", "Error deserializing topics progress", e)
+                    // Nie pokazuj błędu na UI, tylko zaloguj
                 }
-            })
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Loguj błąd, ale nie pokazuj go użytkownikowi
+                Log.e("TopicDebug", "Failed to load progress: ${error.message}")
+            }
+        }
+        
+        // Dodajemy nasłuchiwanie
+        topicsProgressRef?.addValueEventListener(topicsProgressValueEventListener!!)
     }
 
     private fun isLevelCompleted(topics: List<Topic>, progressMap: Map<String, TopicProgress>, level: Int): Boolean {
@@ -298,6 +393,11 @@ class MainMenuActivity : AppCompatActivity() {
                 .child("level")
                 .get()
                 .addOnSuccessListener { snapshot ->
+                    // Sprawdź, czy aktywność wciąż działa
+                    if (isFinishing || isDestroyed) {
+                        return@addOnSuccessListener
+                    }
+                    
                     val userLevel = snapshot.getValue(Long::class.java)?.toInt() ?: 1
                     
                     // Temat jest dostępny jeśli spełniony jest którykolwiek z warunków:
@@ -348,6 +448,11 @@ class MainMenuActivity : AppCompatActivity() {
                     }
                 }
                 .addOnFailureListener {
+                    // Sprawdź, czy aktywność wciąż działa
+                    if (isFinishing || isDestroyed) {
+                        return@addOnFailureListener
+                    }
+                    
                     // W przypadku błędu, pokazujemy temat jako zablokowany
                     topicTitle.text = "\uD83D\uDD12 ${topic.title}"
                     topicTitle.setTextColor(ContextCompat.getColor(this, R.color.color_locked))
@@ -375,43 +480,79 @@ class MainMenuActivity : AppCompatActivity() {
         subtopicButton.text = subtopic.title
         subtopicButton.setTextColor(ContextCompat.getColor(this, android.R.color.white))
 
-        // Pobieramy aktualny progress z bazy danych
+        // Ustawiamy początkowy progress z dostarczonego parametru progress
+        val initialCompletedTasks = progress?.completedTasks ?: 0
+        val initialTotalTasks = subtopic.totalTasks
+        
+        subtopicButton.text = "${subtopic.title} ($initialCompletedTasks/$initialTotalTasks)"
+        val initialProgressPercentage = if (initialTotalTasks > 0) {
+            (initialCompletedTasks * 100) / initialTotalTasks
+        } else 0
+        subtopicProgressBar.progress = initialProgressPercentage
+        
+        // Ustawiamy kolor tła przycisku w zależności od początkowego postępu
+        when {
+            initialProgressPercentage == 100 -> {
+                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_green))
+            }
+            initialProgressPercentage > 0 -> {
+                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.teal_700))
+            }
+            else -> {
+                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.purple_500))
+            }
+        }
+
+        // Pobieramy aktualny progress z bazy danych tylko jeśli użytkownik jest zalogowany
         val currentUser = auth.currentUser
         if (currentUser != null) {
+            // Używamy addListenerForSingleValueEvent zamiast addValueEventListener, aby
+            // uniknąć wielu aktualizacji i potencjalnych błędów po wylogowaniu
             database.child("users").child(currentUser.uid)
                 .child("topicsProgress").child(topicId)
                 .child("subtopics").child(subtopic.id)
-                .addValueEventListener(object : ValueEventListener {
+                .addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        val currentProgress = snapshot.getValue(SubtopicProgress::class.java)
-                        val completedTasks = currentProgress?.completedTasks ?: 0
-                        val totalTasks = subtopic.totalTasks
-
-                        Log.d("SubtopicDebug", "Progress for subtopic ${subtopic.id}: $completedTasks/$totalTasks")
-
-                        // Aktualizujemy UI z aktualnym progressem
-                        subtopicButton.text = "${subtopic.title} ($completedTasks/$totalTasks)"
-                        val progressPercentage = if (totalTasks > 0) {
-                            (completedTasks * 100) / totalTasks
-                        } else 0
-                        subtopicProgressBar.progress = progressPercentage
+                        // Sprawdź, czy aktywność wciąż działa
+                        if (isFinishing || isDestroyed) {
+                            return
+                        }
                         
-                        // Ustawiamy kolor tła przycisku w zależności od postępu
-                        when {
-                            progressPercentage == 100 -> {
-                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.color_green))
+                        try {
+                            val currentProgress = snapshot.getValue(SubtopicProgress::class.java)
+                            val completedTasks = currentProgress?.completedTasks ?: initialCompletedTasks
+                            val totalTasks = subtopic.totalTasks
+
+                            Log.d("SubtopicDebug", "Progress for subtopic ${subtopic.id}: $completedTasks/$totalTasks")
+
+                            // Aktualizujemy UI z aktualnym progressem
+                            subtopicButton.text = "${subtopic.title} ($completedTasks/$totalTasks)"
+                            val progressPercentage = if (totalTasks > 0) {
+                                (completedTasks * 100) / totalTasks
+                            } else 0
+                            subtopicProgressBar.progress = progressPercentage
+                            
+                            // Ustawiamy kolor tła przycisku w zależności od postępu
+                            when {
+                                progressPercentage == 100 -> {
+                                    subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.color_green))
+                                }
+                                progressPercentage > 0 -> {
+                                    subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.teal_700))
+                                }
+                                else -> {
+                                    subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.purple_500))
+                                }
                             }
-                            progressPercentage > 0 -> {
-                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.teal_700))
-                            }
-                            else -> {
-                                subtopicButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@MainMenuActivity, R.color.purple_500))
-                            }
+                        } catch (e: Exception) {
+                            Log.e("SubtopicDebug", "Error processing subtopic progress: ${e.message}")
+                            // W przypadku błędu nie aktualizujemy UI, zachowujemy początkowe wartości
                         }
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Log.e("MainMenuActivity", "Error loading subtopic progress: ${error.message}")
+                        Log.e("SubtopicDebug", "Error loading subtopic progress: ${error.message}")
+                        // W przypadku błędu nie aktualizujemy UI, zachowujemy początkowe wartości
                     }
                 })
         }
@@ -444,6 +585,10 @@ class MainMenuActivity : AppCompatActivity() {
                     Log.e("SubtopicDebug", "Invalid IDs - Topic ID: $topicId, Subtopic ID: ${subtopic.id}")
                     showError("Błąd: Nieprawidłowe ID tematu lub podtematu")
                 }
+            } else {
+                // Użytkownik nie jest zalogowany, pokaż komunikat
+                showError("Musisz być zalogowany, aby wykonać to zadanie")
+                navigateToLogin()
             }
         }
 
@@ -471,13 +616,49 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun showError(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        // Wyświetl błąd tylko jeśli aktywność wciąż działa
+        if (!isFinishing && !isDestroyed) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
         Log.e("MainMenuActivity", message)
+    }
+
+    // Usuwanie nasłuchiwania przy zamykaniu aktywności
+    private fun removeAllListeners() {
+        try {
+            // Usuwamy nasłuchiwanie użytkownika
+            if (userValueEventListener != null && userRef != null) {
+                userRef?.removeEventListener(userValueEventListener!!)
+                userValueEventListener = null
+            }
+            
+            // Usuwamy nasłuchiwanie postępów tematów
+            if (topicsProgressValueEventListener != null && topicsProgressRef != null) {
+                topicsProgressRef?.removeEventListener(topicsProgressValueEventListener!!)
+                topicsProgressValueEventListener = null
+            }
+            
+            Log.d("MainMenuActivity", "All Firebase listeners removed successfully")
+        } catch (e: Exception) {
+            Log.e("MainMenuActivity", "Error removing Firebase listeners", e)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         // Odświeżamy dane po powrocie do aktywności
         checkUserAndLoadData()
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        // Usuwamy nasłuchiwania przy wyjściu z aktywności
+        removeAllListeners()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Dodatkowe zabezpieczenie - usuwamy nasłuchiwania przy zniszczeniu aktywności
+        removeAllListeners()
     }
 }

@@ -38,14 +38,14 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_fire"
-                    android:contentDescription="Player Element" />
+                    android:contentDescription="@string/player_element" />
 
                 <TextView
                     android:id="@+id/playerName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Gracz"
+                    android:text="@string/player"
                     android:textStyle="bold"
                     android:textSize="18sp"
                     android:textColor="@android:color/white" />
@@ -61,7 +61,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="HP:"
+                    android:text="@string/hp"
                     android:textColor="@android:color/white"
                     android:textSize="14sp" />
 
@@ -80,7 +80,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="100/100"
+                    android:text="@string/hp_full"
                     android:textColor="@android:color/white"
                     android:textSize="12sp" />
 
@@ -121,7 +121,7 @@
                     android:id="@+id/opponentName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Przeciwnik"
+                    android:text="@string/opponent"
                     android:textStyle="bold"
                     android:textSize="18sp"
                     android:textColor="@android:color/white" />
@@ -132,7 +132,7 @@
                     android:layout_height="32dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/ic_ice"
-                    android:contentDescription="Opponent Element" />
+                    android:contentDescription="@string/opponent_element" />
             </LinearLayout>
 
             <LinearLayout
@@ -166,7 +166,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="100/100"
+                    android:text="@string/hp_full"
                     android:textColor="@android:color/white"
                     android:textSize="12sp" />
 
@@ -174,7 +174,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="HP:"
+                    android:text="@string/hp"
                     android:textColor="@android:color/white"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -201,7 +201,7 @@
             android:layout_marginBottom="20dp"
             android:src="@drawable/duels_characters_wizard"
             android:scaleType="fitCenter"
-            android:contentDescription="Postać gracza" />
+            android:contentDescription="@string/player_character" />
 
         <!-- Postać przeciwnika po prawej stronie -->
         <ImageView
@@ -213,7 +213,7 @@
             android:layout_marginBottom="20dp"
             android:src="@drawable/duels_monsters_goblin_removebg_preview"
             android:scaleType="fitCenter"
-            android:contentDescription="Potwór przeciwnika" />
+            android:contentDescription="@string/opponent_monster" />
 
         <!-- Obszar na animacje ataków -->
         <FrameLayout
@@ -229,7 +229,7 @@
                 android:layout_height="80dp"
                 android:layout_gravity="center"
                 android:visibility="gone"
-                android:contentDescription="Animacja ataku gracza" />
+                android:contentDescription="@string/player_attack_animation" />
 
             <!-- Animacja ataku potwora -->
             <ImageView
@@ -238,7 +238,7 @@
                 android:layout_height="80dp"
                 android:layout_gravity="center"
                 android:visibility="gone"
-                android:contentDescription="Animacja ataku potwora" />
+                android:contentDescription="@string/monster_attack_animation" />
         </FrameLayout>
 
     </FrameLayout>
@@ -263,7 +263,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_fire"
-            android:contentDescription="Attacker Element"/>
+            android:contentDescription="@string/attacker_element" />
 
         <ImageView
             android:layout_width="24dp"
@@ -271,24 +271,24 @@
             android:src="@drawable/arrow_right"
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp"
-            android:contentDescription="Effectiveness Direction"/>
+            android:contentDescription="@string/effectiveness_direction" />
 
         <ImageView
             android:id="@+id/defenderElementIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_ice"
-            android:contentDescription="Defender Element"/>
+            android:contentDescription="@string/defender_element" />
 
         <TextView
             android:id="@+id/effectivenessText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="x1.5"
+            android:text="@string/multiplier"
             android:textSize="16sp"
             android:textColor="@android:color/white"
-            android:textStyle="bold"/>
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Kontener na feedback po odpowiedzi -->
@@ -296,7 +296,7 @@
         android:id="@+id/feedbackText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Poprawna odpowiedź!"
+        android:text="@string/correct_answer"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textAlignment="center"
@@ -331,7 +331,7 @@
                 android:id="@+id/questionText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Pytanie pojawi się tutaj..."
+                android:text="@string/question_placeholder"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
@@ -341,7 +341,7 @@
                 android:id="@+id/answerButton1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Odpowiedź 1"
+                android:text="@string/answer_1"
                 android:layout_marginBottom="8dp"
                 android:textAllCaps="false" />
 
@@ -349,7 +349,7 @@
                 android:id="@+id/answerButton2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Odpowiedź 2"
+                android:text="@string/answer_2"
                 android:layout_marginBottom="8dp"
                 android:textAllCaps="false" />
 
@@ -357,7 +357,7 @@
                 android:id="@+id/answerButton3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Odpowiedź 3"
+                android:text="@string/answer_3"
                 android:layout_marginBottom="8dp"
                 android:textAllCaps="false" />
 
@@ -365,7 +365,7 @@
                 android:id="@+id/answerButton4"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Odpowiedź 4"
+                android:text="@string/answer_4"
                 android:textAllCaps="false" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -385,7 +385,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Czas:"
+            android:text="@string/time"
             android:textSize="16sp"
             android:textColor="@android:color/white"
             android:layout_marginEnd="8dp" />
@@ -405,7 +405,7 @@
         android:id="@+id/specialAbilityButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Specjalna zdolność (3)"
+        android:text="@string/special_ability"
         android:layout_margin="16dp"
         android:background="@drawable/button_special_ability"
         android:textColor="@android:color/white"
@@ -430,7 +430,7 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_gravity="center"
-            android:contentDescription="Element Effect" />
+            android:contentDescription="@string/element_effect" />
     </FrameLayout>
 
     <!-- Teksty obrażeń -->
@@ -438,7 +438,7 @@
         android:id="@+id/playerDamageText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="-25"
+        android:text="@string/damage_25"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#FF5722"
@@ -452,7 +452,7 @@
         android:id="@+id/opponentDamageText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="-25"
+        android:text="@string/damage_25"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#FF5722"
@@ -486,7 +486,7 @@
                 android:id="@+id/resultText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Zwycięstwo!"
+                android:text="@string/victory"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textAlignment="center"
@@ -496,7 +496,7 @@
                 android:id="@+id/continueButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Kontynuuj"
+                android:text="@string/continue_text"
                 android:textAllCaps="false" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>

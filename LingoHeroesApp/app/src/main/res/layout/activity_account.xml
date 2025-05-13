@@ -14,7 +14,7 @@
         android:layout_height="100dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
-        android:contentDescription="Avatar"
+        android:contentDescription="@string/avatar"
         android:src="@drawable/ic_avatar_vector"
         app:layout_constraintEnd_toStartOf="@id/usernameTextView"
         app:layout_constraintStart_toStartOf="parent"
@@ -25,7 +25,7 @@
         android:id="@+id/usernameTextView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Username"
+        android:text="@string/username"
         android:textColor="#333333"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -40,7 +40,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_margin="16dp"
-        android:contentDescription="Wróć do głównego menu"
+        android:contentDescription="@string/back_to_main"
         android:src="@drawable/ic_close"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -81,7 +81,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Zmień nazwę użytkownika"
+            android:text="@string/change_username"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
 
@@ -92,7 +92,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Zmień email"
+            android:text="@string/change_email"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
 
@@ -103,7 +103,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:background="@drawable/rounded_button"
-            android:text="Zmień hasło"
+            android:text="@string/change_password"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
 
@@ -112,7 +112,7 @@
             android:id="@+id/changeLevelButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Zmień poziom języka"
+            android:text="@string/change_language_level"
             android:layout_marginBottom="16dp"
             style="@style/ButtonStyle" />
 
@@ -122,7 +122,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/rounded_button"
-            android:text="Wyloguj się"
+            android:text="@string/logout"
             android:textColor="#B71C1C"
             android:textStyle="bold" />
     </LinearLayout>

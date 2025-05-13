@@ -1,9 +1,11 @@
 package com.example.lingoheroesapp.models
 
+import com.google.firebase.database.IgnoreExtraProperties
 import com.google.firebase.database.PropertyName
 
+@IgnoreExtraProperties
 data class Achievement(
-    val id: String = "",                  // Identyfikator osiągnięcia
+    var id: String = "",                  // Identyfikator osiągnięcia
     val title: String = "",               // Nazwa osiągnięcia
     val description: String = "",         // Opis osiągnięcia
     val iconResId: Int = 0,              // ID zasobu ikony
@@ -12,7 +14,8 @@ data class Achievement(
     var progress: Int = 0,               // Aktualny postęp
     @get:PropertyName("isUnlocked")
     @set:PropertyName("isUnlocked")
-    var isUnlocked: Boolean = false      // Czy osiągnięcie zostało odblokowane
+    var isUnlocked: Boolean = false,      // Czy osiągnięcie zostało odblokowane
+    val userId: String = ""               // ID użytkownika, który zdobył osiągnięcie
 )
 
 enum class AchievementType {

@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.R
+import com.example.lingoheroesapp.models.LanguageLevel
 import com.example.lingoheroesapp.services.AuthService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -239,37 +240,31 @@ class TestLanguageActivity : AppCompatActivity() {
     private fun showTestResult() {
         val totalQuestions = questions.size
         val percentage = (correctAnswersCount.toDouble() / totalQuestions) * 100
-        val level = when {
-            percentage >= 80 -> 4 // B2
-            percentage >= 60 -> 3 // B1
-            percentage >= 40 -> 2 // A2
-            else -> 1 // A1
-        }
-
-        val levelName = when (level) {
-            1 -> "A1"
-            2 -> "A2"
-            3 -> "B1"
-            4 -> "B2"
-            else -> "A1"
+        
+        // Określ poziom językowy na podstawie wyniku testu
+        val languageLevel = when {
+            percentage >= 80 -> LanguageLevel.B2
+            percentage >= 60 -> LanguageLevel.B1
+            percentage >= 40 -> LanguageLevel.A2
+            else -> LanguageLevel.A1
         }
 
         AlertDialog.Builder(this)
             .setTitle("Wynik testu")
-            .setMessage("Twój poziom to: $levelName\nPoprawne odpowiedzi: $correctAnswersCount/$totalQuestions")
+            .setMessage("Twój poziom to: ${languageLevel.code}\nPoprawne odpowiedzi: $correctAnswersCount/$totalQuestions")
             .setPositiveButton("OK") { _, _ ->
-                updateUserLevel(level, levelName)
+                updateUserLevel(languageLevel)
             }
             .setCancelable(false)
             .show()
     }
 
-    private fun updateUserLevel(level: Int, levelName: String) {
+    private fun updateUserLevel(languageLevel: LanguageLevel) {
         val userId = auth.currentUser?.uid
         if (userId != null) {
-            database.child("users").child(userId).child("level").setValue(level)
+            database.child("users").child(userId).child("level").setValue(languageLevel.value)
                 .addOnSuccessListener {
-                    Toast.makeText(this, "Twój poziom został ustawiony na $levelName", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Twój poziom został ustawiony na ${languageLevel.code}", Toast.LENGTH_SHORT).show()
                     // Przekierowanie do MainMenuActivity
                     startActivity(Intent(this, MainMenuActivity::class.java))
                     finish()

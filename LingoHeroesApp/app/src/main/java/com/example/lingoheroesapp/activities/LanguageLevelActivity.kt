@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.lingoheroesapp.R
+import com.example.lingoheroesapp.models.LanguageLevel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
@@ -20,10 +21,10 @@ class LanguageLevelActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
 
         // Inicjalizacja przycisków poziomów
-        findViewById<Button>(R.id.levelA1Button).setOnClickListener { updateLevel(1, "A1") }
-        findViewById<Button>(R.id.levelA2Button).setOnClickListener { updateLevel(2, "A2") }
-        findViewById<Button>(R.id.levelB1Button).setOnClickListener { updateLevel(3, "B1") }
-        findViewById<Button>(R.id.levelB2Button).setOnClickListener { updateLevel(4, "B2") }
+        findViewById<Button>(R.id.levelA1Button).setOnClickListener { updateLevel(LanguageLevel.A1) }
+        findViewById<Button>(R.id.levelA2Button).setOnClickListener { updateLevel(LanguageLevel.A2) }
+        findViewById<Button>(R.id.levelB1Button).setOnClickListener { updateLevel(LanguageLevel.B1) }
+        findViewById<Button>(R.id.levelB2Button).setOnClickListener { updateLevel(LanguageLevel.B2) }
         
         // Przycisk testu wstępnego
         findViewById<Button>(R.id.testButton).setOnClickListener {
@@ -48,12 +49,12 @@ class LanguageLevelActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateLevel(level: Int, levelName: String) {
+    private fun updateLevel(languageLevel: LanguageLevel) {
         val userId = auth.currentUser?.uid
         if (userId != null) {
-            database.child("users").child(userId).child("level").setValue(level)
+            database.child("users").child(userId).child("level").setValue(languageLevel.value)
                 .addOnSuccessListener {
-                    Toast.makeText(this, "Poziom zmieniony na $levelName", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Poziom zmieniony na ${languageLevel.code}", Toast.LENGTH_SHORT).show()
                     // Przekierowanie do MainMenuActivity
                     startActivity(Intent(this, MainMenuActivity::class.java))
                     finish()

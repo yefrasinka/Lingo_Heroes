@@ -20,7 +20,7 @@
             android:id="@+id/achievementIcon"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:contentDescription="Achievement Icon"
+            android:contentDescription="@string/achievement_icon"
             android:src="@drawable/ic_trophy" />
 
         <!-- Achievement Details -->
@@ -74,7 +74,7 @@
             android:layout_marginStart="16dp"
             android:src="@drawable/ic_check_circle"
             android:visibility="gone"
-            android:contentDescription="Completion Status" />
+            android:contentDescription="@string/completion_status" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView> 

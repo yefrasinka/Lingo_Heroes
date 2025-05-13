@@ -6,7 +6,7 @@ import com.google.firebase.database.PropertyName
 
 @IgnoreExtraProperties
 data class User(
-    val uid: String = "",                 // UID z Firebase Authentication
+    var uid: String = "",                 // UID z Firebase Authentication
     val username: String = "",            // Nazwa użytkownika
     val email: String="",
     val level: Int = 1,                   // Poziom użytkownika
@@ -18,20 +18,34 @@ data class User(
     val streakDays: Int = 0,              // Seria dni nauki
     val perfectScores: Int = 0,           // Liczba idealnych wyników
     val tasksCompleted: Int = 0,          // Liczba ukończonych zadań
-    val completedChallenges: Int = 0,     // Liczba ukończonych wyzwań
+    
+    // Liczniki związane z wyzwaniami
+    val completedChallenges: Int = 0,     // Łączna liczba ukończonych wyzwań (przestarzałe)
+    val challengesCompleted: Int = 0,     // Nowe pole - łączna liczba ukończonych wyzwań
+    val dailyChallengesCompleted: Int = 0, // Liczba ukończonych wyzwań dziennych
+    val weeklyChallengesCompleted: Int = 0, // Liczba ukończonych wyzwań tygodniowych
+    
     val equipment: Equipment = Equipment(), // Ekwipunek postaci gracza
     
     // Pola dla systemu wyzwań
     @PropertyName("challenges") val challenges: Map<String, Challenge> = mapOf(),  // Wyzwania użytkownika
     val lastDayTasksCount: Int = 0,       // Liczba zadań z ostatniego dnia
     val lastDayTimestamp: Long = 0,       // Timestamp ostatniego dnia
+    val lastActiveDay: Long = 0,          // Timestamp ostatniego dnia aktywności (dla serii)
     val todaysPerfectTasks: Int = 0,      // Liczba perfekcyjnych zadań dzisiaj
     val todaysTotalTasks: Int = 0,        // Całkowita liczba zadań dzisiaj
-    val lastPerfectDay: Long = 0,          // Timestamp ostatniego perfekcyjnego dnia
+    val lastPerfectDay: Long = 0,         // Timestamp ostatniego perfekcyjnego dnia
     val character: Character? = null,
     @PropertyName("stagesCompleted") val stagesCompleted: Map<String, Boolean> = mapOf(),
     @PropertyName("stageStars") val stageStars: Map<String, Int> = mapOf(),
-    @PropertyName("inventory") val inventory: Map<String, Int> = mapOf()
+    @PropertyName("inventory") val inventory: Map<String, Int> = mapOf(),
+    
+    // Pola dla systemu pojedynków
+    val duelsCompleted: Int = 0,          // Liczba ukończonych pojedynków
+    val bossesDefeated: Int = 0,          // Liczba pokonanych bossów
+    
+    // Pole dla znajomych
+    @PropertyName("friends") val friends: Map<String, Boolean> = mapOf() // ID znajomych (wartość true oznacza zaakceptowane zaproszenie)
 ) {
     // Konstruktor bezargumentowy wymagany przez Firebase
     constructor() : this(
@@ -48,17 +62,24 @@ data class User(
         perfectScores = 0,
         tasksCompleted = 0,
         completedChallenges = 0,
+        challengesCompleted = 0,
+        dailyChallengesCompleted = 0,
+        weeklyChallengesCompleted = 0,
         equipment = Equipment(),
         challenges = mapOf(),
         lastDayTasksCount = 0,
         lastDayTimestamp = 0,
+        lastActiveDay = 0,
         todaysPerfectTasks = 0,
         todaysTotalTasks = 0,
         lastPerfectDay = 0,
         character = null,
         stagesCompleted = mapOf(),
         stageStars = mapOf(),
-        inventory = mapOf()
+        inventory = mapOf(),
+        duelsCompleted = 0,
+        bossesDefeated = 0,
+        friends = mapOf()
     )
 }
 

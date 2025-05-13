@@ -34,7 +34,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Profil"
+                    android:text="@string/profile"
                     android:textColor="@android:color/white"
                     android:textSize="24sp"
                     android:textStyle="bold" />
@@ -46,7 +46,7 @@
                     android:layout_height="32dp"
                     android:src="@drawable/ic_settings"
                     android:tint="@color/white"
-                    android:contentDescription="Profile" />
+                    android:contentDescription="@string/profile" />
             </LinearLayout>
 
             <!-- User Stats Card -->
@@ -100,7 +100,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Poziom:"
+                            android:text="@string/level"
                             android:textStyle="bold" />
 
                         <TextView
@@ -112,7 +112,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Doświadczenie:"
+                            android:text="@string/experience_label"
                             android:textStyle="bold" />
 
                         <TextView
@@ -124,7 +124,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Seria dni:"
+                            android:text="@string/streak_days"
                             android:textStyle="bold" />
 
                         <TextView
@@ -152,7 +152,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Wyzwania dzienne:"
+                                android:text="@string/daily_challenges"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
@@ -181,7 +181,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Wyzwania tygodniowe:"
+                                android:text="@string/weekly_challenges"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
@@ -203,7 +203,38 @@
         android:clipToPadding="false"
         android:padding="16dp"
         app:layout_constraintTop_toBottomOf="@id/topPanelCard"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigationView" />
+        app:layout_constraintBottom_toTopOf="@id/buttonsContainer" />
+        
+    <!-- Buttons Container -->
+    <LinearLayout
+        android:id="@+id/buttonsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigationView">
+        
+        <Button
+            android:id="@+id/challengesButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/challenges"
+            android:drawableStart="@drawable/ic_challenges"
+            android:drawablePadding="8dp"
+            android:padding="12dp"
+            android:textAlignment="textStart" />
+            
+        <Button
+            android:id="@+id/friendsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Znajomi"
+            android:drawableStart="@drawable/ic_friends"
+            android:drawablePadding="8dp"
+            android:padding="12dp"
+            android:textAlignment="textStart" />
+    </LinearLayout>
 
     <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
@@ -220,19 +251,5 @@
         app:itemTextColor="@android:color/white"
         app:itemTextAppearanceActive="@style/TextAppearance.App.Medium"
         app:itemTextAppearanceInactive="@style/TextAppearance.App.Medium"/>
-
-    <Button
-        android:id="@+id/challengesButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Wyzwania"
-        android:drawableStart="@drawable/ic_challenges"
-        android:drawablePadding="8dp"
-        android:padding="12dp"
-        android:textAlignment="textStart"
-        app:layout_constraintEnd_toEndOf="@id/achievementsRecyclerView"
-        app:layout_constraintStart_toStartOf="@id/achievementsRecyclerView"
-        app:layout_constraintTop_toBottomOf="@id/achievementsRecyclerView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

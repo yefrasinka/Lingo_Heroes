@@ -3,6 +3,7 @@ package com.example.lingoheroesapp.utils
 import android.util.Log
 import com.example.lingoheroesapp.models.Achievement
 import com.example.lingoheroesapp.models.AchievementType
+import com.example.lingoheroesapp.models.LanguageLevel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
@@ -33,18 +34,25 @@ object AchievementManager {
             requiredValue = 5000
         ),
         Achievement(
-            id = "level_5",
-            title = "Ambitny uczeń",
-            description = "Osiągnij poziom 5",
+            id = "level_A2",
+            title = "Poziom podstawowy",
+            description = "Osiągnij poziom językowy A2",
             type = AchievementType.LEVEL,
-            requiredValue = 5
+            requiredValue = LanguageLevel.A2.value
         ),
         Achievement(
-            id = "level_10",
-            title = "Ekspert językowy",
-            description = "Osiągnij poziom 10",
+            id = "level_B1",
+            title = "Poziom średniozaawansowany",
+            description = "Osiągnij poziom językowy B1",
             type = AchievementType.LEVEL,
-            requiredValue = 10
+            requiredValue = LanguageLevel.B1.value
+        ),
+        Achievement(
+            id = "level_B2",
+            title = "Ekspert językowy",
+            description = "Osiągnij najwyższy poziom językowy B2",
+            type = AchievementType.LEVEL,
+            requiredValue = LanguageLevel.B2.value
         ),
         Achievement(
             id = "tasks_50",
@@ -170,8 +178,14 @@ object AchievementManager {
                     
                     // Convert snapshot to Achievement objects
                     for (achievementSnapshot in snapshot.children) {
-                        val achievement = achievementSnapshot.getValue(Achievement::class.java)
-                        achievement?.let { userAchievements.add(it) }
+                        try {
+                            val achievement = achievementSnapshot.getValue(Achievement::class.java)
+                            achievement?.let { userAchievements.add(it) }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Błąd deserializacji osiągnięcia: ${e.message}")
+                            // Skip this achievement
+                            continue
+                        }
                     }
                     
                     // Filter achievements by type
@@ -206,8 +220,12 @@ object AchievementManager {
                         }
                         
                         // Update the achievement in Firebase
-                        database.child("users").child(userId).child("achievements")
-                            .child(achievement.id.toString()).setValue(achievement)
+                        try {
+                            database.child("users").child(userId).child("achievements")
+                                .child(achievement.id.toString()).setValue(achievement)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Błąd aktualizacji osiągnięcia: ${e.message}")
+                        }
                     }
                 }
                 
@@ -274,8 +292,13 @@ object AchievementManager {
                 val achievements = mutableListOf<Achievement>()
                 
                 for (achievementSnapshot in snapshot.children) {
-                    val achievement = achievementSnapshot.getValue(Achievement::class.java)
-                    achievement?.let { achievements.add(it) }
+                    try {
+                        val achievement = achievementSnapshot.getValue(Achievement::class.java)
+                        achievement?.let { achievements.add(it) }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Błąd deserializacji osiągnięcia w getUserAchievements: ${e.message}")
+                        continue
+                    }
                 }
                 
                 // Sortuj według typu i postępu
@@ -300,25 +323,29 @@ object AchievementManager {
         // Pobierz dane użytkownika
         database.child("users").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                // Pobierz statystyki użytkownika
-                val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
-                val level = snapshot.child("level").getValue(Int::class.java) ?: 1
-                val tasksCompleted = snapshot.child("tasksCompleted").getValue(Int::class.java) ?: 0
-                val streakDays = snapshot.child("streakDays").getValue(Int::class.java) ?: 0
-                val perfectScores = snapshot.child("perfectScores").getValue(Int::class.java) ?: 0
-                
-                // Pobierz statystyki pojedynków
-                val duelsCompleted = snapshot.child("duelsCompleted").getValue(Int::class.java) ?: 0
-                val bossesDefeated = snapshot.child("bossesDefeated").getValue(Int::class.java) ?: 0
-                
-                // Zaktualizuj osiągnięcia dla każdego typu
-                updateAchievements(userId, AchievementType.XP, xp)
-                updateAchievements(userId, AchievementType.LEVEL, level)
-                updateAchievements(userId, AchievementType.TASKS_COMPLETED, tasksCompleted)
-                updateAchievements(userId, AchievementType.STREAK_DAYS, streakDays)
-                updateAchievements(userId, AchievementType.PERFECT_SCORES, perfectScores)
-                updateAchievements(userId, AchievementType.DUELS_COMPLETED, duelsCompleted)
-                updateAchievements(userId, AchievementType.BOSS_DEFEATED, bossesDefeated)
+                try {
+                    // Pobierz statystyki użytkownika
+                    val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
+                    val level = snapshot.child("level").getValue(Int::class.java) ?: 1
+                    val tasksCompleted = snapshot.child("tasksCompleted").getValue(Int::class.java) ?: 0
+                    val streakDays = snapshot.child("streakDays").getValue(Int::class.java) ?: 0
+                    val perfectScores = snapshot.child("perfectScores").getValue(Int::class.java) ?: 0
+                    
+                    // Pobierz statystyki pojedynków
+                    val duelsCompleted = snapshot.child("duelsCompleted").getValue(Int::class.java) ?: 0
+                    val bossesDefeated = snapshot.child("bossesDefeated").getValue(Int::class.java) ?: 0
+                    
+                    // Zaktualizuj osiągnięcia dla każdego typu
+                    updateAchievements(userId, AchievementType.XP, xp)
+                    updateAchievements(userId, AchievementType.LEVEL, level)
+                    updateAchievements(userId, AchievementType.TASKS_COMPLETED, tasksCompleted)
+                    updateAchievements(userId, AchievementType.STREAK_DAYS, streakDays)
+                    updateAchievements(userId, AchievementType.PERFECT_SCORES, perfectScores)
+                    updateAchievements(userId, AchievementType.DUELS_COMPLETED, duelsCompleted)
+                    updateAchievements(userId, AchievementType.BOSS_DEFEATED, bossesDefeated)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Błąd podczas przetwarzania danych użytkownika: ${e.message}")
+                }
             }
             
             override fun onCancelled(error: DatabaseError) {

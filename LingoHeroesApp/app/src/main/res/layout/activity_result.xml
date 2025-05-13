@@ -9,7 +9,8 @@
         android:id="@+id/myImage"
         android:layout_width="370dp"
         android:layout_height="370dp"
-        android:scaleType="centerCrop" />
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/back" />
 
     <TextView
         android:id="@+id/resultTextView"
@@ -20,13 +21,13 @@
         android:layout_marginTop="110dp"
         android:layout_marginBottom="130dp"
         android:gravity="center"
-        android:text="Your Text Here" />
+        android:text="@string/result" />
 
     <Button
         android:id="@+id/backToMenuButton"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="Wróć do menu"
+        android:text="@string/return_text"
         android:textSize="20sp"
         android:layout_marginBottom="32dp"
         android:layout_gravity="center" />

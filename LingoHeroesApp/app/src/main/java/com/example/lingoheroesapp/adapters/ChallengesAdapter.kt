@@ -34,6 +34,10 @@ class ChallengesAdapter : RecyclerView.Adapter<ChallengesAdapter.ChallengeViewHo
     }
 
     fun updateChallenges(newChallenges: List<Challenge>) {
+        Log.d("ChallengesAdapter", "Aktualizacja listy wyzwań, liczba elementów: ${newChallenges.size}")
+        for (challenge in newChallenges) {
+            Log.d("ChallengesAdapter", "Status wyzwania ${challenge.id} (${challenge.title}): ukończone=${challenge.isCompleted}, nagroda odebrana=${challenge.isRewardClaimed}")
+        }
         challenges = newChallenges
         notifyDataSetChanged()
     }
@@ -71,10 +75,16 @@ class ChallengesAdapter : RecyclerView.Adapter<ChallengesAdapter.ChallengeViewHo
             if (challenge.isRewardClaimed) {
                 // Wyzwanie ukończone i nagroda odebrana
                 holder.itemView.alpha = 0.7f
-                holder.timeRemainingText.text = "Ukończone"
+                holder.timeRemainingText.text = "NAGRODA ODEBRANA ✅"
                 holder.timeRemainingText.setTextColor(Color.GREEN)
+                holder.timeRemainingText.textSize = 14f
                 holder.itemView.isClickable = false
                 holder.itemView.setBackgroundResource(android.R.color.transparent)
+                
+                // Upewnijmy się, że nie mamy przypisanego clickListenera
+                holder.itemView.setOnClickListener(null)
+                
+                Log.d("ChallengesAdapter", "Wyzwanie ${challenge.id} (${challenge.title}) - NAGRODA ODEBRANA")
             } else {
                 // Wyzwanie ukończone, ale nagroda nie została jeszcze odebrana
                 holder.itemView.alpha = 1.0f
@@ -89,8 +99,12 @@ class ChallengesAdapter : RecyclerView.Adapter<ChallengesAdapter.ChallengeViewHo
                 
                 // Dodanie obsługi kliknięcia, aby odebrać nagrodę
                 holder.itemView.setOnClickListener {
-                    challengeClickListener?.onClaimRewardClicked(challenge) ?: awardChallengeReward(challenge)
+                    Log.d("ChallengesAdapter", "Kliknięto na wyzwanie ${challenge.id} (${challenge.title}) aby odebrać nagrodę")
+                    // Wywołujemy bezpośrednio naszą metodę, pomijając listener
+                    awardChallengeReward(challenge)
                 }
+                
+                Log.d("ChallengesAdapter", "Wyzwanie ${challenge.id} (${challenge.title}) - DO ODEBRANIA")
             }
         } else if (challenge.expiresAt - System.currentTimeMillis() > 0) {
             // Wyzwanie w trakcie
@@ -110,6 +124,11 @@ class ChallengesAdapter : RecyclerView.Adapter<ChallengesAdapter.ChallengeViewHo
             holder.timeRemainingText.isAllCaps = false
             holder.itemView.isClickable = false
             holder.itemView.setBackgroundResource(android.R.color.transparent)
+            
+            // Upewnijmy się, że nie mamy przypisanego clickListenera
+            holder.itemView.setOnClickListener(null)
+            
+            Log.d("ChallengesAdapter", "Wyzwanie ${challenge.id} (${challenge.title}) - W TRAKCIE")
         } else {
             // Wyzwanie wygasło
             holder.itemView.alpha = 0.5f
@@ -119,97 +138,103 @@ class ChallengesAdapter : RecyclerView.Adapter<ChallengesAdapter.ChallengeViewHo
             holder.timeRemainingText.isAllCaps = false
             holder.itemView.isClickable = false
             holder.itemView.setBackgroundResource(android.R.color.transparent)
+            
+            // Upewnijmy się, że nie mamy przypisanego clickListenera
+            holder.itemView.setOnClickListener(null)
+            
+            Log.d("ChallengesAdapter", "Wyzwanie ${challenge.id} (${challenge.title}) - WYGASŁO")
         }
     }
 
     override fun getItemCount() = challenges.size
     
     private fun awardChallengeReward(challenge: Challenge) {
-        val currentUser = auth.currentUser ?: return
-        val userRef = database.getReference("users").child(currentUser.uid)
-        val challengeRef = userRef.child("challenges").child(challenge.id)
-        
-        // Zapamiętaj kontekst aktualnego adaptera
-        val adapterContext = challengeHolders.firstOrNull()?.itemView?.context
-        
-        // Dodajemy logi
-        Log.d("ChallengesAdapter", "Próba przyznania nagrody za wyzwanie: ${challenge.id}, ${challenge.title}")
-        Log.d("ChallengesAdapter", "Status wyzwania - ukończone: ${challenge.isCompleted}, nagroda odebrana: ${challenge.isRewardClaimed}")
-        
-        userRef.runTransaction(object : Transaction.Handler {
-            override fun doTransaction(currentData: MutableData): Transaction.Result {
-                val challengeData = currentData.child("challenges").child(challenge.id)
-                
-                // Sprawdzamy status
-                val isCompleted = challengeData.child("isCompleted").getValue(Boolean::class.java) ?: false
-                val isRewardClaimed = challengeData.child("isRewardClaimed").getValue(Boolean::class.java) ?: false
-                
-                Log.d("ChallengesAdapter", "W transakcji - status wyzwania - ukończone: $isCompleted, nagroda odebrana: $isRewardClaimed")
-                
-                // Sprawdź, czy wyzwanie jest ukończone i nagroda nie została jeszcze odebrana
-                if (isRewardClaimed || !isCompleted) {
-                    Log.d("ChallengesAdapter", "Nie przyznajemy nagrody - warunki nie spełnione")
-                    return Transaction.success(currentData)
-                }
-                
-                // Pobierz aktualną liczbę monet
-                val coins = currentData.child("coins").getValue(Int::class.java) ?: 0
-                val rewardCoins = challenge.reward.coins
+        try {
+            Log.d("ChallengesAdapter", "=== FUNKCJA awardChallengeReward WYWOŁANA ===")
+            
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                Log.e("ChallengesAdapter", "Brak zalogowanego użytkownika")
+                return
+            }
+            
+            val userId = currentUser.uid
+            Log.d("ChallengesAdapter", "User ID: $userId")
+            
+            val userRef = database.getReference("users").child(userId)
+            val challengeRef = userRef.child("challenges").child(challenge.id)
+            
+            // Zapamiętaj kontekst aktualnego adaptera
+            val adapterContext = challengeHolders.firstOrNull()?.itemView?.context
+            
+            // Dodajemy logi
+            Log.d("ChallengesAdapter", "=== KLIKNIĘTO PRZYCISK ODBIERZ NAGRODĘ ===")
+            Log.d("ChallengesAdapter", "Próba przyznania nagrody za wyzwanie: ${challenge.id}, ${challenge.title}")
+            Log.d("ChallengesAdapter", "Status wyzwania - ukończone: ${challenge.isCompleted}, nagroda odebrana: ${challenge.isRewardClaimed}")
+            Log.d("ChallengesAdapter", "Nagroda w monetach: ${challenge.reward.coins}")
+            
+            // Najpierw sprawdźmy, czy wyzwanie jest już ukończone w naszym lokalnym modelu
+            if (!challenge.isCompleted) {
+                Log.d("ChallengesAdapter", "Wyzwanie nie jest ukończone lokalnie, nie przyznajemy nagrody")
+                return
+            }
+            
+            if (challenge.isRewardClaimed) {
+                Log.d("ChallengesAdapter", "Nagroda już została odebrana lokalnie, nie przyznajemy jej ponownie")
+                return
+            }
+            
+            // Najprostsze rozwiązanie - bezpośrednio aktualizujemy wartości w bazie danych
+            userRef.child("coins").get().addOnSuccessListener { coinsSnapshot ->
+                val currentCoins = coinsSnapshot.getValue(Int::class.java) ?: 0
+                Log.d("ChallengesAdapter", "Aktualna liczba monet użytkownika: $currentCoins")
                 
                 // Dodaj monety do konta użytkownika
-                currentData.child("coins").value = coins + rewardCoins
+                val newCoins = currentCoins + challenge.reward.coins
+                Log.d("ChallengesAdapter", "Nowa liczba monet: $newCoins")
                 
-                // Oznacz wyzwanie jako odebrane
-                challengeData.child("isRewardClaimed").value = true
-                
-                Log.d("ChallengesAdapter", "Nagroda przyznana! +$rewardCoins monet")
-                
-                return Transaction.success(currentData)
-            }
-
-            override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
-                if (error != null) {
-                    // Obsługa błędu
-                    Log.e("ChallengesAdapter", "Błąd podczas przyznawania nagrody: ${error.message}")
-                    adapterContext?.let {
-                        Toast.makeText(
-                            it,
-                            "Błąd podczas odbierania nagrody: ${error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                } else if (committed) {
-                    Log.d("ChallengesAdapter", "Transakcja wykonana pomyślnie")
-                    
-                    // Sprawdź aktualny stan konta
-                    userRef.child("coins").get().addOnSuccessListener { snapshot ->
-                        val currentCoins = snapshot.getValue(Int::class.java) ?: 0
-                        Log.d("ChallengesAdapter", "Aktualna liczba monet: $currentCoins")
-                    }
-                    
-                    // Aktualizuj adapter, aby pokazać, że nagroda została odebrana
-                    val updatedChallenges = challenges.toMutableList()
-                    val index = updatedChallenges.indexOfFirst { it.id == challenge.id }
-                    if (index != -1) {
-                        // Tworzymy nowy obiekt z zaktualizowaną flagą
-                        val updatedChallenge = challenge.copy(isRewardClaimed = true)
-                        updatedChallenges[index] = updatedChallenge
+                userRef.child("coins").setValue(newCoins)
+                    .addOnSuccessListener {
+                        Log.d("ChallengesAdapter", "Monety dodane pomyślnie")
                         
-                        // Wyświetl powiadomienie o przyznanej nagrodzie
-                        adapterContext?.let {
-                            Toast.makeText(
-                                it,
-                                "Otrzymałeś ${challenge.reward.coins} monet za ukończenie wyzwania: ${challenge.title}!",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        
-                        // Aktualizuj listę
-                        updateChallenges(updatedChallenges)
+                        // Oznacz wyzwanie jako odebrane
+                        challengeRef.child("isRewardClaimed").setValue(true)
+                        challengeRef.child("rewardClaimed").setValue(true)
+                            .addOnSuccessListener {
+                                Log.d("ChallengesAdapter", "Status nagrody zaktualizowany pomyślnie")
+                                
+                                // Wyświetl powiadomienie
+                                adapterContext?.let {
+                                    Toast.makeText(
+                                        it,
+                                        "Otrzymałeś ${challenge.reward.coins} monet za ukończenie wyzwania: ${challenge.title}!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                
+                                // Aktualizuj lokalny model
+                                val updatedChallenge = challenge.copy(isRewardClaimed = true)
+                                val updatedChallenges = challenges.toMutableList()
+                                val index = updatedChallenges.indexOfFirst { it.id == challenge.id }
+                                if (index != -1) {
+                                    updatedChallenges[index] = updatedChallenge
+                                    updateChallenges(updatedChallenges)
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("ChallengesAdapter", "Błąd przy aktualizacji statusu nagrody: ${e.message}")
+                            }
                     }
-                }
+                    .addOnFailureListener { e ->
+                        Log.e("ChallengesAdapter", "Błąd przy dodawaniu monet: ${e.message}")
+                    }
+            }.addOnFailureListener { e ->
+                Log.e("ChallengesAdapter", "Błąd przy pobieraniu liczby monet: ${e.message}")
             }
-        })
+        } catch (e: Exception) {
+            Log.e("ChallengesAdapter", "Wyjątek podczas przyznawania nagrody: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     class ChallengeViewHolder(view: View) : RecyclerView.ViewHolder(view) {

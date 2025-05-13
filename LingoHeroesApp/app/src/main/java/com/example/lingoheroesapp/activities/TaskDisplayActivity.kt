@@ -539,7 +539,10 @@ class TaskDisplayActivity : AppCompatActivity() {
     private fun updateChallengeProgress(challengeRef: DatabaseReference, newProgress: Int, requiredValue: Int) {
         // Sprawdzamy, czy już ukończyliśmy wyzwanie
         challengeRef.get().addOnSuccessListener { snapshot ->
-            val isAlreadyCompleted = snapshot.child("isCompleted").getValue(Boolean::class.java) ?: false
+            // Sprawdzamy oba możliwe nazwy pola
+            val isCompletedField1 = snapshot.child("isCompleted").getValue(Boolean::class.java)
+            val isCompletedField2 = snapshot.child("completed").getValue(Boolean::class.java)
+            val isAlreadyCompleted = isCompletedField1 ?: isCompletedField2 ?: false
             
             // Jeśli wyzwanie jest już ukończone, nie aktualizujemy go ponownie
             if (isAlreadyCompleted) {
@@ -554,8 +557,11 @@ class TaskDisplayActivity : AppCompatActivity() {
                         val challengeKey = challengeRef.key
                         val challengeData = currentData.child("challenges").child(challengeKey!!)
                         
-                        // Sprawdzamy ponownie, czy wyzwanie nie zostało już ukończone
-                        val isCompleted = challengeData.child("isCompleted").getValue(Boolean::class.java) ?: false
+                        // Sprawdzamy ponownie, czy wyzwanie nie zostało już ukończone (sprawdzając oba możliwe pola)
+                        val isCompletedField1 = challengeData.child("isCompleted").getValue(Boolean::class.java)
+                        val isCompletedField2 = challengeData.child("completed").getValue(Boolean::class.java)
+                        val isCompleted = isCompletedField1 ?: isCompletedField2 ?: false
+                        
                         if (isCompleted) {
                             return Transaction.success(currentData)
                         }
@@ -563,7 +569,9 @@ class TaskDisplayActivity : AppCompatActivity() {
                         val currentCompletedChallenges = currentData.child("completedChallenges").getValue(Int::class.java) ?: 0
                         
                         challengeData.child("currentProgress").value = requiredValue
+                        // Aktualizujemy oba możliwe pola
                         challengeData.child("isCompleted").value = true
+                        challengeData.child("completed").value = true
                         currentData.child("completedChallenges").value = currentCompletedChallenges + 1
                         
                         return Transaction.success(currentData)
