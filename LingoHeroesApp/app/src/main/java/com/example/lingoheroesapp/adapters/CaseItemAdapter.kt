@@ -67,7 +67,7 @@ class CaseItemAdapter(
     
     private fun getDefaultImageResource(item: CaseItem): Int {
         return when (item.type) {
-            CaseItemType.COIN -> R.drawable.ic_heart // Używamy ikony serca zamiast monety
+            CaseItemType.COIN -> R.drawable.ic_coin // Używamy ikony serca zamiast monety
             CaseItemType.ARMOR -> R.drawable.ic_armor_silver
             CaseItemType.WEAPON -> R.drawable.ic_staff_fire
             CaseItemType.SPECIAL -> R.drawable.ic_trophy

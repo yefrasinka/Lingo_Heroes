@@ -148,16 +148,6 @@
                 android:layout_height="wrap_content"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 android:orientation="vertical"/>
-                
-            <!-- Miejsce na przyszłe sekcje -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string.soon_more_products"
-                android:textAlignment="center"
-                android:textStyle="italic"
-                android:textColor="#757575"
-                android:layout_marginTop="24dp"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

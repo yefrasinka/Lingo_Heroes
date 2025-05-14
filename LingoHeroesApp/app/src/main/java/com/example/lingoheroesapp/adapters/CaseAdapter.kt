@@ -50,17 +50,13 @@ class CaseAdapter(
             CaseRarity.ELITE -> "#E91E63"    // Różowy
         }
         holder.rarityTag.setBackgroundColor(android.graphics.Color.parseColor(rarityColor))
-        
-        // Załadowanie obrazka skrzyni
-        if (caseItem.imageUrl.isNotEmpty()) {
-            Glide.with(holder.imageView.context)
-                .load(caseItem.imageUrl)
-                .placeholder(R.drawable.ic_launcher_background)
-                .into(holder.imageView)
-        } else {
-            // Domyślny obrazek
-            holder.imageView.setImageResource(R.drawable.ic_launcher_background)
+
+        val caseImage = when (caseItem.rarity) {
+            CaseRarity.STANDARD -> (R.drawable.wood_chest)
+            CaseRarity.PREMIUM -> (R.drawable.golden_chest)
+            CaseRarity.ELITE -> (R.drawable.elite_chest)
         }
+        holder.imageView.setImageResource(caseImage)
         
         // Obsługa kliknięcia przycisku zakupu
         holder.buyButton.setOnClickListener {
