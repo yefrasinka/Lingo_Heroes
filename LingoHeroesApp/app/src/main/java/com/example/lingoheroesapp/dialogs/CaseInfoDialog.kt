@@ -13,6 +13,7 @@ import com.bumptech.glide.Glide
 import com.example.lingoheroesapp.R
 import com.example.lingoheroesapp.adapters.CaseItemAdapter
 import com.example.lingoheroesapp.models.Case
+import com.example.lingoheroesapp.models.CaseRarity
 import com.google.android.material.button.MaterialButton
 import android.widget.ImageView
 import android.widget.TextView
@@ -52,12 +53,13 @@ class CaseInfoDialog(
         descriptionTextView.text = case.description
         
         // Wczytanie obrazka skrzynki
-        if (case.imageUrl.isNotEmpty()) {
-            Glide.with(context)
-                .load(case.imageUrl)
-                .placeholder(R.drawable.ic_launcher_background)
-                .into(caseImageView)
+        val imageRes = when (case.rarity) {
+            CaseRarity.ELITE -> R.drawable.elite_chest
+            CaseRarity.PREMIUM -> R.drawable.golden_chest
+            CaseRarity.STANDARD -> R.drawable.wood_chest
         }
+
+        caseImageView.setImageResource(imageRes)
         
         // Ustawienie listy przedmiotów
         val itemsAdapter = CaseItemAdapter(case.items)
