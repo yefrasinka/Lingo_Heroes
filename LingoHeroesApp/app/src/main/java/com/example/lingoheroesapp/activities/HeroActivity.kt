@@ -1,0 +1,717 @@
+package com.example.lingoheroesapp.activities
+
+import android.app.Dialog
+import android.content.Intent
+import android.graphics.Color
+import android.os.Bundle
+import android.util.Log
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.example.lingoheroesapp.R
+import com.example.lingoheroesapp.models.ArmorTier
+import com.example.lingoheroesapp.models.Equipment
+import com.example.lingoheroesapp.models.User
+import com.example.lingoheroesapp.models.WandType
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+
+class HeroActivity : AppCompatActivity() {
+    private lateinit var auth: FirebaseAuth
+    private lateinit var database: DatabaseReference
+
+    private lateinit var usernameTextView: TextView
+    private lateinit var xpTextView: TextView
+    private lateinit var coinsTextView: TextView
+    private lateinit var hpTextView: TextView
+    private lateinit var atkTextView: TextView
+    private lateinit var armorButton: ImageButton
+    private lateinit var staffButton: ImageButton
+    private lateinit var heroImage: ImageView
+    private lateinit var armorCountText: TextView
+    private lateinit var armorProgressIndicator: ProgressBar
+
+    private var currentUser: User? = null
+    private var userCoins: Int = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_hero)
+
+        initializeFirebase()
+        initializeUI()
+        setupBottomNavigation()
+        loadUserData()
+        setupEquipmentListener()
+    }
+
+    private fun initializeFirebase() {
+        auth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().reference
+    }
+
+    private fun initializeUI() {
+        usernameTextView = findViewById(R.id.usernameText)
+        xpTextView = findViewById(R.id.experienceText)
+        coinsTextView = findViewById(R.id.currencyText)
+        hpTextView = findViewById(R.id.hpText)
+        atkTextView = findViewById(R.id.atkText)
+        armorButton = findViewById(R.id.armorButton)
+        staffButton = findViewById(R.id.staffButton)
+        heroImage = findViewById(R.id.heroImage)
+        armorCountText = findViewById(R.id.armorCountText)
+        armorProgressIndicator = findViewById(R.id.armorProgressIndicator)
+
+        val avatarImage = findViewById<ImageView>(R.id.avatarImage)
+        avatarImage.setOnClickListener {
+            startActivity(Intent(this, AccountActivity::class.java))
+        }
+
+        // Set up equipment upgrade click listeners
+        armorButton.setOnClickListener {
+            currentUser?.let { user ->
+                showArmorUpgradeDialogAdvanced(user)
+            }
+        }
+
+        staffButton.setOnClickListener {
+            currentUser?.let { user ->
+                showWandUpgradeDialog(user)
+            }
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+        bottomNavigationView.selectedItemId = R.id.nav_minigames
+
+        bottomNavigationView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_learning -> {
+                    startActivity(Intent(this, MainMenuActivity::class.java))
+                    true
+                }
+                R.id.nav_minigames -> true
+                R.id.nav_duels -> {
+                    startActivity(Intent(this, DuelsActivity::class.java))
+                    true
+                }
+                R.id.nav_store -> {
+                    startActivity(Intent(this, StoreActivity::class.java))
+                    true
+                }
+                R.id.nav_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun loadUserData() {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // Pokaż ProgressBar lub inny wskaźnik ładowania
+            val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+            loadingIndicator?.visibility = View.VISIBLE
+            
+            // Użyj addListenerForSingleValueEvent zamiast addValueEventListener aby ograniczyć odczyty
+            val userRef = database.child("users").child(currentUser.uid)
+            userRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    try {
+                        // Zastosuj tę operację w tle
+                        Thread {
+                            try {
+                                // Podstawowe dane użytkownika
+                                val uid = snapshot.child("uid").getValue(String::class.java) ?: currentUser.uid
+                                val username = snapshot.child("username").getValue(String::class.java) ?: "Użytkownik"
+                                val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                                val level = snapshot.child("level").getValue(Int::class.java) ?: 1
+                                val xp = snapshot.child("xp").getValue(Int::class.java) ?: 0
+                                val coins = snapshot.child("coins").getValue(Int::class.java) ?: 0
+                                
+                                // Ekwipunek
+                                val equipmentSnapshot = snapshot.child("equipment")
+                                val equipment = if (equipmentSnapshot.exists()) {
+                                    try {
+                                        equipmentSnapshot.getValue(Equipment::class.java)
+                                    } catch (e: Exception) {
+                                        Log.e("HeroActivity", "Error parsing equipment: ${e.message}")
+                                        Equipment() // Domyślny ekwipunek w przypadku błędu
+                                    }
+                                } else {
+                                    Equipment() // Domyślny ekwipunek jeśli nie ma w bazie
+                                } ?: Equipment()
+                                
+                                // Tworzymy obiekt User z odczytanych danych
+                                val user = User(
+                                    uid = uid,
+                                    username = username,
+                                    email = email,
+                                    level = level,
+                                    xp = xp,
+                                    coins = coins,
+                                    equipment = equipment
+                                )
+                                
+                                // Zaktualizuj UI na głównym wątku
+                                runOnUiThread {
+                                    // Ukryj ProgressBar
+                                    loadingIndicator?.visibility = View.GONE
+                                    
+                                    // Aktualizujemy UI
+                                    this@HeroActivity.currentUser = user
+                                    updateUserUI(user)
+                                }
+                            } catch (e: Exception) {
+                                runOnUiThread {
+                                    loadingIndicator?.visibility = View.GONE
+                                    Log.e("HeroActivity", "Error parsing user data: ${e.message}")
+                                    showError("Błąd podczas ładowania danych użytkownika: ${e.message}")
+                                }
+                            }
+                        }.start()
+                        
+                    } catch (e: Exception) {
+                        loadingIndicator?.visibility = View.GONE
+                        Log.e("HeroActivity", "Error in loadUserData: ${e.message}")
+                        showError("Błąd podczas ładowania danych użytkownika: ${e.message}")
+                    }
+                }
+                
+                override fun onCancelled(error: DatabaseError) {
+                    loadingIndicator?.visibility = View.GONE
+                    showError("Błąd podczas ładowania danych użytkownika: ${error.message}")
+                }
+            })
+        }
+    }
+
+    private fun updateUserUI(user: User) {
+        // Uruchom aktualizację UI na wątku roboczym
+        Thread {
+            // Przygotuj dane
+            val usernameTxt = user.username
+            val xpTxt = "${user.xp} XP"
+            val coinsTxt = "${user.coins} coins"
+            val hpTxt = user.equipment.getCurrentHp().toString()
+            val atkTxt = user.equipment.getCurrentDamage().toString()
+            
+            // Zaktualizuj UI na głównym wątku
+            runOnUiThread {
+                usernameTextView.text = usernameTxt
+                xpTextView.text = xpTxt
+                coinsTextView.text = coinsTxt
+                userCoins = user.coins
+                
+                // Update hero stats based on equipment
+                hpTextView.text = hpTxt
+                atkTextView.text = atkTxt
+                
+                // Update armor UI
+                updateArmorUI(user.equipment)
+            }
+        }.start()
+    }
+
+    private fun updateArmorUI(equipment: Equipment) {
+        // Przygotuj dane - ten kod może być wykonany poza głównym wątkiem
+        val armorImageResource = equipment.armorTier.getImageResourceId()
+        val staffImageResource = equipment.wandType.getWandImageResourceId()
+        val characterImageResource = equipment.getCharacterImageByElement()
+        
+        val armorCount = equipment.getCurrentTierArmorCount()
+        val maxArmorCount = 10
+        val armorCountText = "$armorCount/$maxArmorCount"
+        
+        val progress = (armorCount.toFloat() / maxArmorCount * 100).toInt()
+        
+        val colorResId = when (equipment.armorTier) {
+            ArmorTier.BRONZE -> R.color.progress_bronze
+            ArmorTier.SILVER -> R.color.progress_silver
+            ArmorTier.GOLD -> R.color.progress_gold
+        }
+        
+        // Zaktualizuj UI na głównym wątku
+        runOnUiThread {
+            // Aktualizacja ikony zbroi
+            armorButton.setImageResource(armorImageResource)
+            
+            // Aktualizacja ikony różdżki
+            staffButton.setImageResource(staffImageResource)
+            
+            // Aktualizacja postaci bohatera
+            heroImage.setImageResource(characterImageResource)
+            
+            // Aktualizacja licznika zbroi
+            this.armorCountText.text = armorCountText
+            
+            // Aktualizacja progressbara
+            armorProgressIndicator.progress = progress
+            
+            // Ustawienie koloru progressbara
+            ContextCompat.getColorStateList(this, colorResId)?.let { colorStateList ->
+                armorProgressIndicator.progressTintList = colorStateList
+            }
+            
+            // Aktualizacja statystyk bohatera na podstawie ekwipunku
+            hpTextView.text = equipment.getCurrentHp().toString()
+            atkTextView.text = equipment.getCurrentDamage().toString()
+        }
+    }
+
+    private fun showArmorUpgradeDialogAdvanced(user: User) {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_armor_upgrade)
+
+        val bronzeBtn = dialog.findViewById<Button>(R.id.bronzeButton)
+        val silverBtn = dialog.findViewById<Button>(R.id.silverButton)
+        val goldBtn = dialog.findViewById<Button>(R.id.goldButton)
+        val resultText = dialog.findViewById<TextView>(R.id.resultText)
+        val upgradeCostText = dialog.findViewById<TextView>(R.id.upgradeCostText)
+        val confirmBtn = dialog.findViewById<Button>(R.id.confirmButton)
+        val cancelBtn = dialog.findViewById<Button>(R.id.cancelButton)
+
+        // Зробити кнопку "Anuluj" червоною
+        cancelBtn.setBackgroundColor(Color.RED)
+
+        val selectedTier = arrayOf<ArmorTier?>(null)
+
+        fun updateDisplay(tier: ArmorTier) {
+            selectedTier[0] = tier
+            val currentCount = user.equipment.getArmorCount(tier)
+            val canUpgrade = currentCount >= 10
+            val willHave = if (canUpgrade) currentCount - 10 else currentCount
+
+            // Текст для кількості броні
+            resultText.text = if (canUpgrade) {
+                "Zbroja: $currentCount → $willHave"
+            } else {
+                "Zbroja: $currentCount"
+            }
+
+            // Вартість
+            val multiplier = when (tier) {
+                ArmorTier.BRONZE -> 1
+                ArmorTier.SILVER -> 2
+                ArmorTier.GOLD -> 3
+            }
+
+            val cost = 100 + (user.equipment.getArmorUpgradeCost() / 4) * multiplier
+            upgradeCostText.text = "Koszt: $cost monet"
+
+            // Зробити кнопку "Kontynuuj" зеленою, якщо можна покращити
+            if (canUpgrade && user.coins >= cost) {
+                confirmBtn.setBackgroundColor(Color.parseColor("#4CAF50")) // Зелений
+            } else {
+                confirmBtn.setBackgroundColor(Color.GRAY) // Неактивний
+            }
+        }
+
+        bronzeBtn.setOnClickListener { updateDisplay(ArmorTier.BRONZE) }
+        silverBtn.setOnClickListener { updateDisplay(ArmorTier.SILVER) }
+        goldBtn.setOnClickListener { updateDisplay(ArmorTier.GOLD) }
+
+        confirmBtn.setOnClickListener {
+            val tier = selectedTier[0]
+            if (tier == null) {
+                Toast.makeText(this, "Wybierz typ zbroi!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val count = user.equipment.getArmorCount(tier)
+            if (count < 10) {
+                Toast.makeText(this, "Za mało zbroi tego typu!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val multiplier = when (tier) {
+                ArmorTier.BRONZE -> 1
+                ArmorTier.SILVER -> 2
+                ArmorTier.GOLD -> 3
+            }
+
+            val cost = 100 + (user.equipment.getArmorUpgradeCost() / 4) * multiplier
+
+            if (user.coins < cost) {
+                Toast.makeText(this, "Za mało monet!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            dialog.dismiss()
+            Thread {
+                upgradeArmor(user, user.equipment, cost, tier)
+            }.start()
+        }
+
+        cancelBtn.setOnClickListener { dialog.dismiss() }
+
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.show()
+    }
+
+
+
+
+    private fun showWandUpgradeDialog(user: User) {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_equipment_upgrade)
+        
+        val equipment = user.equipment
+        val currentLevel = equipment.wandLevel
+        val currentStat = equipment.getCurrentDamage()
+        val upgradedStat = equipment.getUpgradedDamage()
+        val statDifference = upgradedStat - currentStat
+        val upgradeCost = equipment.getWandUpgradeCost()
+        
+        // Set dialog content
+        dialog.findViewById<TextView>(R.id.dialogTitle).text = "Ulepszenie Różdżki"
+        dialog.findViewById<ImageView>(R.id.equipmentImage).setImageResource(equipment.wandType.getWandImageResourceId())
+        dialog.findViewById<TextView>(R.id.currentLevelText).text = "Aktualny poziom: $currentLevel (${equipment.wandType.displayName})"
+        dialog.findViewById<TextView>(R.id.currentStatText).text = currentStat.toString()
+        dialog.findViewById<TextView>(R.id.upgradeStatText).text = upgradedStat.toString()
+        dialog.findViewById<TextView>(R.id.statDifferenceText).text = " (+$statDifference)"
+        dialog.findViewById<TextView>(R.id.upgradeCostText).text = upgradeCost.toString()
+        
+        // Dodaj informację o efektach różdżki
+        val wandEffectInfo = dialog.findViewById<TextView>(R.id.extraInfoText)
+        wandEffectInfo.visibility = View.VISIBLE
+        wandEffectInfo.text = "Efekt różdżki: ${equipment.wandType.getEffectDescription()}"
+        
+        // Add buttons for changing wand type
+        val wandTypeButtonsContainer = LinearLayout(this)
+        wandTypeButtonsContainer.orientation = LinearLayout.HORIZONTAL
+        wandTypeButtonsContainer.gravity = Gravity.CENTER
+        
+        // Create buttons for each wand type
+        WandType.values().forEach { wandType ->
+            val button = Button(this)
+            button.text = wandType.displayName
+            button.setOnClickListener {
+                if (equipment.wandType != wandType) {
+                    changeWandType(user, equipment, wandType)
+                    dialog.dismiss()
+                }
+            }
+            
+            // Highlight the current wand type button
+            if (equipment.wandType == wandType) {
+                button.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_500))
+                button.setTextColor(Color.WHITE)
+            } else {
+                button.setBackgroundColor(ContextCompat.getColor(this, R.color.light_gray))
+                button.setTextColor(Color.BLACK)
+            }
+            
+            // Set layout parameters
+            val params = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1.0f
+            )
+            params.setMargins(8, 8, 8, 8)
+            button.layoutParams = params
+            
+            wandTypeButtonsContainer.addView(button)
+        }
+        
+        // Add the wand type buttons container to dialog
+        val extraInfoContainer = dialog.findViewById<LinearLayout>(R.id.extraInfoContainer)
+        extraInfoContainer.addView(wandTypeButtonsContainer)
+        
+        // Set progress bar based on current level (max 20 levels)
+        val progressBar = dialog.findViewById<ProgressBar>(R.id.levelProgressBar)
+        val maxLevel = 20
+        val progress = (currentLevel.toFloat() / maxLevel * 100).toInt()
+        progressBar.progress = progress
+        
+        val upgradeButton = dialog.findViewById<Button>(R.id.upgradeButton)
+        
+        // Disable upgrade button if not enough coins
+        if (user.coins.toLong() < upgradeCost.toLong()) {
+            upgradeButton.isEnabled = false
+            upgradeButton.text = "Za mało monet"
+            upgradeButton.alpha = 0.5f
+        }
+        
+        dialog.findViewById<Button>(R.id.cancelButton).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        upgradeButton.setOnClickListener {
+            if (user.coins.toLong() >= upgradeCost.toLong()) {
+                upgradeWand(user, equipment, upgradeCost)
+                dialog.dismiss()
+            } else {
+                showError("Nie masz wystarczającej liczby monet!")
+            }
+        }
+        
+        // Make dialog fill width with slight margins
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        
+        dialog.show()
+    }
+    
+    private fun changeWandType(user: User, equipment: Equipment, newWandType: WandType) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val newEquipment = equipment.changeWandType(newWandType)
+        
+        // Pokaż wskaźnik postępu
+        runOnUiThread {
+            val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+            loadingIndicator?.visibility = View.VISIBLE
+        }
+        
+        // Update equipment in Firebase
+        val updates = HashMap<String, Any>()
+        updates["users/$currentUserId/equipment"] = newEquipment
+        
+        database.updateChildren(updates)
+            .addOnSuccessListener {
+                runOnUiThread {
+                    // Ukryj wskaźnik ładowania
+                    val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+                    loadingIndicator?.visibility = View.GONE
+                    
+                    // Aktualizacja UI po zmianie różdżki
+                    updateArmorUI(newEquipment)
+                    showSuccess("Typ różdżki zmieniony na ${newWandType.displayName}!")
+                    
+                    // Aktualizuj lokalny obiekt użytkownika
+                    this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                        equipment = newEquipment
+                    )
+                }
+            }
+            .addOnFailureListener { exception ->
+                runOnUiThread {
+                    // Ukryj wskaźnik ładowania
+                    val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+                    loadingIndicator?.visibility = View.GONE
+                    
+                    showError("Błąd podczas zmiany typu różdżki: ${exception.message}")
+                }
+            }
+    }
+
+    private fun upgradeArmor(user: User, equipment: Equipment, cost: Int, tier: ArmorTier) {
+        val currentUserId = auth.currentUser?.uid ?: return
+
+        // Перевіряємо, чи є 10+ одиниць броні цього типу
+        val currentArmorCount = equipment.getArmorCount(tier)
+        if (currentArmorCount < 10) {
+            runOnUiThread { showError("Za mało zbroi typu ${tier.name}!") }
+            return
+        }
+
+        // Виконуємо покращення та оновлення
+        val newEquipment = equipment.upgradeArmor(tier) // ця функція повинна враховувати зменшення обраної броні
+        val newCoins = user.coins - cost
+
+        runOnUiThread {
+            findViewById<ProgressBar>(R.id.loadingIndicator)?.visibility = View.VISIBLE
+        }
+
+        // Firebase update
+        val updates = HashMap<String, Any>()
+        updates["users/$currentUserId/equipment"] = newEquipment
+        updates["users/$currentUserId/coins"] = newCoins
+
+        database.updateChildren(updates)
+            .addOnSuccessListener {
+                runOnUiThread {
+                    findViewById<ProgressBar>(R.id.loadingIndicator)?.visibility = View.GONE
+
+                    updateArmorUI(newEquipment)
+                    coinsTextView.text = "$newCoins coins"
+                    showSuccess("Zbroja ulepszona pomyślnie!")
+
+                    // Оновлюємо локального користувача
+                    this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                        equipment = newEquipment,
+                        coins = newCoins
+                    )
+                }
+            }
+            .addOnFailureListener { exception ->
+                runOnUiThread {
+                    findViewById<ProgressBar>(R.id.loadingIndicator)?.visibility = View.GONE
+                    showError("Błąd podczas ulepszania: ${exception.message}")
+                }
+            }
+    }
+
+
+    private fun upgradeWand(user: User, equipment: Equipment, cost: Int) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val newEquipment = equipment.upgradeWand()
+        val newCoins = user.coins - cost
+        
+        // Pokaż wskaźnik postępu
+        runOnUiThread {
+            val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+            loadingIndicator?.visibility = View.VISIBLE
+        }
+        
+        // Update both equipment and coins in Firebase
+        val updates = HashMap<String, Any>()
+        updates["users/$currentUserId/equipment"] = newEquipment
+        updates["users/$currentUserId/coins"] = newCoins
+        
+        database.updateChildren(updates)
+            .addOnSuccessListener {
+                runOnUiThread {
+                    // Ukryj wskaźnik ładowania
+                    val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+                    loadingIndicator?.visibility = View.GONE
+                    
+                    // Aktualizuj widok UI po ulepszeniu różdżki
+                    updateArmorUI(newEquipment)
+                    coinsTextView.text = "$newCoins coins"
+                    showSuccess("Różdżka ulepszona pomyślnie!")
+                    
+                    // Aktualizuj lokalny obiekt użytkownika
+                    this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                        equipment = newEquipment,
+                        coins = newCoins
+                    )
+                }
+            }
+            .addOnFailureListener { exception ->
+                runOnUiThread {
+                    // Ukryj wskaźnik ładowania
+                    val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+                    loadingIndicator?.visibility = View.GONE
+                    
+                    showError("Błąd podczas ulepszania: ${exception.message}")
+                }
+            }
+    }
+
+    private fun showError(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+    
+    private fun showSuccess(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setupEquipmentListener() {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val equipmentRef = database.child("users").child(currentUser.uid).child("equipment")
+            equipmentRef.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    try {
+                        // Przetwarzaj dane w oddzielnym wątku
+                        Thread {
+                            try {
+                                val equipment = snapshot.getValue(Equipment::class.java)
+                                if (equipment != null) {
+                                    // Aktualizuj UI na głównym wątku
+                                    runOnUiThread {
+                                        updateArmorUI(equipment)
+                                        Log.d("HeroActivity", "Ekwipunek zaktualizowany: Brązowe zbroje: ${equipment.bronzeArmorCount}")
+                                        
+                                        // Aktualizuj lokalny obiekt użytkownika
+                                        this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                                            equipment = equipment
+                                        )
+                                    }
+                                } else {
+                                    // Alternatywny sposób odczytania danych, jeśli deserializacja bezpośrednia nie zadziała
+                                    try {
+                                        // Odczytaj pola ręcznie
+                                        val armorLevel = snapshot.child("armorLevel").getValue(Long::class.java)?.toInt() ?: 1
+                                        val wandLevel = snapshot.child("wandLevel").getValue(Long::class.java)?.toInt() ?: 1
+                                        val baseHp = snapshot.child("baseHp").getValue(Long::class.java)?.toInt() ?: 100
+                                        val baseDamage = snapshot.child("baseDamage").getValue(Long::class.java)?.toInt() ?: 10
+                                        
+                                        // Użyj nowej metody do konwersji armorTier
+                                        val armorTierValue = snapshot.child("armorTier").getValue()
+                                        val armorTier = ArmorTier.fromAny(armorTierValue)
+                                        
+                                        val bronzeArmorCount = snapshot.child("bronzeArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                        val silverArmorCount = snapshot.child("silverArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                        val goldArmorCount = snapshot.child("goldArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                        
+                                        val wandTypeStr = snapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
+                                        val wandType = try {
+                                            WandType.valueOf(wandTypeStr)
+                                        } catch (e: Exception) {
+                                            WandType.FIRE
+                                        }
+                                        
+                                        val manualEquipment = Equipment(
+                                            armorLevel = armorLevel,
+                                            wandLevel = wandLevel,
+                                            baseHp = baseHp,
+                                            baseDamage = baseDamage,
+                                            armorTier = armorTier,
+                                            bronzeArmorCount = bronzeArmorCount,
+                                            silverArmorCount = silverArmorCount,
+                                            goldArmorCount = goldArmorCount,
+                                            wandType = wandType
+                                        )
+                                        
+                                        runOnUiThread {
+                                            updateArmorUI(manualEquipment)
+                                            Log.d("HeroActivity", "Ekwipunek zaktualizowany (ręcznie): Brązowe zbroje: ${manualEquipment.bronzeArmorCount}")
+                                            
+                                            // Aktualizuj lokalny obiekt użytkownika
+                                            this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                                                equipment = manualEquipment
+                                            )
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("HeroActivity", "Błąd podczas ręcznej aktualizacji ekwipunku: ${e.message}")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("HeroActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
+                            }
+                        }.start()
+                    } catch (e: Exception) {
+                        Log.e("HeroActivity", "Błąd podczas przetwarzania danych ekwipunku: ${e.message}")
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("HeroActivity", "Anulowano nasłuchiwanie ekwipunku: ${error.message}")
+                }
+            })
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Usuń nasłuchiwanie zmian w ekwipunku przy zniszczeniu aktywności
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val equipmentRef = database.child("users").child(currentUser.uid).child("equipment")
+            equipmentRef.removeEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {}
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
+}

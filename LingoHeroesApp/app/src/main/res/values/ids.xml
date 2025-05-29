@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="bronzeButton" type="id" />
+    <item name="silverButton" type="id" />
+    <item name="goldButton" type="id" />
+    <item name="confirmButton" type="id" />
+</resources>

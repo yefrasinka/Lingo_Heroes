@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="purple_dark">#400580</color>
+    <color name="purple_light">#D1C4E9</color>
+    <color name="color_green">#4CAF50</color>
+    <color name="color_gray">#9E9E9E</color>
+    <color name="color_yellow">#FFC107</color>
+    <color name="color_locked">#607D8B</color>
+    <color name="text_primary">#212121</color>
+    <color name="red">#F44336</color>
+    <color name="light_gray">#EEEEEE</color>
+    <color name="correct_green">#4CAF50</color>
+    <color name="incorrect_red">#F44336</color>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#D81B60</color>
+    <color name="fire_red">#FFFF5722</color>
+    <color name="ice_blue">#FF03A9F4</color>
+    <color name="lightning_yellow">#FFFFC107</color>
+    <color name="fire_glow">#FF9800</color>
+    <color name="ice_glow">#00BCD4</color>
+    <color name="lightning_glow">#FFEB3B</color>
+    <color name="poison_purple">#FF8219C7</color>
+    <color name="transparent_black">#80000000</color>
+    <color name="transparent_white">#80FFFFFF</color>
+    <!-- Kolory dla progresbarów różnych poziomów zbroi -->
+    <color name="progress_bronze">#CD7F32</color>
+    <color name="progress_silver">#C0C0C0</color>
+    <color name="progress_gold">#FFD700</color>
+    <!-- Kolory dla stanu zdrowia -->
+    <color name="health_good">#4CAF50</color>
+    <color name="health_medium">#FFC107</color>
+    <color name="health_low">#F44336</color>
+    <color name="health_high">#4CAF50</color>
+    <color name="easy_power_bg">#E6F7FF</color>
+    <color name="medium_power_bg">#FFF3E0</color>
+    <color name="hard_power_bg">#FFE5E5</color>
+    <!-- Kolor dla tekstów obrażeń -->
+    <color name="damage_red">#FF0000</color>
+    <color name="red_500">#F44336</color>
+    <color name="green_500">#4CAF50</color>
+    <color name="gray_dark">#616161</color>
+    <color name="orange_500">#FF9800</color>
+</resources>

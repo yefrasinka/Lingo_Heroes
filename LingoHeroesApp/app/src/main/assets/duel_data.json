@@ -1,0 +1,202 @@
+{
+  "duel_levels": {
+    "level1": {
+      "id": "level1",
+      "name": "Początkujący świat",
+      "difficulty": "EASY",
+      "requiredLevel": 1,
+      "background": "backgrounds/beginner_world.jpg",
+      "rewards": {
+        "experience": 100,
+        "coins": 50,
+        "items": []
+      },
+      "isLocked": false,
+      "enemies": [
+        {
+          "id": "enemy1",
+          "name": "Nowicjusz Tom",
+          "avatar": "avatars/tom.jpg",
+          "difficulty": "EASY",
+          "level": 1,
+          "questionCategories": ["basic_vocabulary", "greetings"]
+        },
+        {
+          "id": "enemy2",
+          "name": "Początkująca Anna",
+          "avatar": "avatars/anna.jpg",
+          "difficulty": "EASY",
+          "level": 1,
+          "questionCategories": ["basic_vocabulary", "numbers"]
+        }
+      ],
+      "position": {
+        "x": 100,
+        "y": 200,
+        "isCheckpoint": true
+      }
+    },
+    "level2": {
+      "id": "level2",
+      "name": "Las Gramatyki",
+      "difficulty": "MEDIUM",
+      "requiredLevel": 2,
+      "background": "backgrounds/grammar_forest.jpg",
+      "rewards": {
+        "experience": 200,
+        "coins": 100,
+        "items": ["grammar_book"]
+      },
+      "isLocked": true,
+      "enemies": [
+        {
+          "id": "enemy3",
+          "name": "Profesor Verb",
+          "avatar": "avatars/professor.jpg",
+          "difficulty": "MEDIUM",
+          "level": 2,
+          "questionCategories": ["verbs", "tenses"]
+        }
+      ],
+      "position": {
+        "x": 250,
+        "y": 150,
+        "isCheckpoint": false
+      }
+    },
+    "level3": {
+      "id": "level3",
+      "name": "Góry Słownictwa",
+      "difficulty": "HARD",
+      "requiredLevel": 3,
+      "background": "backgrounds/vocabulary_mountains.jpg",
+      "rewards": {
+        "experience": 300,
+        "coins": 150,
+        "items": ["vocabulary_scroll"]
+      },
+      "isLocked": true,
+      "enemies": [
+        {
+          "id": "enemy4",
+          "name": "Mistrz Słów",
+          "avatar": "avatars/master.jpg",
+          "difficulty": "HARD",
+          "level": 3,
+          "questionCategories": ["advanced_vocabulary", "idioms"]
+        }
+      ],
+      "position": {
+        "x": 400,
+        "y": 300,
+        "isCheckpoint": true
+      }
+    }
+  },
+  "duel_questions": {
+    "q1": {
+      "id": "q1",
+      "category": "basic_vocabulary",
+      "question": "Co oznacza słowo 'hello'?",
+      "answers": [
+        "cześć",
+        "do widzenia",
+        "dziękuję",
+        "proszę"
+      ],
+      "correctAnswerIndex": 0,
+      "level": 1
+    },
+    "q2": {
+      "id": "q2",
+      "category": "basic_vocabulary",
+      "question": "Jak powiedzieć 'kot' po angielsku?",
+      "answers": [
+        "dog",
+        "cat",
+        "bird",
+        "fish"
+      ],
+      "correctAnswerIndex": 1,
+      "level": 1
+    },
+    "q3": {
+      "id": "q3",
+      "category": "greetings",
+      "question": "Jak się przywitać wieczorem po angielsku?",
+      "answers": [
+        "Good morning",
+        "Good afternoon",
+        "Good evening",
+        "Good night"
+      ],
+      "correctAnswerIndex": 2,
+      "level": 1
+    },
+    "q4": {
+      "id": "q4",
+      "category": "numbers",
+      "question": "Jak napisać liczbę 15 słownie po angielsku?",
+      "answers": [
+        "fifty",
+        "fourteen",
+        "fifteen",
+        "sixteen"
+      ],
+      "correctAnswerIndex": 2,
+      "level": 1
+    },
+    "q5": {
+      "id": "q5",
+      "category": "verbs",
+      "question": "Wybierz poprawną formę: 'He ___ to school every day.'",
+      "answers": [
+        "go",
+        "goes",
+        "going",
+        "went"
+      ],
+      "correctAnswerIndex": 1,
+      "level": 2
+    },
+    "q6": {
+      "id": "q6",
+      "category": "tenses",
+      "question": "Które zdanie jest w czasie Present Perfect?",
+      "answers": [
+        "I am eating dinner",
+        "I eat dinner",
+        "I have eaten dinner",
+        "I ate dinner"
+      ],
+      "correctAnswerIndex": 2,
+      "level": 2
+    },
+    "q7": {
+      "id": "q7",
+      "category": "advanced_vocabulary",
+      "question": "Co oznacza słowo 'procrastinate'?",
+      "answers": [
+        "prokrastynować",
+        "protestować",
+        "proklamować",
+        "propagować"
+      ],
+      "correctAnswerIndex": 0,
+      "level": 3
+    },
+    "q8": {
+      "id": "q8",
+      "category": "idioms",
+      "question": "Co oznacza idiom 'It's raining cats and dogs'?",
+      "answers": [
+        "Pada śnieg",
+        "Leje jak z cebra",
+        "Pada deszcz ze śniegiem",
+        "Jest burza"
+      ],
+      "correctAnswerIndex": 1,
+      "level": 3
+    }
+  }
+} 

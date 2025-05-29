@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.lingoheroesapp">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <application
+        android:name=".LingoHeroesApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/app_logo"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/app_logo_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LingoHeroesApp"
+        tools:targetApi="31">
+
+        <!-- MainActivity: Главная активность -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- LoginActivity: Активность для входа -->
+        <activity
+            android:name=".activities.LoginActivity"
+            android:exported="true">
+        </activity>
+
+        <activity
+            android:name=".activities.TestLanguageActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- RegisterActivity: Активность для регистрации -->
+        <activity
+            android:name=".activities.RegisterActivity"
+            android:exported="true">
+        </activity>
+
+        <activity android:name=".activities.TaskListActivity">
+            <!-- Add any intent filters if needed -->
+        </activity>
+        <activity
+        android:name=".activities.TaskDisplayActivity"
+        android:exported="false">
+    </activity>
+        <!-- ResultActivity: Активность для показа результата -->
+        <activity
+            android:name=".activities.ResultActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- MainMenuActivity: Активность для главного меню -->
+        <activity
+            android:name=".activities.MainMenuActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- AccountActivity: Активность для аккаунта -->
+        <activity
+            android:name=".activities.AccountActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- MinigamesActivity: Активность для миниигр -->
+        <activity
+            android:name=".activities.HeroActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- DuelsActivity: Активность для дуэлей -->
+        <activity
+            android:name=".activities.DuelsActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- DuelBattleActivity: Aktywność dla pojedynków PvE -->
+        <activity
+            android:name=".activities.DuelBattleActivity"
+            android:exported="false">
+        </activity>
+
+        <!-- StoreActivity: Активность для магазина -->
+        <activity
+            android:name=".activities.StoreActivity"
+            android:exported="false" />
+
+        <!-- LanguageLevelActivity: Активность для магазина -->
+        <activity
+            android:name=".activities.LanguageLevelActivity"
+            android:exported="true">
+        </activity>
+
+        <!-- RankingActivity: Активность для рейтинга -->
+        <activity
+            android:name=".activities.RankingActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.ProfileActivity"
+            android:exported="false" />
+
+        <!-- ChallengesActivity: Активность для wyzwań -->
+        <activity
+            android:name=".activities.ChallengesActivity"
+            android:exported="false" />
+
+        <!-- Notification Service -->
+        <service
+            android:name=".services.NotificationService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Notification Receiver -->
+        <receiver
+            android:name=".receivers.NotificationReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.lingoheroesapp.NOTIFICATION" />
+            </intent-filter>
+        </receiver>
+
+        <activity android:name=".activities.FriendsActivity" />
+        <activity android:name=".activities.UserSearchActivity" />
+        <activity android:name=".activities.UserProfileActivity" />
+
+    </application>
+
+</manifest>
