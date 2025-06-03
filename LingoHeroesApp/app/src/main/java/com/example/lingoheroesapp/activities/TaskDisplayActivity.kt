@@ -37,6 +37,8 @@ import com.example.lingoheroesapp.models.Reward
 import com.google.firebase.database.Transaction
 import com.google.firebase.database.MutableData
 import java.util.*
+import androidx.core.content.ContextCompat
+import com.google.android.material.bottomsheet.BottomSheetDialog
 
 
 ///
@@ -243,6 +245,12 @@ class TaskDisplayActivity : AppCompatActivity() {
                 setOnClickListener {
                     handleAnswer(option, currentTask.correctAnswer)
                 }
+                // Ustawiamy styl i wygląd przycisku
+                setTextColor(ContextCompat.getColor(context, android.R.color.white))
+                setBackgroundResource(R.drawable.answer_button_background)
+                textSize = 16f
+                setPadding(48, 32, 48, 32)
+                elevation = 4f
             }
             optionsContainer.addView(button)
         }
@@ -272,25 +280,37 @@ class TaskDisplayActivity : AppCompatActivity() {
             optionsContainer.getChildAt(i).isEnabled = false
         }
 
-        // Pokaż feedback
-        feedbackTextView.apply {
-            visibility = View.VISIBLE
-            if (isCorrect) {
-                text = "Poprawna odpowiedź!"
-                setTextColor(Color.GREEN)
-            } else {
-                text = "Niepoprawna odpowiedź. Prawidłowa odpowiedź to: $correctAnswer"
-                setTextColor(Color.RED)
-            }
+        // Tworzenie i konfiguracja okna dialogowego
+        val bottomSheetDialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.feedback_bottom_sheet, null)
+        bottomSheetDialog.setContentView(view)
+
+        // Konfiguracja tekstu feedbacku
+        val feedbackMessageText = view.findViewById<TextView>(R.id.feedbackMessageText)
+        if (isCorrect) {
+            feedbackMessageText.text = "Poprawna odpowiedź!"
+            feedbackMessageText.setTextColor(Color.GREEN)
+        } else {
+            feedbackMessageText.text = "Niepoprawna odpowiedź.\nPoprawna odpowiedź to: $correctAnswer"
+            feedbackMessageText.setTextColor(Color.RED)
         }
 
-        // Czekaj 3 sekundy i przejdź do następnego zadania
-        handler.postDelayed({
+        // Konfiguracja przycisku "następne"
+        val nextButton = view.findViewById<Button>(R.id.nextButton)
+        nextButton.setOnClickListener {
+            bottomSheetDialog.dismiss()
             currentTaskIndex++
             saveCurrentProgress {
                 displayCurrentTask()
             }
-        }, 3000) // Zmniejszamy czas oczekiwania do 3 sekund
+        }
+
+        // Pokazanie okna dialogowego
+        bottomSheetDialog.show()
+
+        // Ustawienie zachowania przy próbie zamknięcia okna
+        bottomSheetDialog.setCancelable(false)
+        bottomSheetDialog.setCanceledOnTouchOutside(false)
     }
 
     private fun updateProgress(subtopicId: String, topicId: String, currentTask: Task) {

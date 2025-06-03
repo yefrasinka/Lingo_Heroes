@@ -132,32 +132,33 @@ class FirebaseInitializer {
                 dropChance = 30.0
             ),
             CaseItem(
-                id = "bronze_armor_piece",
+                id = "bronze_armor_x1",
                 name = "Brązowa zbroja",
                 description = "Fragment brązowej zbroi. Zbierz 10 sztuk, aby awansować na srebrny poziom.",
                 imageUrl = "",
                 type = CaseItemType.ARMOR_TIER,
-                rarity = ItemRarity.UNCOMMON,
+                rarity = ItemRarity.COMMON,
                 value = 1,
                 dropChance = 20.0,
                 armorTier = "BRONZE"
             ),
             CaseItem(
-                id = "simple_armor",
-                name = "Prosta zbroja",
-                description = "Fragment brązowej zbroi. Dodaje +1 do licznika brązowych zbroi.",
+                id = "bronze_armor_x2",
+                name = "2x Brązowa zbroja",
+                description = "Dwa fragmenty brązowej zbroi. Zbierz 10 sztuk, aby awansować na srebrny poziom.",
                 imageUrl = "",
-                type = CaseItemType.ARMOR,
+                type = CaseItemType.ARMOR_TIER,
                 rarity = ItemRarity.UNCOMMON,
-                value = 1,
-                dropChance = 15.0
+                value = 2,
+                dropChance = 15.0,
+                armorTier = "BRONZE"
             )
         )
         
         return Case(
             id = id,
             name = "Podstawowa skrzynia",
-            description = "Zawiera monety i elementy zbroi. Idealna dla początkujących graczy.",
+            description = "Zawiera monety i elementy brązowej zbroi. Idealna dla początkujących graczy.",
             imageUrl = "",
             price = 200,
             items = items,
@@ -174,13 +175,13 @@ class FirebaseInitializer {
         // Przedmioty premium
         val items = listOf(
             CaseItem(
-                id = "coins_100",
-                name = "100 Monet",
+                id = "coins_150",
+                name = "150 Monet",
                 description = "Średnia ilość monet do wydania w sklepie",
                 imageUrl = "",
                 type = CaseItemType.COIN,
                 rarity = ItemRarity.COMMON,
-                value = 100,
+                value = 150,
                 dropChance = 30.0
             ),
             CaseItem(
@@ -194,18 +195,18 @@ class FirebaseInitializer {
                 dropChance = 25.0
             ),
             CaseItem(
-                id = "bronze_armor_piece",
-                name = "Brązowa zbroja",
-                description = "Fragment brązowej zbroi. Zbierz 10 sztuk, aby awansować na srebrny poziom.",
+                id = "bronze_armor_x2",
+                name = "2x Brązowa zbroja",
+                description = "Dwa fragmenty brązowej zbroi. Zbierz 10 sztuk, aby awansować na srebrny poziom.",
                 imageUrl = "",
                 type = CaseItemType.ARMOR_TIER,
                 rarity = ItemRarity.UNCOMMON,
-                value = 1,
-                dropChance = 20.0,
+                value = 2,
+                dropChance = 25.0,
                 armorTier = "BRONZE"
             ),
             CaseItem(
-                id = "silver_armor_piece",
+                id = "silver_armor_x1",
                 name = "Srebrna zbroja",
                 description = "Fragment srebrnej zbroi. Zbierz 10 sztuk, aby awansować na złoty poziom.",
                 imageUrl = "",
@@ -214,23 +215,13 @@ class FirebaseInitializer {
                 value = 1,
                 dropChance = 20.0,
                 armorTier = "SILVER"
-            ),
-            CaseItem(
-                id = "epic_armor",
-                name = "Epicka zbroja",
-                description = "Dodaje +1 do licznika srebrnych zbroi. Pomaga w awansie na złoty poziom.",
-                imageUrl = "",
-                type = CaseItemType.ARMOR,
-                rarity = ItemRarity.EPIC,
-                value = 1,
-                dropChance = 5.0
             )
         )
         
         return Case(
             id = id,
             name = "Skrzynia premium",
-            description = "Zawiera lepsze przedmioty i większe ilości monet. Szansa na srebrne elementy zbroi.",
+            description = "Zawiera lepsze przedmioty i większe ilości monet. Szansa na srebrne elementy zbroi!",
             imageUrl = "",
             price = 500,
             items = items,
@@ -257,53 +248,33 @@ class FirebaseInitializer {
                 dropChance = 15.0
             ),
             CaseItem(
-                id = "silver_armor_piece_x2",
-                name = "2x Srebrna zbroja",
-                description = "Dwa fragmenty srebrnej zbroi. Zbliża cię do złotego poziomu.",
+                id = "silver_armor_x1",
+                name = "Srebrna zbroja",
+                description = "Fragment srebrnej zbroi. Zbierz 10 sztuk, aby awansować na złoty poziom.",
                 imageUrl = "",
                 type = CaseItemType.ARMOR_TIER,
                 rarity = ItemRarity.RARE,
-                value = 2,
+                value = 1,
                 dropChance = 30.0,
                 armorTier = "SILVER"
             ),
             CaseItem(
-                id = "gold_armor_piece",
-                name = "Złota zbroja",
-                description = "Fragment złotej zbroi. Dodaje +1 do licznika złotych zbroi.",
+                id = "silver_armor_x2",
+                name = "2x Srebrna zbroja",
+                description = "Dwa fragmenty srebrnej zbroi. Zbierz 10 sztuk, aby awansować na złoty poziom.",
                 imageUrl = "",
                 type = CaseItemType.ARMOR_TIER,
                 rarity = ItemRarity.EPIC,
-                value = 1,
-                dropChance = 25.0,
-                armorTier = "GOLD"
-            ),
-            CaseItem(
-                id = "epic_armor",
-                name = "Epicka zbroja",
-                description = "Dodaje +1 do licznika srebrnych zbroi. Pomaga w awansie na złoty poziom.",
-                imageUrl = "",
-                type = CaseItemType.ARMOR,
-                rarity = ItemRarity.EPIC,
-                value = 1,
-                dropChance = 15.0
-            ),
-            CaseItem(
-                id = "legendary_armor",
-                name = "Legendarna zbroja",
-                description = "Dodaje +1 do licznika złotych zbroi. Bardzo rzadka nagroda!",
-                imageUrl = "",
-                type = CaseItemType.ARMOR,
-                rarity = ItemRarity.LEGENDARY,
-                value = 1,
-                dropChance = 15.0
+                value = 2,
+                dropChance = 30.0,
+                armorTier = "SILVER"
             )
         )
         
         return Case(
             id = id,
             name = "Elitarna skrzynia",
-            description = "Zawiera epickie i legendarne przedmioty. Najlepsza szansa na złote elementy zbroi!",
+            description = "Najlepsza skrzynia! Gwarantowana srebrna zbroja i duża ilość monet.",
             imageUrl = "",
             price = 1000,
             items = items,
