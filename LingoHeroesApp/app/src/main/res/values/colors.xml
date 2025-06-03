@@ -31,9 +31,9 @@
     <color name="transparent_black">#80000000</color>
     <color name="transparent_white">#80FFFFFF</color>
     <!-- Kolory dla progresbarów różnych poziomów zbroi -->
-    <color name="progress_bronze">#CD7F32</color>
-    <color name="progress_silver">#C0C0C0</color>
-    <color name="progress_gold">#FFD700</color>
+    <color name="progress_bronze">#FFB87333</color>
+    <color name="progress_silver">#FFC0C0C0</color>
+    <color name="progress_gold">#FFFFD700</color>
     <!-- Kolory dla stanu zdrowia -->
     <color name="health_good">#4CAF50</color>
     <color name="health_medium">#FFC107</color>
@@ -48,4 +48,5 @@
     <color name="green_500">#4CAF50</color>
     <color name="gray_dark">#616161</color>
     <color name="orange_500">#FF9800</color>
+    <color name="gold">#FFFFD700</color>
 </resources>

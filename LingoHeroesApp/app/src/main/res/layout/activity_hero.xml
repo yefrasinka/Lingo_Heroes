@@ -261,7 +261,6 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@id/heroImage"
                 android:layout_marginTop="32dp"
-                android:layout_alignParentStart="true"
                 android:layout_marginStart="48dp">
 
                 <ImageButton
@@ -284,6 +283,18 @@
                     app:trackThickness="3dp"
                     app:trackColor="#33FFFFFF"
                     app:indicatorColor="@color/progress_bronze" />
+                    
+                <TextView
+                    android:id="@+id/armorLevelText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="-20dp"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:background="@drawable/level_text_background"
+                    android:padding="4dp"
+                    android:text="Poziom: 1/10" />
             </FrameLayout>
 
             <!-- Пpzycisk różdżki -->

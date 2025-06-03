@@ -24,7 +24,7 @@ enum class ArmorTier {
         return when (this) {
             BRONZE -> com.example.lingoheroesapp.R.drawable.ic_armor_bronze
             SILVER -> com.example.lingoheroesapp.R.drawable.ic_armor_silver
-            GOLD -> com.example.lingoheroesapp.R.drawable.ic_armor_silver // Tymczasowo używamy srebrnej zbroi dla złotego poziomu
+            GOLD -> com.example.lingoheroesapp.R.drawable.ic_armor_gold
         }
     }
     
@@ -32,7 +32,7 @@ enum class ArmorTier {
         return when (this) {
             BRONZE -> com.example.lingoheroesapp.R.drawable.ic_warrior_fire
             SILVER -> com.example.lingoheroesapp.R.drawable.ic_silver_fire
-            GOLD -> com.example.lingoheroesapp.R.drawable.ic_silver_fire  // Tymczasowo używamy srebrnej zbroi dla złotego poziomu
+            GOLD -> com.example.lingoheroesapp.R.drawable.ic_silver_fire  // Tymczasowo używamy srebrnej wersji
         }
     }
     
@@ -132,27 +132,66 @@ enum class WandType(val displayName: String) {
 data class Equipment(
     val armorLevel: Int = 1,
     val wandLevel: Int = 1,
-    val baseHp: Int = 100, // Base HP value at level 1
-    val baseDamage: Int = 10, // Base damage value at level 1
+    val baseHp: Int = 100,
+    val baseDamage: Int = 10,
     val armorTier: ArmorTier = ArmorTier.BRONZE,
     val bronzeArmorCount: Int = 0,
     val silverArmorCount: Int = 0,
     val goldArmorCount: Int = 0,
-    val characterElement: String = "fire", // Domyślny element postaci
-    val wandType: WandType = WandType.FIRE // Domyślny typ różdżki
+    val characterElement: String = "fire",
+    val wandType: WandType = WandType.FIRE,
+    val pendingArmorUpgrade: Boolean = false
 ) {
+    companion object {
+        const val MAX_BRONZE_LEVEL = 10
+        const val MAX_SILVER_LEVEL = 15
+        const val MAX_GOLD_LEVEL = 20
+        const val MAX_ARMOR_COUNT = 10
+    }
+
     // Constructor needed for Firebase
     constructor() : this(1, 1, 100, 10, ArmorTier.BRONZE, 0, 0, 0, "fire", WandType.FIRE)
     
-    // Calculate current HP based on armor level and tier (increases by 10% per level and additional bonuses for higher tiers)
+    // Get max level for current tier
+    @Exclude
+    fun getMaxLevelForCurrentTier(): Int {
+        return when (armorTier) {
+            ArmorTier.BRONZE -> MAX_BRONZE_LEVEL
+            ArmorTier.SILVER -> MAX_SILVER_LEVEL
+            ArmorTier.GOLD -> MAX_GOLD_LEVEL
+        }
+    }
+    
+    // Calculate current HP based on armor level and tier
     @Exclude
     fun getCurrentHp(): Int {
+        val baseIncrease = (baseHp * (1 + (armorLevel - 1) * 0.1))
         val tierMultiplier = when (armorTier) {
             ArmorTier.BRONZE -> 1.0
             ArmorTier.SILVER -> 1.2
             ArmorTier.GOLD -> 1.5
         }
-        return (baseHp * (1 + (armorLevel - 1) * 0.1) * tierMultiplier).toInt()
+        return (baseIncrease * tierMultiplier).toInt()
+    }
+    
+    // Check if can upgrade armor level
+    @Exclude
+    fun canUpgradeArmorLevel(): Boolean {
+        return armorLevel < getMaxLevelForCurrentTier()
+    }
+    
+    // Calculate HP after a potential upgrade
+    @Exclude
+    fun getUpgradedHp(): Int {
+        if (!canUpgradeArmorLevel()) return getCurrentHp()
+        
+        val baseIncrease = (baseHp * (1 + armorLevel * 0.1))
+        val tierMultiplier = when (armorTier) {
+            ArmorTier.BRONZE -> 1.0
+            ArmorTier.SILVER -> 1.2
+            ArmorTier.GOLD -> 1.5
+        }
+        return (baseIncrease * tierMultiplier).toInt()
     }
     
     // Calculate current damage based on wand level (increases by 10% per level)
@@ -180,16 +219,6 @@ data class Equipment(
         return Math.random() < wandType.getEffectChance()
     }
     
-    // Calculate HP after a potential upgrade
-    @Exclude
-    fun getUpgradedHp(): Int {
-        return (baseHp * (1 + armorLevel * 0.1) * when (armorTier) {
-            ArmorTier.BRONZE -> 1.0
-            ArmorTier.SILVER -> 1.2
-            ArmorTier.GOLD -> 1.5
-        }).toInt()
-    }
-    
     // Calculate damage after a potential upgrade
     @Exclude
     fun getUpgradedDamage(): Int {
@@ -212,7 +241,11 @@ data class Equipment(
     
     // Create a new Equipment object with upgraded armor
     fun upgradeArmor(): Equipment {
-        return this.copy(armorLevel = armorLevel + 1)
+        return if (canUpgradeArmorLevel()) {
+            this.copy(armorLevel = armorLevel + 1)
+        } else {
+            this
+        }
     }
     
     // Create a new Equipment object with upgraded wand
@@ -225,81 +258,22 @@ data class Equipment(
         return this.copy(wandType = newType)
     }
     
-    // Add one bronze armor
-    fun addBronzeArmor(): Equipment {
-        val newBronzeCount = bronzeArmorCount + 1
-        
-        // Sprawdź, czy należy awansować na srebrny poziom
-        return if (newBronzeCount >= 10 && armorTier == ArmorTier.BRONZE) {
-            // Awansuj na srebrny poziom i zresetuj licznik brązowych zbroi na 0
-            this.copy(
-                bronzeArmorCount = 0,
-                silverArmorCount = silverArmorCount + 1,
-                armorTier = ArmorTier.SILVER
-            )
-        } else if (armorTier != ArmorTier.BRONZE) {
-            // Jeśli już jesteśmy na wyższym poziomie
-            
-            // Sprawdź, czy zebraliśmy 10 brązowych zbroi na wyższym poziomie
-            if (newBronzeCount >= 10) {
-                // Resetujemy licznik brązowych zbroi i zwiększamy licznik srebrnych
-                this.copy(
-                    bronzeArmorCount = 0,
-                    silverArmorCount = silverArmorCount + 1
-                )
-            } else {
-                // Tylko zwiększamy licznik brązowych zbroi
-                this.copy(bronzeArmorCount = newBronzeCount)
-            }
-        } else {
-            // Standardowo zwiększamy licznik brązowych zbroi
-            this.copy(bronzeArmorCount = newBronzeCount)
-        }
-    }
-    
-    // Add one silver armor
-    fun addSilverArmor(): Equipment {
-        val newSilverCount = silverArmorCount + 1
-        
-        // Sprawdź, czy należy awansować na złoty poziom
-        return if (newSilverCount >= 10 && armorTier == ArmorTier.SILVER) {
-            // Awansuj na złoty poziom i zresetuj licznik srebrnych zbroi na 0
-            this.copy(
-                silverArmorCount = 0,
-                goldArmorCount = goldArmorCount + 1,
-                armorTier = ArmorTier.GOLD
-            )
-        } else if (armorTier == ArmorTier.GOLD) {
-            // Jeśli już jesteśmy na złotym poziomie, po prostu zwiększamy licznik srebrnych zbroi
-            
-            // Sprawdź, czy zebraliśmy 10 srebrnych zbroi na złotym poziomie
-            if (newSilverCount >= 10) {
-                // Resetujemy licznik srebrnych zbroi i zwiększamy licznik złotych
-                this.copy(
-                    silverArmorCount = 0,
-                    goldArmorCount = goldArmorCount + 1
-                )
-            } else {
-                // Tylko zwiększamy licznik srebrnych zbroi
-                this.copy(silverArmorCount = newSilverCount)
-            }
-        } else {
-            // Standardowo zwiększamy licznik srebrnych zbroi
-            this.copy(silverArmorCount = newSilverCount)
-        }
-    }
-    
     // Get armor count for current tier
     fun getCurrentTierArmorCount(): Int {
         return when (armorTier) {
             ArmorTier.BRONZE -> bronzeArmorCount
             ArmorTier.SILVER -> silverArmorCount
-            ArmorTier.GOLD -> goldArmorCount
+            ArmorTier.GOLD -> MAX_ARMOR_COUNT // Zawsze pokazuj MAX dla złotego poziomu
         }
     }
     
     // Get armor count of specified tier
     fun getArmorCount(tier: ArmorTier): Int {
+        // Jeśli mamy złoty poziom, wszystkie liczniki pokazują MAX
+        if (armorTier == ArmorTier.GOLD) {
+            return MAX_ARMOR_COUNT
+        }
+        
         return when (tier) {
             ArmorTier.BRONZE -> bronzeArmorCount
             ArmorTier.SILVER -> silverArmorCount
@@ -331,6 +305,79 @@ data class Equipment(
                 "lightning" -> com.example.lingoheroesapp.R.drawable.ic_silver_lightning // Tymczasowo używamy srebrnej wersji
                 else -> com.example.lingoheroesapp.R.drawable.ic_silver_fire
             }
+        }
+    }
+    
+    // Add one bronze armor
+    fun addBronzeArmor(): Equipment {
+        // Jeśli mamy już złotą zbroję, nie zbieramy więcej
+        if (armorTier == ArmorTier.GOLD) {
+            return this
+        }
+
+        val newBronzeCount = bronzeArmorCount + 1
+        
+        return if (newBronzeCount >= MAX_ARMOR_COUNT && armorTier == ArmorTier.BRONZE) {
+            // Oznacz, że jest dostępny upgrade, ale nie wykonuj go automatycznie
+            this.copy(
+                bronzeArmorCount = newBronzeCount,
+                pendingArmorUpgrade = true
+            )
+        } else if (newBronzeCount >= MAX_ARMOR_COUNT) {
+            // Jeśli zebraliśmy 10 brązowych, dodaj 1 srebrną i wyzeruj licznik brązowych
+            this.copy(
+                bronzeArmorCount = 0,
+                silverArmorCount = silverArmorCount + 1
+            )
+        } else {
+            this.copy(bronzeArmorCount = newBronzeCount)
+        }
+    }
+    
+    // Add one silver armor
+    fun addSilverArmor(): Equipment {
+        // Jeśli mamy już złotą zbroję, nie zbieramy więcej
+        if (armorTier == ArmorTier.GOLD) {
+            return this
+        }
+
+        val newSilverCount = silverArmorCount + 1
+        
+        return if (newSilverCount >= MAX_ARMOR_COUNT && armorTier == ArmorTier.SILVER) {
+            // Oznacz, że jest dostępny upgrade, ale nie wykonuj go automatycznie
+            this.copy(
+                silverArmorCount = newSilverCount,
+                pendingArmorUpgrade = true
+            )
+        } else if (newSilverCount >= MAX_ARMOR_COUNT) {
+            // Jeśli zebraliśmy 10 srebrnych, dodaj 1 złotą i wyzeruj licznik srebrnych
+            this.copy(
+                silverArmorCount = 0,
+                goldArmorCount = goldArmorCount + 1
+            )
+        } else {
+            this.copy(silverArmorCount = newSilverCount)
+        }
+    }
+
+    // Nowa metoda do wykonania oczekującego ulepszenia
+    fun performPendingUpgrade(): Equipment {
+        if (!pendingArmorUpgrade) return this
+        
+        return when (armorTier) {
+            ArmorTier.BRONZE -> this.copy(
+                bronzeArmorCount = 0, // Zerujemy licznik po ulepszeniu
+                armorTier = ArmorTier.SILVER,
+                armorLevel = 1,
+                pendingArmorUpgrade = false
+            )
+            ArmorTier.SILVER -> this.copy(
+                silverArmorCount = 0, // Zerujemy licznik po ulepszeniu
+                armorTier = ArmorTier.GOLD,
+                armorLevel = 1,
+                pendingArmorUpgrade = false
+            )
+            ArmorTier.GOLD -> this // Już na najwyższym poziomie
         }
     }
 } 

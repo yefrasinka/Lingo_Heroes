@@ -22,6 +22,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.view.Gravity
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.*
@@ -1729,162 +1730,22 @@ class DuelBattleActivity : AppCompatActivity() {
         }
     }
     
-    private fun addBronzeArmorToUserEquipment(statsId: String = "") {
-        // Sprawdź najpierw, czy gracz zdobył 3 gwiazdki - tylko wtedy daj zbroję
-        val stars = calculateStars()
-        if (stars < 3) {
-            Log.d("DuelBattleActivity", "Nie dodano zbroi - zdobyto tylko $stars gwiazdki (wymagane 3)")
-            return
-        }
+    private fun addBronzeArmorToUserEquipment() {
+        // Najpierw sprawdź, czy użytkownik jest zalogowany
+        if (currentUser == null) return
         
-        // Zapewnij, że użytkownik jest zalogowany
-        if (currentUser == null) {
-            Log.e("DuelBattleActivity", "Nie można dodać zbroi - użytkownik niezalogowany")
-            return
-        }
-
-        // Utwórz jednoznaczne odniesienie do userId
-        val userId = currentUser!!.uid
-        val userRef = database.reference.child("users").child(userId)
+        val userRef = database.reference.child("users").child(currentUser!!.uid)
         
-        // Wykonaj operację synchronicznie na głównym wątku, żeby uniknąć problemów z wątkami
+        // Pobierz aktualny ekwipunek użytkownika
         userRef.child("equipment").addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    // Odczytaj aktualne dane ekwipunku - obsługa różnych typów
-                    val armorLevel = when {
-                        snapshot.child("armorLevel").getValue(Long::class.java) != null ->
-                            snapshot.child("armorLevel").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("armorLevel").getValue(Int::class.java) != null ->
-                            snapshot.child("armorLevel").getValue(Int::class.java)!!
-                        snapshot.child("armorLevel").getValue(String::class.java) != null ->
-                            snapshot.child("armorLevel").getValue(String::class.java)!!.toInt()
-                        else -> 1
-                    }
+                    // Odczytaj aktualny ekwipunek
+                    val equipment = snapshot.getValue(Equipment::class.java) ?: Equipment()
                     
-                    val wandLevel = when {
-                        snapshot.child("wandLevel").getValue(Long::class.java) != null ->
-                            snapshot.child("wandLevel").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("wandLevel").getValue(Int::class.java) != null ->
-                            snapshot.child("wandLevel").getValue(Int::class.java)!!
-                        snapshot.child("wandLevel").getValue(String::class.java) != null ->
-                            snapshot.child("wandLevel").getValue(String::class.java)!!.toInt()
-                        else -> 1
-                    }
-                    
-                    val baseHp = when {
-                        snapshot.child("baseHp").getValue(Long::class.java) != null ->
-                            snapshot.child("baseHp").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("baseHp").getValue(Int::class.java) != null ->
-                            snapshot.child("baseHp").getValue(Int::class.java)!!
-                        snapshot.child("baseHp").getValue(String::class.java) != null ->
-                            snapshot.child("baseHp").getValue(String::class.java)!!.toInt()
-                        else -> 100
-                    }
-                    
-                    val baseDamage = when {
-                        snapshot.child("baseDamage").getValue(Long::class.java) != null ->
-                            snapshot.child("baseDamage").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("baseDamage").getValue(Int::class.java) != null ->
-                            snapshot.child("baseDamage").getValue(Int::class.java)!!
-                        snapshot.child("baseDamage").getValue(String::class.java) != null ->
-                            snapshot.child("baseDamage").getValue(String::class.java)!!.toInt()
-                        else -> 10
-                    }
-                    
-                    // Pobierz armorTier używając metody getValue bez określonego typu
-                    val armorTierRaw = snapshot.child("armorTier").getValue()
-                    
-                    // Określ armorTier na podstawie różnych możliwych typów
-                    val armorTier = when (armorTierRaw) {
-                        is Long -> ArmorTier.fromInt((armorTierRaw.toInt() + 1))
-                        is Int -> ArmorTier.fromInt((armorTierRaw + 1))
-                        is String -> {
-                            try {
-                                // Próba odczytu jako enum lub konwersja na int
-                                val tierInt = armorTierRaw.toIntOrNull()
-                                if (tierInt != null) {
-                                    ArmorTier.fromInt(tierInt + 1)
-                                } else {
-                                    try {
-                                        ArmorTier.valueOf(armorTierRaw)
-                                    } catch (e: Exception) {
-                                        ArmorTier.BRONZE // domyślnie
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("DuelBattleActivity", "Błąd konwersji armorTier: ${e.message}")
-                                ArmorTier.BRONZE
-                            }
-                        }
-                        else -> ArmorTier.BRONZE // domyślnie
-                    }
-                    
-                    val bronzeArmorCount = when {
-                        snapshot.child("bronzeArmorCount").getValue(Long::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("bronzeArmorCount").getValue(Int::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(Int::class.java)!!
-                        snapshot.child("bronzeArmorCount").getValue(String::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(String::class.java)!!.toInt()
-                        else -> 0
-                    }
-                    
-                    val silverArmorCount = when {
-                        snapshot.child("silverArmorCount").getValue(Long::class.java) != null ->
-                            snapshot.child("silverArmorCount").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("silverArmorCount").getValue(Int::class.java) != null ->
-                            snapshot.child("silverArmorCount").getValue(Int::class.java)!!
-                        snapshot.child("silverArmorCount").getValue(String::class.java) != null ->
-                            snapshot.child("silverArmorCount").getValue(String::class.java)!!.toInt()
-                        else -> 0
-                    }
-                    
-                    val goldArmorCount = when {
-                        snapshot.child("goldArmorCount").getValue(Long::class.java) != null ->
-                            snapshot.child("goldArmorCount").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("goldArmorCount").getValue(Int::class.java) != null ->
-                            snapshot.child("goldArmorCount").getValue(Int::class.java)!!
-                        snapshot.child("goldArmorCount").getValue(String::class.java) != null ->
-                            snapshot.child("goldArmorCount").getValue(String::class.java)!!.toInt()
-                        else -> 0
-                    }
-                    
-                    // Odczytaj aktualny typ różdżki
-                    val wandTypeStr = snapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
-                    val wandType = try {
-                        WandType.valueOf(wandTypeStr)
-                    } catch (e: Exception) {
-                        WandType.FIRE // Domyślnie ogień
-                    }
-                    
-                    // Utwórz obiekt Equipment z aktualnymi danymi
-                    val currentEquipment = Equipment(
-                        armorLevel = armorLevel,
-                        wandLevel = wandLevel,
-                        baseHp = baseHp,
-                        baseDamage = baseDamage,
-                        armorTier = armorTier,
-                        bronzeArmorCount = bronzeArmorCount,
-                        silverArmorCount = silverArmorCount,
-                        goldArmorCount = goldArmorCount,
-                        wandType = wandType
-                    )
-                    
-                    Log.d("DuelBattleActivity", "Odczytane wartości: armorTier=${armorTier}, bronzeArmorCount=${bronzeArmorCount}")
-                    
-                    // Dodaj brązową zbroję
-                    val updatedEquipment = currentEquipment.addBronzeArmor()
-                    Log.d("DuelBattleActivity", "Przed aktualizacją: bronze=${currentEquipment.bronzeArmorCount}, Po: bronze=${updatedEquipment.bronzeArmorCount}")
-                    
-                    // Sprawdź, czy nastąpił upgrade zbroi
-                    val upgradeMessage = if (updatedEquipment.armorTier != currentEquipment.armorTier) {
-                        "Gratulacje! Twoja zbroja została ulepszona do ${updatedEquipment.armorTier.name}!\n" +
-                        "Odblokowano nowy wygląd postaci z lepszą ochroną!"
-                    } else {
-                        "Zdobyłeś brązową zbroję! (${updatedEquipment.bronzeArmorCount}/10)\n" +
-                        "Zbierz jeszcze ${10 - updatedEquipment.bronzeArmorCount} sztuk, aby awansować na wyższy poziom."
-                    }
+                    // Dodaj brązową zbroję i sprawdź, czy nastąpił awans
+                    val updatedEquipment = equipment.addBronzeArmor()
+                    val isUpgraded = updatedEquipment.armorTier != equipment.armorTier
                     
                     // Tworzę mapę z danymi do aktualizacji
                     val equipmentMap = HashMap<String, Any>()
@@ -1892,60 +1753,72 @@ class DuelBattleActivity : AppCompatActivity() {
                     equipmentMap["wandLevel"] = updatedEquipment.wandLevel
                     equipmentMap["baseHp"] = updatedEquipment.baseHp
                     equipmentMap["baseDamage"] = updatedEquipment.baseDamage
-                    equipmentMap["armorTier"] = updatedEquipment.armorTier.ordinal  // zapisz jako int
+                    equipmentMap["armorTier"] = updatedEquipment.armorTier.ordinal
                     equipmentMap["bronzeArmorCount"] = updatedEquipment.bronzeArmorCount
                     equipmentMap["silverArmorCount"] = updatedEquipment.silverArmorCount
                     equipmentMap["goldArmorCount"] = updatedEquipment.goldArmorCount
                     equipmentMap["wandType"] = updatedEquipment.wandType.name
                     
-                    // Aktualizuj pojedyncze pola zamiast całego obiektu
+                    // Aktualizuj ekwipunek w bazie danych
                     userRef.child("equipment").updateChildren(equipmentMap)
                         .addOnSuccessListener {
-                            // Pokaż komunikat o zdobyciu zbroi tylko po zakończeniu zapisu
-                            // używając głównego wątku do aktualizacji UI
-                            Handler(Looper.getMainLooper()).post {
-                                Log.d("DuelBattleActivity", "Zbroja dodana pomyślnie: $upgradeMessage")
-                                Toast.makeText(
-                                    this@DuelBattleActivity,
-                                    upgradeMessage,
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                
-                                // Dodaj informację o aktualizacji do statystyk
-                                if (statsId.isNotEmpty()) {
-                                    val armorUpdate = mapOf("bronzeArmorAdded" to true)
-                                    database.reference
-                                        .child("users")
-                                        .child(userId)
-                                        .child("duelStats")
-                                        .child(stageNumber.toString())
-                                        .child(statsId)
-                                        .updateChildren(armorUpdate)
+                            // Pokaż odpowiedni komunikat
+                            val message = if (isUpgraded) {
+                                when (updatedEquipment.armorTier) {
+                                    ArmorTier.SILVER -> "Gratulacje! Zebrałeś wystarczająco dużo elementów zbroi!\n" +
+                                            "Odwiedź ekran bohatera, aby ulepszyć swoją zbroję do srebrnej!"
+                                    ArmorTier.GOLD -> "Gratulacje! Zebrałeś wystarczająco dużo elementów zbroi!\n" +
+                                            "Odwiedź ekran bohatera, aby ulepszyć swoją zbroję do złotej!"
+                                    else -> "Zdobyłeś brązową zbroję!"
                                 }
+                            } else {
+                                "Zdobyłeś brązową zbroję! (${updatedEquipment.bronzeArmorCount}/10)\n" +
+                                "Zbierz jeszcze ${10 - updatedEquipment.bronzeArmorCount} sztuk, aby móc ulepszyć zbroję."
+                            }
+                            
+                            // Pokaż komunikat w głównym wątku
+                            runOnUiThread {
+                                showCustomToast(message, isUpgraded)
                             }
                         }
                         .addOnFailureListener { e ->
-                            // Pokaż błąd na głównym wątku
-                            Handler(Looper.getMainLooper()).post {
-                                Log.e("DuelBattleActivity", "Błąd podczas zapisu ekwipunku: ${e.message}")
-                                e.printStackTrace()
-                                Toast.makeText(
-                                    this@DuelBattleActivity,
-                                    "Wystąpił błąd podczas aktualizacji ekwipunku",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                            Log.e("DuelBattleActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
                         }
+                    
                 } catch (e: Exception) {
-                    Log.e("DuelBattleActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
-                    e.printStackTrace() // Dodatkowe logowanie stosu błędów
+                    Log.e("DuelBattleActivity", "Błąd podczas dodawania brązowej zbroi: ${e.message}")
                 }
             }
             
             override fun onCancelled(error: DatabaseError) {
-                Log.e("DuelBattleActivity", "Błąd odczytu danych ekwipunku: ${error.message}")
+                Log.e("DuelBattleActivity", "Błąd podczas odczytu ekwipunku: ${error.message}")
             }
         })
+    }
+    
+    private fun showCustomToast(message: String, isUpgrade: Boolean) {
+        // Stwórz niestandardowy layout dla Toast
+        val layout = layoutInflater.inflate(R.layout.custom_toast_layout, null)
+        
+        // Znajdź widoki w layoucie
+        val messageText = layout.findViewById<TextView>(R.id.toastMessage)
+        val iconView = layout.findViewById<ImageView>(R.id.toastIcon)
+        
+        // Ustaw tekst i ikonę
+        messageText.text = message
+        if (isUpgrade) {
+            iconView.setImageResource(R.drawable.ic_level_up)
+            iconView.visibility = View.VISIBLE
+        } else {
+            iconView.visibility = View.GONE
+        }
+        
+        // Stwórz i pokaż Toast
+        val toast = Toast(this)
+        toast.duration = Toast.LENGTH_LONG
+        toast.view = layout
+        toast.setGravity(Gravity.CENTER, 0, 0)
+        toast.show()
     }
     
     private fun calculateXpReward(): Int {

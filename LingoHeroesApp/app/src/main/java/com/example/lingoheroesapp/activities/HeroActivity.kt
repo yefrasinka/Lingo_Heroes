@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -156,6 +158,14 @@ class HeroActivity : AppCompatActivity() {
                                     Equipment() // Domyślny ekwipunek jeśli nie ma w bazie
                                 } ?: Equipment()
                                 
+                                // Sprawdź czy jest oczekujące ulepszenie
+                                if (equipment.pendingArmorUpgrade) {
+                                    // Pokaż dialog z potwierdzeniem ulepszenia
+                                    runOnUiThread {
+                                        showArmorUpgradeConfirmation(equipment)
+                                    }
+                                }
+                                
                                 // Tworzymy obiekt User z odczytanych danych
                                 val user = User(
                                     uid = uid,
@@ -227,7 +237,7 @@ class HeroActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun updateArmorUI(equipment: Equipment) {
+    private fun updateArmorUI(equipment: Equipment, animate: Boolean = false) {
         // Przygotuj dane - ten kod może być wykonany poza głównym wątkiem
         val armorImageResource = equipment.armorTier.getImageResourceId()
         val staffImageResource = equipment.wandType.getWandImageResourceId()
@@ -247,14 +257,36 @@ class HeroActivity : AppCompatActivity() {
         
         // Zaktualizuj UI na głównym wątku
         runOnUiThread {
-            // Aktualizacja ikony zbroi
-            armorButton.setImageResource(armorImageResource)
+            if (animate) {
+                // Animacja zmiany zbroi
+                val armorAnimation = AnimationUtils.loadAnimation(this, R.anim.armor_upgrade_animation)
+                armorAnimation.setAnimationListener(object : Animation.AnimationListener {
+                    override fun onAnimationStart(animation: Animation?) {
+                        // Rozpoczęcie animacji
+                    }
+                    
+                    override fun onAnimationEnd(animation: Animation?) {
+                        // Po zakończeniu animacji
+                        armorButton.setImageResource(armorImageResource)
+                        heroImage.setImageResource(characterImageResource)
+                    }
+                    
+                    override fun onAnimationRepeat(animation: Animation?) {
+                        // Powtórzenie animacji
+                    }
+                })
+                
+                // Rozpocznij animację
+                armorButton.startAnimation(armorAnimation)
+                heroImage.startAnimation(armorAnimation)
+            } else {
+                // Aktualizacja bez animacji
+                armorButton.setImageResource(armorImageResource)
+                heroImage.setImageResource(characterImageResource)
+            }
             
             // Aktualizacja ikony różdżki
             staffButton.setImageResource(staffImageResource)
-            
-            // Aktualizacja postaci bohatera
-            heroImage.setImageResource(characterImageResource)
             
             // Aktualizacja licznika zbroi
             this.armorCountText.text = armorCountText
@@ -270,6 +302,12 @@ class HeroActivity : AppCompatActivity() {
             // Aktualizacja statystyk bohatera na podstawie ekwipunku
             hpTextView.text = equipment.getCurrentHp().toString()
             atkTextView.text = equipment.getCurrentDamage().toString()
+            
+            // Aktualizacja maksymalnego poziomu
+            val maxLevel = equipment.getMaxLevelForCurrentTier()
+            val currentLevel = equipment.armorLevel
+            val levelText = "Poziom: $currentLevel/$maxLevel"
+            findViewById<TextView>(R.id.armorLevelText).text = levelText
         }
     }
 
@@ -278,6 +316,7 @@ class HeroActivity : AppCompatActivity() {
         Thread {
             val equipment = user.equipment
             val currentLevel = equipment.armorLevel
+            val maxLevel = equipment.getMaxLevelForCurrentTier()
             val currentStat = equipment.getCurrentHp()
             val upgradedStat = equipment.getUpgradedHp()
             val statDifference = upgradedStat - currentStat
@@ -285,7 +324,6 @@ class HeroActivity : AppCompatActivity() {
             val armorImageResource = equipment.armorTier.getImageResourceId()
             
             val armorCount = equipment.getCurrentTierArmorCount()
-            val maxLevel = 20
             val progress = (currentLevel.toFloat() / maxLevel * 100).toInt()
             
             // Utwórz i pokaż dialog na głównym wątku
@@ -296,7 +334,7 @@ class HeroActivity : AppCompatActivity() {
                 // Set dialog content
                 dialog.findViewById<TextView>(R.id.dialogTitle).text = "Ulepszenie Zbroi"
                 dialog.findViewById<ImageView>(R.id.equipmentImage).setImageResource(armorImageResource)
-                dialog.findViewById<TextView>(R.id.currentLevelText).text = "Aktualny poziom: $currentLevel (${equipment.armorTier.name})"
+                dialog.findViewById<TextView>(R.id.currentLevelText).text = "Aktualny poziom: $currentLevel/$maxLevel (${equipment.armorTier.name})"
                 dialog.findViewById<TextView>(R.id.currentStatText).text = currentStat.toString()
                 dialog.findViewById<TextView>(R.id.upgradeStatText).text = upgradedStat.toString()
                 dialog.findViewById<TextView>(R.id.statDifferenceText).text = " (+$statDifference)"
@@ -394,8 +432,12 @@ class HeroActivity : AppCompatActivity() {
                 
                 val upgradeButton = dialog.findViewById<Button>(R.id.upgradeButton)
                 
-                // Disable upgrade button if not enough coins
-                if (user.coins.toLong() < upgradeCost.toLong()) {
+                // Disable upgrade button if max level or not enough coins
+                if (!equipment.canUpgradeArmorLevel()) {
+                    upgradeButton.isEnabled = false
+                    upgradeButton.text = "Maksymalny poziom"
+                    upgradeButton.alpha = 0.5f
+                } else if (user.coins.toLong() < upgradeCost.toLong()) {
                     upgradeButton.isEnabled = false
                     upgradeButton.text = "Za mało monet"
                     upgradeButton.alpha = 0.5f
@@ -673,6 +715,31 @@ class HeroActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
+    private fun showCustomToast(message: String, isUpgrade: Boolean = false) {
+        // Przygotuj layout dla toasta
+        val layout = layoutInflater.inflate(R.layout.custom_toast_layout, null)
+        
+        // Znajdź widoki w layoucie
+        val messageText = layout.findViewById<TextView>(R.id.toastMessage)
+        val iconView = layout.findViewById<ImageView>(R.id.toastIcon)
+        
+        // Ustaw tekst i ikonę
+        messageText.text = message
+        if (isUpgrade) {
+            iconView.setImageResource(R.drawable.ic_level_up)
+            iconView.visibility = View.VISIBLE
+        } else {
+            iconView.visibility = View.GONE
+        }
+        
+        // Stwórz i pokaż Toast
+        val toast = Toast(this)
+        toast.duration = Toast.LENGTH_LONG
+        toast.view = layout
+        toast.setGravity(Gravity.CENTER, 0, 0)
+        toast.show()
+    }
+
     private fun setupEquipmentListener() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
@@ -758,6 +825,90 @@ class HeroActivity : AppCompatActivity() {
                 }
             })
         }
+    }
+
+    private fun showArmorUpgradeConfirmation(equipment: Equipment) {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_armor_upgrade_confirmation)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        // Ustaw obrazki zbroi
+        val currentArmorImage = dialog.findViewById<ImageView>(R.id.currentArmorImage)
+        val nextArmorImage = dialog.findViewById<ImageView>(R.id.nextArmorImage)
+        
+        val nextTier = when (equipment.armorTier) {
+            ArmorTier.BRONZE -> {
+                currentArmorImage.setImageResource(R.drawable.ic_armor_bronze)
+                nextArmorImage.setImageResource(R.drawable.ic_armor_silver)
+                "srebrnej"
+            }
+            ArmorTier.SILVER -> {
+                currentArmorImage.setImageResource(R.drawable.ic_armor_silver)
+                nextArmorImage.setImageResource(R.drawable.ic_armor_gold)
+                "złotej"
+            }
+            ArmorTier.GOLD -> return // Nie powinno się zdarzyć
+        }
+        
+        dialog.findViewById<TextView>(R.id.dialogMessage).text = 
+            "Zebrałeś wystarczającą ilość elementów zbroi, aby ulepszyć ją do $nextTier!\n\n" +
+            "Twoja postać otrzyma nowy wygląd i zwiększone statystyki!"
+        
+        // Dodaj animację dla obrazków zbroi
+        val scaleAnimation = AnimationUtils.loadAnimation(this, R.anim.armor_upgrade_animation)
+        nextArmorImage.startAnimation(scaleAnimation)
+        
+        dialog.findViewById<Button>(R.id.yesButton).setOnClickListener {
+            dialog.dismiss()
+            performArmorUpgrade(equipment)
+        }
+        
+        dialog.findViewById<Button>(R.id.noButton).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        // Ustaw szerokość dialogu
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9).toInt(),
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        
+        dialog.show()
+    }
+    
+    private fun performArmorUpgrade(equipment: Equipment) {
+        val currentUser = auth.currentUser ?: return
+        val updatedEquipment = equipment.performPendingUpgrade()
+        
+        // Pokaż wskaźnik ładowania
+        val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
+        loadingIndicator?.visibility = View.VISIBLE
+        
+        // Aktualizuj w bazie danych
+        database.child("users").child(currentUser.uid).child("equipment")
+            .setValue(updatedEquipment)
+            .addOnSuccessListener {
+                loadingIndicator?.visibility = View.GONE
+                
+                // Pokaż animację i komunikat o ulepszeniu
+                updateArmorUI(updatedEquipment, true)
+                
+                val message = when (updatedEquipment.armorTier) {
+                    ArmorTier.SILVER -> "Gratulacje! Twoja zbroja została ulepszona do srebrnej!\nOdblokowano nowy wygląd postaci z lepszą ochroną!"
+                    ArmorTier.GOLD -> "Gratulacje! Twoja zbroja została ulepszona do złotej!\nOdblokowano nowy wygląd postaci z najlepszą ochroną!"
+                    else -> "Zbroja została ulepszona!"
+                }
+                showCustomToast(message, true)
+                
+                // Aktualizuj lokalny obiekt użytkownika
+                this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                    equipment = updatedEquipment
+                )
+            }
+            .addOnFailureListener { e ->
+                loadingIndicator?.visibility = View.GONE
+                showError("Błąd podczas ulepszania zbroi: ${e.message}")
+            }
     }
 
     override fun onDestroy() {
