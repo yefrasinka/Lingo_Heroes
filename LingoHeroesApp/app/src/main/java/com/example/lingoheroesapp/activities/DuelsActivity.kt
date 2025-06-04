@@ -23,6 +23,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.example.lingoheroesapp.models.Equipment
 
 class DuelsActivity : AppCompatActivity() {
 
@@ -611,55 +612,35 @@ class DuelsActivity : AppCompatActivity() {
         userRef.child("equipment").addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    // Odczytaj dane ekwipunku
-                    val armorTierRaw = snapshot.child("armorTier").getValue()
-                    val armorTier = when {
-                        armorTierRaw is Long -> armorTierRaw.toInt()
-                        armorTierRaw is Int -> armorTierRaw
-                        armorTierRaw is String -> try { armorTierRaw.toInt() } catch (e: Exception) { 0 }
-                        else -> 0
-                    }
+                    // Odczytaj ekwipunek używając fromMap
+                    val equipmentMap = snapshot.value as? Map<String, Any?> ?: return
+                    val equipment = Equipment.fromMap(equipmentMap)
                     
-                    val bronzeArmorCount = when {
-                        snapshot.child("bronzeArmorCount").getValue(Long::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(Long::class.java)!!.toInt()
-                        snapshot.child("bronzeArmorCount").getValue(Int::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(Int::class.java)!!
-                        snapshot.child("bronzeArmorCount").getValue(String::class.java) != null ->
-                            snapshot.child("bronzeArmorCount").getValue(String::class.java)!!.toInt()
-                        else -> 0
-                    }
+                    // Dodaj brązową zbroję używając metody z modelu Equipment
+                    val updatedEquipment = equipment.addBronzeArmor()
                     
-                    // Zwiększ liczbę brązowych zbroi o 1
-                    val newBronzeArmorCount = bronzeArmorCount + 1
+                    // Konwertuj zaktualizowany ekwipunek na mapę
+                    val updatedEquipmentMap = updatedEquipment.toMap()
                     
-                    // Sprawdź, czy nastąpił awans zbroi (co 10 sztuk)
-                    val newArmorTier = if (newBronzeArmorCount >= 10) {
-                        // Resetuj licznik i zwiększ poziom zbroi
-                        userRef.child("equipment").child("bronzeArmorCount").setValue(0)
-                        armorTier + 1 // Awans do następnego poziomu
-                    } else {
-                        // Aktualizuj tylko liczbę brązowych zbroi
-                        userRef.child("equipment").child("bronzeArmorCount").setValue(newBronzeArmorCount)
-                        armorTier // Zachowaj ten sam poziom
-                    }
-                    
-                    // Jeśli nastąpił awans, zaktualizuj poziom zbroi
-                    if (newArmorTier > armorTier) {
-                        userRef.child("equipment").child("armorTier").setValue(newArmorTier)
-                        
-                        // Pokaż informację o awansie zbroi
-                        Toast.makeText(this@DuelsActivity, 
-                            "Gratulacje! Twoja zbroja została ulepszona do poziomu $newArmorTier!\n" +
-                            "Odblokowano nowy wygląd postaci z lepszą ochroną!", 
-                            Toast.LENGTH_LONG).show()
-                    } else {
-                        // Pokaż informację o zbieraniu zbroi
-                        Toast.makeText(this@DuelsActivity, 
-                            "Zdobyłeś brązową zbroję! ($newBronzeArmorCount/10)\n" +
-                            "Zbierz jeszcze ${10 - newBronzeArmorCount} sztuk, aby awansować na wyższy poziom.", 
-                            Toast.LENGTH_LONG).show()
-                    }
+                    // Aktualizuj ekwipunek w bazie danych
+                    userRef.child("equipment").updateChildren(updatedEquipmentMap)
+                        .addOnSuccessListener {
+                            // Pokaż odpowiedni komunikat
+                            val message = if (updatedEquipment.pendingArmorUpgrade) {
+                                "Gratulacje! Zebrałeś komplet brązowej zbroi!\n" +
+                                "Odwiedź ekran bohatera, aby ulepszyć zbroję do srebrnej!"
+                            } else {
+                                "Zdobyłeś brązową zbroję! (${updatedEquipment.bronzeArmorCount}/10)\n" +
+                                "Zbierz jeszcze ${10 - updatedEquipment.bronzeArmorCount} sztuk, aby móc ulepszyć zbroję."
+                            }
+                            
+                            runOnUiThread {
+                                Toast.makeText(this@DuelsActivity, message, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("DuelsActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
+                        }
                     
                 } catch (e: Exception) {
                     Log.e("DuelsActivity", "Błąd podczas dodawania brązowej zbroi: ${e.message}")
@@ -667,7 +648,7 @@ class DuelsActivity : AppCompatActivity() {
             }
             
             override fun onCancelled(error: DatabaseError) {
-                Log.e("DuelsActivity", "Błąd podczas pobierania ekwipunku: ${error.message}")
+                Log.e("DuelsActivity", "Błąd podczas odczytu ekwipunku: ${error.message}")
             }
         })
     }

@@ -1741,36 +1741,26 @@ class DuelBattleActivity : AppCompatActivity() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
                     // Odczytaj aktualny ekwipunek
-                    val equipment = snapshot.getValue(Equipment::class.java) ?: Equipment()
+                    val currentEquipment = if (snapshot.exists()) {
+                        val equipmentMap = snapshot.value as? Map<String, Any?> ?: return
+                        Equipment.fromMap(equipmentMap)
+                    } else {
+                        Equipment()
+                    }
                     
-                    // Dodaj brązową zbroję i sprawdź, czy nastąpił awans
-                    val updatedEquipment = equipment.addBronzeArmor()
-                    val isUpgraded = updatedEquipment.armorTier != equipment.armorTier
+                    // Dodaj brązową zbroję
+                    val updatedEquipment = currentEquipment.addBronzeArmor()
                     
-                    // Tworzę mapę z danymi do aktualizacji
-                    val equipmentMap = HashMap<String, Any>()
-                    equipmentMap["armorLevel"] = updatedEquipment.armorLevel
-                    equipmentMap["wandLevel"] = updatedEquipment.wandLevel
-                    equipmentMap["baseHp"] = updatedEquipment.baseHp
-                    equipmentMap["baseDamage"] = updatedEquipment.baseDamage
-                    equipmentMap["armorTier"] = updatedEquipment.armorTier.ordinal
-                    equipmentMap["bronzeArmorCount"] = updatedEquipment.bronzeArmorCount
-                    equipmentMap["silverArmorCount"] = updatedEquipment.silverArmorCount
-                    equipmentMap["goldArmorCount"] = updatedEquipment.goldArmorCount
-                    equipmentMap["wandType"] = updatedEquipment.wandType.name
+                    // Konwertuj ekwipunek na mapę
+                    val equipmentMap = updatedEquipment.toMap()
                     
                     // Aktualizuj ekwipunek w bazie danych
                     userRef.child("equipment").updateChildren(equipmentMap)
                         .addOnSuccessListener {
                             // Pokaż odpowiedni komunikat
-                            val message = if (isUpgraded) {
-                                when (updatedEquipment.armorTier) {
-                                    ArmorTier.SILVER -> "Gratulacje! Zebrałeś wystarczająco dużo elementów zbroi!\n" +
-                                            "Odwiedź ekran bohatera, aby ulepszyć swoją zbroję do srebrnej!"
-                                    ArmorTier.GOLD -> "Gratulacje! Zebrałeś wystarczająco dużo elementów zbroi!\n" +
-                                            "Odwiedź ekran bohatera, aby ulepszyć swoją zbroję do złotej!"
-                                    else -> "Zdobyłeś brązową zbroję!"
-                                }
+                            val message = if (updatedEquipment.pendingArmorUpgrade) {
+                                "Gratulacje! Zebrałeś komplet brązowej zbroi!\n" +
+                                "Odwiedź ekran bohatera, aby ulepszyć zbroję do srebrnej!"
                             } else {
                                 "Zdobyłeś brązową zbroję! (${updatedEquipment.bronzeArmorCount}/10)\n" +
                                 "Zbierz jeszcze ${10 - updatedEquipment.bronzeArmorCount} sztuk, aby móc ulepszyć zbroję."
@@ -1778,13 +1768,12 @@ class DuelBattleActivity : AppCompatActivity() {
                             
                             // Pokaż komunikat w głównym wątku
                             runOnUiThread {
-                                showCustomToast(message, isUpgraded)
+                                showCustomToast(message, updatedEquipment.pendingArmorUpgrade)
                             }
                         }
                         .addOnFailureListener { e ->
                             Log.e("DuelBattleActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
                         }
-                    
                 } catch (e: Exception) {
                     Log.e("DuelBattleActivity", "Błąd podczas dodawania brązowej zbroi: ${e.message}")
                 }
@@ -1809,7 +1798,7 @@ class DuelBattleActivity : AppCompatActivity() {
         if (isUpgrade) {
             iconView.setImageResource(R.drawable.ic_level_up)
             iconView.visibility = View.VISIBLE
-        } else {
+                    } else {
             iconView.visibility = View.GONE
         }
         

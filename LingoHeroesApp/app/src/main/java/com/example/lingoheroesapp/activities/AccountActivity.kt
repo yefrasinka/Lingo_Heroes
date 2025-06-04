@@ -110,34 +110,52 @@ class AccountActivity : AppCompatActivity() {
 
     private fun showChangeEmailDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_change_email, null)
-        val editText = dialogView.findViewById<EditText>(R.id.emailEditText)
+        val emailEditText = dialogView.findViewById<EditText>(R.id.emailEditText)
+        val passwordEditText = dialogView.findViewById<EditText>(R.id.currentPasswordEditText)
         
-        // Устанавливаем текущий email
-        editText.setText(currentEmail)
+        // Ustaw aktualny email
+        emailEditText.setText(currentEmail)
 
         AlertDialog.Builder(this)
             .setTitle("Zmiana emaila")
             .setView(dialogView)
             .setPositiveButton("Zmień") { _, _ ->
-                val newEmail = editText.text.toString().trim()
-                if (newEmail.isNotEmpty()) {
-                    auth.currentUser?.updateEmail(newEmail)
-                        ?.addOnSuccessListener {
-                            val userId = auth.currentUser?.uid
-                            if (userId != null) {
-                                                    database.child("users").child(userId).child("email").setValue(newEmail)
+                val newEmail = emailEditText.text.toString().trim()
+                val password = passwordEditText.text.toString()
+
+                if (newEmail.isEmpty() || password.isEmpty()) {
+                    Toast.makeText(this, "Wszystkie pola muszą być wypełnione.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                // Ponowne uwierzytelnienie użytkownika
+                val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(currentEmail, password)
+                auth.currentUser?.reauthenticate(credential)
+                    ?.addOnSuccessListener {
+                        // Po pomyślnym uwierzytelnieniu, aktualizujemy email
+                        auth.currentUser?.updateEmail(newEmail)
+                            ?.addOnSuccessListener {
+                                val userId = auth.currentUser?.uid
+                                if (userId != null) {
+                                    database.child("users").child(userId).child("email").setValue(newEmail)
+                                        .addOnSuccessListener {
+                                            currentEmail = newEmail
+                                            Toast.makeText(this, "Email został zmieniony!", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(this, "Błąd aktualizacji bazy danych: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
                             }
-                                                            currentEmail = newEmail
-                            Toast.makeText(this, "Email został zmieniony!", Toast.LENGTH_SHORT).show()
-                                                        }
-                        ?.addOnFailureListener {
-                            Toast.makeText(this, "Błąd zmiany emaila: ${it.message}", Toast.LENGTH_SHORT).show()
-                                                        }
-                } else {
-                    Toast.makeText(this, "Pole nie może być puste.", Toast.LENGTH_SHORT).show()
-                        }
+                            ?.addOnFailureListener { e ->
+                                Toast.makeText(this, "Błąd zmiany emaila: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
                     }
-                    .setNegativeButton("Anuluj", null)
+                    ?.addOnFailureListener { e ->
+                        Toast.makeText(this, "Błąd uwierzytelnienia: Nieprawidłowe hasło", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Anuluj", null)
             .create()
             .show()
     }

@@ -38,12 +38,7 @@ enum class ArmorTier {
     
     companion object {
         fun fromInt(value: Int): ArmorTier {
-            return when (value) {
-                1 -> BRONZE
-                2 -> SILVER
-                3 -> GOLD
-                else -> BRONZE
-            }
+            return values().getOrElse(value) { BRONZE }
         }
         
         // Dodaj metodę do konwersji z różnych typów danych
@@ -147,6 +142,23 @@ data class Equipment(
         const val MAX_SILVER_LEVEL = 15
         const val MAX_GOLD_LEVEL = 20
         const val MAX_ARMOR_COUNT = 10
+
+        // Add a method to create Equipment from a DataSnapshot
+        fun fromMap(map: Map<String, Any?>): Equipment {
+            return Equipment(
+                armorLevel = (map["armorLevel"] as? Long)?.toInt() ?: 1,
+                wandLevel = (map["wandLevel"] as? Long)?.toInt() ?: 1,
+                baseHp = (map["baseHp"] as? Long)?.toInt() ?: 100,
+                baseDamage = (map["baseDamage"] as? Long)?.toInt() ?: 10,
+                armorTier = ArmorTier.fromAny(map["armorTier"]),
+                bronzeArmorCount = (map["bronzeArmorCount"] as? Long)?.toInt() ?: 0,
+                silverArmorCount = (map["silverArmorCount"] as? Long)?.toInt() ?: 0,
+                goldArmorCount = (map["goldArmorCount"] as? Long)?.toInt() ?: 0,
+                characterElement = map["characterElement"] as? String ?: "fire",
+                wandType = WandType.fromString(map["wandType"] as? String),
+                pendingArmorUpgrade = map["pendingArmorUpgrade"] as? Boolean ?: false
+            )
+        }
     }
 
     // Constructor needed for Firebase
@@ -379,5 +391,23 @@ data class Equipment(
             )
             ArmorTier.GOLD -> this // Już na najwyższym poziomie
         }
+    }
+
+    // Add a method to convert Equipment to a Map for Firebase
+    @Exclude
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+            "armorLevel" to armorLevel,
+            "wandLevel" to wandLevel,
+            "baseHp" to baseHp,
+            "baseDamage" to baseDamage,
+            "armorTier" to armorTier.name, // Store as String instead of ordinal
+            "bronzeArmorCount" to bronzeArmorCount,
+            "silverArmorCount" to silverArmorCount,
+            "goldArmorCount" to goldArmorCount,
+            "characterElement" to characterElement,
+            "wandType" to wandType.name,
+            "pendingArmorUpgrade" to pendingArmorUpgrade
+        )
     }
 } 

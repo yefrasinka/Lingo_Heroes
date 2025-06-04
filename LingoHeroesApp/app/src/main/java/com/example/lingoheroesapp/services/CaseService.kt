@@ -291,8 +291,9 @@ class CaseService {
                                 }
                                 
                                 // Zapisz zaktualizowany ekwipunek
+                                val equipmentMap = updatedEquipment.toMap()
                                 database.child("users").child(userId).child("equipment")
-                                    .setValue(updatedEquipment)
+                                    .updateChildren(equipmentMap)
                                     .addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
                                             Log.d(TAG, "Dodano ${armorCount} sztuk zbroi poziomu ${item.armorTier} do ekwipunku użytkownika")

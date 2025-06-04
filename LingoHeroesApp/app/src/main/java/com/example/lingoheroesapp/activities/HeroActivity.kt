@@ -46,6 +46,11 @@ class HeroActivity : AppCompatActivity() {
 
     private var currentUser: User? = null
     private var userCoins: Int = 0
+    private var isUpgradeDialogShowing = false
+    private var previousEquipment: Equipment? = null
+    private var isActivityVisible = false
+    private var pendingUpgradeCheck = false
+    private var currentDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -746,89 +751,109 @@ class HeroActivity : AppCompatActivity() {
             val equipmentRef = database.child("users").child(currentUser.uid).child("equipment")
             equipmentRef.addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    try {
-                        // Przetwarzaj dane w oddzielnym wątku
-                        Thread {
+                    Thread {
+                        try {
+                            val equipment = if (snapshot.exists()) {
+                                val equipmentMap = snapshot.value as? Map<String, Any?> ?: return@Thread
+                                Equipment.fromMap(equipmentMap)
+                            } else {
+                                Equipment()
+                            }
+                            
+                            runOnUiThread {
+                                updateArmorUI(equipment)
+                                Log.d("HeroActivity", "Ekwipunek zaktualizowany: Brązowe zbroje: ${equipment.bronzeArmorCount}")
+                                
+                                this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                                    equipment = equipment
+                                )
+                                
+                                // Pokaż dialog tylko jeśli aktywność jest widoczna i nie ma już wyświetlonego dialogu
+                                if (equipment.pendingArmorUpgrade && isActivityVisible && currentDialog == null) {
+                                    showArmorUpgradeConfirmation(equipment)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HeroActivity", "Error parsing equipment: ${e.message}")
+                            
                             try {
-                                val equipment = snapshot.getValue(Equipment::class.java)
-                                if (equipment != null) {
-                                    // Aktualizuj UI na głównym wątku
-                                    runOnUiThread {
-                                        updateArmorUI(equipment)
-                                        Log.d("HeroActivity", "Ekwipunek zaktualizowany: Brązowe zbroje: ${equipment.bronzeArmorCount}")
-                                        
-                                        // Aktualizuj lokalny obiekt użytkownika
-                                        this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
-                                            equipment = equipment
-                                        )
+                                val armorLevel = snapshot.child("armorLevel").getValue(Long::class.java)?.toInt() ?: 1
+                                val wandLevel = snapshot.child("wandLevel").getValue(Long::class.java)?.toInt() ?: 1
+                                val baseHp = snapshot.child("baseHp").getValue(Long::class.java)?.toInt() ?: 100
+                                val baseDamage = snapshot.child("baseDamage").getValue(Long::class.java)?.toInt() ?: 10
+                                val bronzeArmorCount = snapshot.child("bronzeArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                val silverArmorCount = snapshot.child("silverArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                val goldArmorCount = snapshot.child("goldArmorCount").getValue(Long::class.java)?.toInt() ?: 0
+                                
+                                // Odczytaj armorTier jako String
+                                val armorTierStr = snapshot.child("armorTier").getValue(String::class.java)
+                                val armorTier = if (armorTierStr != null) {
+                                    try {
+                                        ArmorTier.valueOf(armorTierStr)
+                                    } catch (e: Exception) {
+                                        ArmorTier.BRONZE
                                     }
                                 } else {
-                                    // Alternatywny sposób odczytania danych, jeśli deserializacja bezpośrednia nie zadziała
-                                    try {
-                                        // Odczytaj pola ręcznie
-                                        val armorLevel = snapshot.child("armorLevel").getValue(Long::class.java)?.toInt() ?: 1
-                                        val wandLevel = snapshot.child("wandLevel").getValue(Long::class.java)?.toInt() ?: 1
-                                        val baseHp = snapshot.child("baseHp").getValue(Long::class.java)?.toInt() ?: 100
-                                        val baseDamage = snapshot.child("baseDamage").getValue(Long::class.java)?.toInt() ?: 10
-                                        
-                                        // Użyj nowej metody do konwersji armorTier
-                                        val armorTierValue = snapshot.child("armorTier").getValue()
-                                        val armorTier = ArmorTier.fromAny(armorTierValue)
-                                        
-                                        val bronzeArmorCount = snapshot.child("bronzeArmorCount").getValue(Long::class.java)?.toInt() ?: 0
-                                        val silverArmorCount = snapshot.child("silverArmorCount").getValue(Long::class.java)?.toInt() ?: 0
-                                        val goldArmorCount = snapshot.child("goldArmorCount").getValue(Long::class.java)?.toInt() ?: 0
-                                        
-                                        val wandTypeStr = snapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
-                                        val wandType = try {
-                                            WandType.valueOf(wandTypeStr)
-                                        } catch (e: Exception) {
-                                            WandType.FIRE
-                                        }
-                                        
-                                        val manualEquipment = Equipment(
-                                            armorLevel = armorLevel,
-                                            wandLevel = wandLevel,
-                                            baseHp = baseHp,
-                                            baseDamage = baseDamage,
-                                            armorTier = armorTier,
-                                            bronzeArmorCount = bronzeArmorCount,
-                                            silverArmorCount = silverArmorCount,
-                                            goldArmorCount = goldArmorCount,
-                                            wandType = wandType
-                                        )
-                                        
-                                        runOnUiThread {
-                                            updateArmorUI(manualEquipment)
-                                            Log.d("HeroActivity", "Ekwipunek zaktualizowany (ręcznie): Brązowe zbroje: ${manualEquipment.bronzeArmorCount}")
-                                            
-                                            // Aktualizuj lokalny obiekt użytkownika
-                                            this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
-                                                equipment = manualEquipment
-                                            )
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e("HeroActivity", "Błąd podczas ręcznej aktualizacji ekwipunku: ${e.message}")
+                                    ArmorTier.BRONZE
+                                }
+                                
+                                // Odczytaj wandType
+                                val wandTypeStr = snapshot.child("wandType").getValue(String::class.java) ?: "FIRE"
+                                val wandType = try {
+                                    WandType.valueOf(wandTypeStr)
+                                } catch (e: Exception) {
+                                    WandType.FIRE
+                                }
+                                
+                                val pendingArmorUpgrade = snapshot.child("pendingArmorUpgrade").getValue(Boolean::class.java) ?: false
+                                
+                                val manualEquipment = Equipment(
+                                    armorLevel = armorLevel,
+                                    wandLevel = wandLevel,
+                                    baseHp = baseHp,
+                                    baseDamage = baseDamage,
+                                    armorTier = armorTier,
+                                    bronzeArmorCount = bronzeArmorCount,
+                                    silverArmorCount = silverArmorCount,
+                                    goldArmorCount = goldArmorCount,
+                                    wandType = wandType,
+                                    pendingArmorUpgrade = pendingArmorUpgrade
+                                )
+                                
+                                runOnUiThread {
+                                    updateArmorUI(manualEquipment)
+                                    Log.d("HeroActivity", "Ekwipunek zaktualizowany (manual): Brązowe zbroje: ${manualEquipment.bronzeArmorCount}")
+                                    
+                                    this@HeroActivity.currentUser = this@HeroActivity.currentUser?.copy(
+                                        equipment = manualEquipment
+                                    )
+                                    
+                                    // Pokaż dialog tylko jeśli aktywność jest widoczna i nie ma już wyświetlonego dialogu
+                                    if (manualEquipment.pendingArmorUpgrade && isActivityVisible && currentDialog == null) {
+                                        showArmorUpgradeConfirmation(manualEquipment)
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("HeroActivity", "Błąd podczas aktualizacji ekwipunku: ${e.message}")
+                                Log.e("HeroActivity", "Error during manual equipment parsing: ${e.message}")
                             }
-                        }.start()
-                    } catch (e: Exception) {
-                        Log.e("HeroActivity", "Błąd podczas przetwarzania danych ekwipunku: ${e.message}")
-                    }
+                        }
+                    }.start()
                 }
-
+                
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e("HeroActivity", "Anulowano nasłuchiwanie ekwipunku: ${error.message}")
+                    Log.e("HeroActivity", "Error reading equipment: ${error.message}")
                 }
             })
         }
     }
 
     private fun showArmorUpgradeConfirmation(equipment: Equipment) {
+        // Jeśli jest już wyświetlony dialog, nie pokazuj kolejnego
+        if (currentDialog != null) return
+        
         val dialog = Dialog(this)
+        currentDialog = dialog
+        
         dialog.setContentView(R.layout.dialog_armor_upgrade_confirmation)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
@@ -860,33 +885,42 @@ class HeroActivity : AppCompatActivity() {
         
         dialog.findViewById<Button>(R.id.yesButton).setOnClickListener {
             dialog.dismiss()
+            currentDialog = null
             performArmorUpgrade(equipment)
         }
         
         dialog.findViewById<Button>(R.id.noButton).setOnClickListener {
             dialog.dismiss()
+            currentDialog = null
         }
         
-        // Ustaw szerokość dialogu
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.9).toInt(),
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        dialog.setOnCancelListener {
+            currentDialog = null
+        }
         
-        dialog.show()
+        dialog.setOnDismissListener {
+            currentDialog = null
+        }
+        
+        if (!isFinishing && !isDestroyed) {
+            dialog.show()
+        }
     }
     
     private fun performArmorUpgrade(equipment: Equipment) {
-        val currentUser = auth.currentUser ?: return
-        val updatedEquipment = equipment.performPendingUpgrade()
-        
-        // Pokaż wskaźnik ładowania
+        val currentUser = auth.currentUser?.uid ?: return
         val loadingIndicator = findViewById<ProgressBar>(R.id.loadingIndicator)
         loadingIndicator?.visibility = View.VISIBLE
         
-        // Aktualizuj w bazie danych
-        database.child("users").child(currentUser.uid).child("equipment")
-            .setValue(updatedEquipment)
+        // Wykonaj ulepszenie
+        val updatedEquipment = equipment.performPendingUpgrade()
+        
+        // Konwertuj ekwipunek na mapę
+        val equipmentMap = updatedEquipment.toMap()
+        
+        // Aktualizuj ekwipunek w Firebase
+        database.child("users").child(currentUser).child("equipment")
+            .updateChildren(equipmentMap as Map<String, Any>)
             .addOnSuccessListener {
                 loadingIndicator?.visibility = View.GONE
                 
@@ -909,10 +943,15 @@ class HeroActivity : AppCompatActivity() {
                 loadingIndicator?.visibility = View.GONE
                 showError("Błąd podczas ulepszania zbroi: ${e.message}")
             }
+        
+        // Po wykonaniu ulepszenia, zaktualizuj poprzedni stan
+        previousEquipment = updatedEquipment
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        currentDialog?.dismiss()
+        currentDialog = null
         // Usuń nasłuchiwanie zmian w ekwipunku przy zniszczeniu aktywności
         val currentUser = auth.currentUser
         if (currentUser != null) {
@@ -920,6 +959,52 @@ class HeroActivity : AppCompatActivity() {
             equipmentRef.removeEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {}
                 override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+        
+        // Wyczyść poprzedni stan przy zniszczeniu aktywności
+        previousEquipment = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        isActivityVisible = true
+        // Jeśli jest oczekujące sprawdzenie ulepszenia, wykonaj je teraz
+        if (pendingUpgradeCheck) {
+            pendingUpgradeCheck = false
+            checkPendingUpgrade()
+        }
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        isActivityVisible = false
+        // Zamknij dialog jeśli jest otwarty
+        currentDialog?.dismiss()
+        currentDialog = null
+    }
+    
+    private fun checkPendingUpgrade() {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val equipmentRef = database.child("users").child(currentUser.uid).child("equipment")
+            equipmentRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    try {
+                        val equipmentMap = snapshot.value as? Map<String, Any?> ?: return
+                        val equipment = Equipment.fromMap(equipmentMap)
+                        
+                        if (equipment.pendingArmorUpgrade && isActivityVisible) {
+                            showArmorUpgradeConfirmation(equipment)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("HeroActivity", "Error checking pending upgrade: ${e.message}")
+                    }
+                }
+                
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("HeroActivity", "Error checking pending upgrade: ${error.message}")
+                }
             })
         }
     }

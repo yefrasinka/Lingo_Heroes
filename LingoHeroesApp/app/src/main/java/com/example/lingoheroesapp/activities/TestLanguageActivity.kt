@@ -210,16 +210,60 @@ class TestLanguageActivity : AppCompatActivity() {
 
     private fun setupNextButton() {
         nextButton.setOnClickListener {
+            // Sprawdzamy czy zaznaczono odpowiedź
+            if (answersRadioGroup.checkedRadioButtonId == -1) {
+                Toast.makeText(this, "Proszę wybrać odpowiedź", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // Tymczasowo wyłączamy przycisk
+            nextButton.isEnabled = false
+
             val selectedAnswer = getSelectedAnswer()
-            if (isCorrectAnswer(selectedAnswer)) {
+            val isCorrect = isCorrectAnswer(selectedAnswer)
+            
+            // Podświetlamy odpowiedź
+            val selectedRadioButton = findViewById<RadioButton>(answersRadioGroup.checkedRadioButtonId)
+            selectedRadioButton.setTextColor(
+                if (isCorrect) resources.getColor(android.R.color.holo_green_dark)
+                else resources.getColor(android.R.color.holo_red_dark)
+            )
+
+            // Jeśli odpowiedź jest niepoprawna, pokazujemy poprawną
+            if (!isCorrect) {
+                for (i in 0 until answersRadioGroup.childCount) {
+                    val radioButton = answersRadioGroup.getChildAt(i) as RadioButton
+                    if (radioButton.text == questions[currentQuestionIndex].correctAnswer) {
+                        radioButton.setTextColor(resources.getColor(android.R.color.holo_green_dark))
+                        break
+                    }
+                }
+            }
+
+            if (isCorrect) {
                 correctAnswersCount++
             }
-            currentQuestionIndex++
-            if (currentQuestionIndex < questions.size) {
-                loadQuestion()
-            } else {
-                showTestResult()
-            }
+
+            // Opóźniamy przejście do następnego pytania
+            answersRadioGroup.postDelayed({
+                currentQuestionIndex++
+                
+                // Resetujemy wybór odpowiedzi i kolory
+                answersRadioGroup.clearCheck()
+                for (i in 0 until answersRadioGroup.childCount) {
+                    val radioButton = answersRadioGroup.getChildAt(i) as RadioButton
+                    radioButton.setTextColor(resources.getColor(android.R.color.black))
+                }
+                
+                if (currentQuestionIndex < questions.size) {
+                    loadQuestion()
+                } else {
+                    showTestResult()
+                }
+                
+                // Włączamy przycisk z powrotem
+                nextButton.isEnabled = true
+            }, 1500) // 1.5 sekundy opóźnienia
         }
     }
 
