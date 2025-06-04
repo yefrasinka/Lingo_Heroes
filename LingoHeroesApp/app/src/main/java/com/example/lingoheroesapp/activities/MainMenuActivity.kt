@@ -186,7 +186,7 @@ class MainMenuActivity : AppCompatActivity() {
                 // Logujemy całą strukturę danych
                 Log.d("TopicDebug", "Raw topics data from Firebase: ${snapshot.value}")
                 
-                val topics = mutableListOf<Topic>()
+                var topics = mutableListOf<Topic>()
                 
                 for (topicSnapshot in snapshot.children) {
                     try {

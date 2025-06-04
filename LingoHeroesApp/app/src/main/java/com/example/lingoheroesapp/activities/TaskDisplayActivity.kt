@@ -105,134 +105,182 @@ class TaskDisplayActivity : AppCompatActivity() {
     private fun loadTasksForSubtopic(topicId: String, subtopicId: String) {
         Log.d("TaskDebug", "Loading tasks for Topic ID: $topicId, Subtopic ID: $subtopicId")
         
-        // Najpierw pobieramy zapisany postęp
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        Log.d("TaskDebug", "Current user ID: $userId")
-        
-        database.child("users").child(userId)
-            .child("topicsProgress").child(topicId)
-            .child("subtopics").child(subtopicId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(progressSnapshot: DataSnapshot) {
-                    Log.d("TaskDebug", "Progress snapshot exists: ${progressSnapshot.exists()}")
-                    Log.d("TaskDebug", "Progress snapshot value: ${progressSnapshot.value}")
-                    
-                    val progress = progressSnapshot.getValue(SubtopicProgress::class.java)
-                    currentTaskIndex = progress?.completedTasks ?: 0
-                    Log.d("TaskDebug", "Loaded saved progress, starting from task: $currentTaskIndex")
-                    
-                    // Teraz ładujemy zadania
-                    loadTasks()
+        if (!isFinishing && !isDestroyed) {
+            // Najpierw pobieramy zapisany postęp
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId == null) {
+                Log.e("TaskDebug", "User ID is null")
+                runOnUiThread {
+                    Toast.makeText(this, "Błąd: Brak ID użytkownika", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
+                return
+            }
+            
+            Log.d("TaskDebug", "Current user ID: $userId")
+            
+            database.child("users").child(userId)
+                .child("topicsProgress").child(topicId)
+                .child("subtopics").child(subtopicId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(progressSnapshot: DataSnapshot) {
+                        if (!isFinishing && !isDestroyed) {
+                            Log.d("TaskDebug", "Progress snapshot exists: ${progressSnapshot.exists()}")
+                            Log.d("TaskDebug", "Progress snapshot value: ${progressSnapshot.value}")
+                            
+                            try {
+                                val progress = progressSnapshot.getValue(SubtopicProgress::class.java)
+                                currentTaskIndex = progress?.completedTasks ?: 0
+                                Log.d("TaskDebug", "Loaded saved progress, starting from task: $currentTaskIndex")
+                                
+                                // Teraz ładujemy zadania
+                                loadTasks()
+                            } catch (e: Exception) {
+                                Log.e("TaskDebug", "Error parsing progress: ${e.message}", e)
+                                currentTaskIndex = 0
+                                loadTasks()
+                            }
+                        }
+                    }
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("TaskDebug", "Error loading progress: ${error.message}")
-                    loadTasks() // Jeśli nie udało się wczytać postępu, i tak ładujemy zadania
-                }
-            })
+                    override fun onCancelled(error: DatabaseError) {
+                        if (!isFinishing && !isDestroyed) {
+                            Log.e("TaskDebug", "Error loading progress: ${error.message}")
+                            runOnUiThread {
+                                Toast.makeText(this@TaskDisplayActivity, 
+                                    "Błąd podczas ładowania postępu: ${error.message}", 
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                            currentTaskIndex = 0
+                            loadTasks()
+                        }
+                    }
+                })
+        }
     }
 
     private fun loadTasks() {
-        Log.d("TaskDebug", "Loading tasks for Topic ID: $topicId, Subtopic ID: $subtopicId")
-        
-        database.child("topics").child(topicId).child("subtopics")
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val loadedTasks = mutableListOf<Task>()
-                    
-                    Log.d("TaskDebug", "Raw data from Firebase: ${snapshot.value}")
-                    
-                    try {
-                        // Znajdź odpowiedni subtopic
-                        val subtopicSnapshot = snapshot.children.find { 
-                            it.child("id").getValue(String::class.java) == subtopicId 
-                        }
-                        
-                        if (subtopicSnapshot != null) {
-                            Log.d("TaskDebug", "Found subtopic: ${subtopicSnapshot.key}")
+        if (!isFinishing && !isDestroyed) {
+            Log.d("TaskDebug", "Loading tasks for Topic ID: $topicId, Subtopic ID: $subtopicId")
+            
+            database.child("topics").child(topicId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (!isFinishing && !isDestroyed) {
+                            val loadedTasks = mutableListOf<Task>()
                             
-                            // Próbujemy najpierw znaleźć zadania w strukturze "task"
-                            val taskSnapshot = subtopicSnapshot.child("task")
-                            if (taskSnapshot.exists()) {
-                                Log.d("TaskDebug", "Found tasks in 'task' structure")
-                                for (task in taskSnapshot.children) {
-                                    try {
-                                        val taskObj = Task(
-                                            taskId = task.child("taskId").getValue(String::class.java) ?: "",
-                                            type = task.child("type").getValue(String::class.java) ?: "",
-                                            question = task.child("question").getValue(String::class.java) ?: "",
-                                            options = task.child("options").getValue(object : GenericTypeIndicator<List<String>>() {}) ?: listOf(),
-                                            correctAnswer = task.child("correctAnswer").getValue(String::class.java) ?: "",
-                                            description = task.child("description").getValue(String::class.java) ?: "",
-                                            rewardXp = task.child("rewardXp").getValue(Int::class.java) ?: 0,
-                                            rewardCoins = task.child("rewardCoins").getValue(Int::class.java) ?: 0,
-                                            isCompleted = task.child("isCompleted").getValue(Boolean::class.java) ?: false,
-                                            mediaUrl = task.child("mediaUrl").getValue(String::class.java) ?: ""
-                                        )
-                                        loadedTasks.add(taskObj)
-                                        Log.d("TaskDebug", "Added task: ${taskObj.question}")
-                                    } catch (e: Exception) {
-                                        Log.e("TaskDebug", "Error parsing task: ${e.message}")
+                            try {
+                                val subtopicsSnapshot = snapshot.child("subtopics")
+                                if (!subtopicsSnapshot.exists()) {
+                                    throw Exception("No subtopics found in topic")
+                                }
+
+                                // Znajdź odpowiedni subtopic po ID
+                                var foundSubtopic: DataSnapshot? = null
+                                for (subtopic in subtopicsSnapshot.children) {
+                                    val id = subtopic.child("id").getValue(String::class.java)
+                                    if (id == subtopicId) {
+                                        foundSubtopic = subtopic
+                                        break
                                     }
                                 }
-                            } else {
-                                // Jeśli nie ma struktury "task", próbujemy znaleźć zadania w strukturze "tasks"
-                                val tasksSnapshot = subtopicSnapshot.child("tasks")
-                                if (tasksSnapshot.exists()) {
-                                    Log.d("TaskDebug", "Found tasks in 'tasks' structure")
-                                    for (task in tasksSnapshot.children) {
-                                        try {
-                                            val taskObj = Task(
-                                                taskId = task.child("taskId").getValue(String::class.java) ?: "",
-                                                type = task.child("type").getValue(String::class.java) ?: "",
-                                                question = task.child("question").getValue(String::class.java) ?: "",
-                                                options = task.child("options").getValue(object : GenericTypeIndicator<List<String>>() {}) ?: listOf(),
-                                                correctAnswer = task.child("correctAnswer").getValue(String::class.java) ?: "",
-                                                description = task.child("description").getValue(String::class.java) ?: "",
-                                                rewardXp = task.child("rewardXp").getValue(Int::class.java) ?: 0,
-                                                rewardCoins = task.child("rewardCoins").getValue(Int::class.java) ?: 0,
-                                                isCompleted = task.child("isCompleted").getValue(Boolean::class.java) ?: false,
-                                                mediaUrl = task.child("mediaUrl").getValue(String::class.java) ?: ""
-                                            )
-                                            loadedTasks.add(taskObj)
-                                            Log.d("TaskDebug", "Added task: ${taskObj.question}")
-                                        } catch (e: Exception) {
-                                            Log.e("TaskDebug", "Error parsing task: ${e.message}")
-                                        }
+
+                                if (foundSubtopic == null) {
+                                    throw Exception("Subtopic not found: $subtopicId")
+                                }
+
+                                // Próbujemy załadować zadania
+                                loadTasksFromSnapshot(foundSubtopic, loadedTasks)
+
+                                if (loadedTasks.isEmpty()) {
+                                    throw Exception("No tasks found in subtopic")
+                                }
+
+                                tasks = loadedTasks
+                                Log.d("TaskDebug", "Successfully loaded ${tasks.size} tasks")
+                                
+                                runOnUiThread {
+                                    try {
+                                        displayCurrentTask()
+                                    } catch (e: Exception) {
+                                        Log.e("TaskDebug", "Error displaying task: ${e.message}", e)
+                                        Toast.makeText(this@TaskDisplayActivity, 
+                                            "Błąd podczas wyświetlania zadania: ${e.message}", 
+                                            Toast.LENGTH_SHORT).show()
+                                        finish()
                                     }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("TaskDebug", "Error loading tasks: ${e.message}", e)
+                                runOnUiThread {
+                                    Toast.makeText(this@TaskDisplayActivity, 
+                                        "Błąd podczas ładowania zadań: ${e.message}", 
+                                        Toast.LENGTH_SHORT).show()
+                                    finish()
                                 }
                             }
-                        } else {
-                            Log.e("TaskDebug", "Subtopic not found: $subtopicId")
                         }
-                    } catch (e: Exception) {
-                        Log.e("TaskDebug", "Error processing tasks: ${e.message}")
-                    }
-                    
-                    if (loadedTasks.isEmpty()) {
-                        Log.e("TaskDebug", "No tasks found for Topic ID: $topicId, Subtopic ID: $subtopicId")
-                        runOnUiThread {
-                            Toast.makeText(this@TaskDisplayActivity, "Brak zadań dla tego podtematu", Toast.LENGTH_SHORT).show()
-                            finish()
-                        }
-                        return
                     }
 
-                    tasks = loadedTasks
-                    Log.d("TaskDebug", "Loaded ${tasks.size} tasks, starting from task $currentTaskIndex")
-                    runOnUiThread {
-                        displayCurrentTask()
+                    override fun onCancelled(error: DatabaseError) {
+                        if (!isFinishing && !isDestroyed) {
+                            Log.e("TaskDebug", "Error loading tasks: ${error.message}")
+                            runOnUiThread {
+                                Toast.makeText(this@TaskDisplayActivity, 
+                                    "Błąd podczas ładowania zadań: ${error.message}", 
+                                    Toast.LENGTH_SHORT).show()
+                                finish()
+                            }
+                        }
                     }
-                }
+                })
+        }
+    }
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("TaskDebug", "Error loading tasks: ${error.message}")
-                    runOnUiThread {
-                        Toast.makeText(this@TaskDisplayActivity, "Błąd podczas ładowania zadań: ${error.message}", Toast.LENGTH_SHORT).show()
-                        finish()
-                    }
+    private fun loadTasksFromSnapshot(snapshot: DataSnapshot, loadedTasks: MutableList<Task>) {
+        try {
+            // Próbujemy najpierw pobrać zadania z pola "tasks"
+            val tasksSnapshot = snapshot.child("tasks")
+            if (tasksSnapshot.exists() && tasksSnapshot.hasChildren()) {
+                processTasksSnapshot(tasksSnapshot, loadedTasks)
+            } else {
+                // Jeśli nie ma "tasks", próbujemy pobrać z pola "task"
+                val taskSnapshot = snapshot.child("task")
+                if (taskSnapshot.exists() && taskSnapshot.hasChildren()) {
+                    processTasksSnapshot(taskSnapshot, loadedTasks)
                 }
-            })
+            }
+        } catch (e: Exception) {
+            Log.e("TaskDebug", "Error in loadTasksFromSnapshot: ${e.message}", e)
+        }
+    }
+
+    private fun processTasksSnapshot(snapshot: DataSnapshot, loadedTasks: MutableList<Task>) {
+        for (taskSnapshot in snapshot.children) {
+            try {
+                val task = Task(
+                    taskId = taskSnapshot.child("taskId").getValue(String::class.java) ?: "",
+                    type = taskSnapshot.child("type").getValue(String::class.java) ?: "",
+                    question = taskSnapshot.child("question").getValue(String::class.java) ?: "",
+                    options = taskSnapshot.child("options").getValue(object : GenericTypeIndicator<List<String>>() {}) ?: listOf(),
+                    correctAnswer = taskSnapshot.child("correctAnswer").getValue(String::class.java) ?: "",
+                    description = taskSnapshot.child("description").getValue(String::class.java) ?: "",
+                    rewardXp = taskSnapshot.child("rewardXp").getValue(Int::class.java) ?: 0,
+                    rewardCoins = taskSnapshot.child("rewardCoins").getValue(Int::class.java) ?: 0,
+                    isCompleted = taskSnapshot.child("isCompleted").getValue(Boolean::class.java) ?: false,
+                    mediaUrl = taskSnapshot.child("mediaUrl").getValue(String::class.java) ?: ""
+                )
+
+                if (task.question.isNotEmpty() && task.options.isNotEmpty() && task.correctAnswer.isNotEmpty()) {
+                    loadedTasks.add(task)
+                    Log.d("TaskDebug", "Added task: ${task.question}")
+                } else {
+                    Log.w("TaskDebug", "Skipping invalid task: ${taskSnapshot.key}")
+                }
+            } catch (e: Exception) {
+                Log.e("TaskDebug", "Error parsing task: ${e.message}", e)
+            }
+        }
     }
 
     private fun displayCurrentTask() {
@@ -779,12 +827,12 @@ class TaskDisplayActivity : AppCompatActivity() {
         // Sprawdzamy, czy już ukończyliśmy wyzwanie
         challengeRef.get().addOnSuccessListener { snapshot ->
             // Sprawdzamy oba możliwe nazwy pola
-            val isCompletedField1 = snapshot.child("isCompleted").getValue(Boolean::class.java)
-            val isCompletedField2 = snapshot.child("completed").getValue(Boolean::class.java)
-            val isAlreadyCompleted = isCompletedField1 ?: isCompletedField2 ?: false
+            val isCompleted = snapshot.child("isCompleted").getValue(Boolean::class.java)
+                ?: snapshot.child("completed").getValue(Boolean::class.java)
+                ?: false
             
             // Jeśli wyzwanie jest już ukończone, nie aktualizujemy go ponownie
-            if (isAlreadyCompleted) {
+            if (isCompleted) {
                 Log.d("ChallengeProgress", "Challenge already completed, skipping update")
                 return@addOnSuccessListener
             }
@@ -796,12 +844,12 @@ class TaskDisplayActivity : AppCompatActivity() {
                         val challengeKey = challengeRef.key
                         val challengeData = currentData.child("challenges").child(challengeKey!!)
                         
-                        // Sprawdzamy ponownie, czy wyzwanie nie zostało już ukończone (sprawdzając oba możliwe pola)
-                        val isCompletedField1 = challengeData.child("isCompleted").getValue(Boolean::class.java)
-                        val isCompletedField2 = challengeData.child("completed").getValue(Boolean::class.java)
-                        val isCompleted = isCompletedField1 ?: isCompletedField2 ?: false
+                        // Sprawdzamy ponownie, czy wyzwanie nie zostało już ukończone
+                        val isCompletedInTransaction = challengeData.child("isCompleted").getValue(Boolean::class.java)
+                            ?: challengeData.child("completed").getValue(Boolean::class.java)
+                            ?: false
                         
-                        if (isCompleted) {
+                        if (isCompletedInTransaction) {
                             return Transaction.success(currentData)
                         }
                         
@@ -918,18 +966,18 @@ class TaskDisplayActivity : AppCompatActivity() {
         mediaPlayer = MediaPlayer().apply {
             try {
                 setDataSource(url)
-                setOnPreparedListener { mp ->
+                setOnPreparedListener { _ ->
                     Log.d("TaskDebug", "MediaPlayer prepared successfully")
-                    mp.start()
+                    start()
                     playAudioButton.isEnabled = false
                     playAudioButton.alpha = 0.5f
                 }
-                setOnCompletionListener { mp ->
+                setOnCompletionListener { _ ->
                     Log.d("TaskDebug", "Audio playback completed")
                     playAudioButton.isEnabled = true
                     playAudioButton.alpha = 1.0f
                 }
-                setOnErrorListener { mp, what, extra ->
+                setOnErrorListener { _, what, extra ->
                     Log.e("TaskDebug", "MediaPlayer error: what=$what, extra=$extra")
                     Toast.makeText(this@TaskDisplayActivity, "Błąd odtwarzania audio", Toast.LENGTH_SHORT).show()
                     true
@@ -962,7 +1010,6 @@ class TaskDisplayActivity : AppCompatActivity() {
 
     // Pomocnicza metoda do tworzenia domyślnych wyzwań
     private fun createDefaultChallenges(): List<Challenge> {
-        val calendar = Calendar.getInstance()
         val currentTime = System.currentTimeMillis()
         
         val endOfDay = Calendar.getInstance().apply {
