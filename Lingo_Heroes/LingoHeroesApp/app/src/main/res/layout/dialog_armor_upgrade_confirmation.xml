@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="16dp"
+    app:cardBackgroundColor="@color/purple_light">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Tytuł z ikoną -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_level_up"
+                android:layout_marginEnd="8dp"
+                app:tint="@color/gold" />
+
+            <TextView
+                android:id="@+id/dialogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dostępne ulepszenie zbroi!"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/gold" />
+        </LinearLayout>
+
+        <!-- Animacja zbroi -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center">
+
+                <!-- Aktualna zbroja -->
+                <ImageView
+                    android:id="@+id/currentArmorImage"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_armor_bronze" />
+
+                <!-- Strzałka -->
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_arrow_right"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginHorizontal="16dp"
+                    app:tint="@color/gold" />
+
+                <!-- Nowa zbroja -->
+                <ImageView
+                    android:id="@+id/nextArmorImage"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_armor_silver" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Opis -->
+        <TextView
+            android:id="@+id/dialogMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Zebrałeś wystarczającą ilość elementów zbroi, aby ulepszyć ją do srebrnej. Czy chcesz to zrobić teraz?"
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Przyciski -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/noButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Później"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@color/purple_dark"
+                android:layout_marginEnd="8dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+            <Button
+                android:id="@+id/yesButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ulepsz teraz!"
+                android:textColor="@android:color/black"
+                android:backgroundTint="@color/gold" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView> 

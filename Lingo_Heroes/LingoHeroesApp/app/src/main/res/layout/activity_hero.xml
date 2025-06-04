@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <!-- Górny panel z CardView dla lepszej elevacji -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/topPanelCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardElevation="4dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:id="@+id/topPanel"
+            android:layout_width="match_parent"
+            android:layout_height="96dp"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:background="@drawable/gradient_background"
+            android:gravity="center_vertical">
+
+            <!-- Avatar z okrągłym kształtem -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/avatarImage"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_avatar_vector_main"
+                android:contentDescription="@string/avatar"
+                app:shapeAppearanceOverlay="@style/CircularImageView"
+                android:elevation="2dp"
+                android:padding="4dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Nick z lepszą typografią -->
+            <TextView
+                android:id="@+id/usernameText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textAppearance="@style/TextAppearance.App.Medium" />
+
+            <!-- Waluta z Material Design -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                app:cardBackgroundColor="#4DFFFFFF"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:padding="8dp">
+
+                    <ImageView
+                        android:id="@+id/currencyIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_coin"
+                        android:contentDescription="@string/currency" />
+
+                    <TextView
+                        android:id="@+id/currencyText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginStart="4dp"
+                        android:textAppearance="@style/TextAppearance.App.Medium"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Doświadczenie z Material Design -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                app:cardBackgroundColor="#4DFFFFFF"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:padding="8dp">
+
+                    <ImageView
+                        android:id="@+id/experienceIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_trophy"
+                        android:contentDescription="@string/experience" />
+
+                    <TextView
+                        android:id="@+id/experienceText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginStart="4dp"
+                        android:textAppearance="@style/TextAppearance.App.Medium"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Główna zawartość z lepszym scrollowaniem -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:padding="16dp"
+        android:background="@color/purple_light"
+        app:layout_constraintTop_toBottomOf="@id/topPanelCard"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigationView">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:paddingBottom="32dp">
+
+            <!-- Статы: HP и ATK в карточках -->
+            <LinearLayout
+                android:id="@+id/statsLayout"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp">
+
+                <!-- HP -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/stat_background"
+                    android:padding="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="4dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_heart"
+                        android:contentDescription="@string/hp"
+                        android:layout_marginStart="8dp"/>
+
+                    <TextView
+                        android:id="@+id/hpText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="142632"
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <!-- ATK -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/stat_background"
+                    android:padding="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="4dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_sword"
+                        android:contentDescription="@string/atk"
+                        android:layout_marginStart="8dp"/>
+
+                    <TextView
+                        android:id="@+id/atkText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="35374"
+                        android:textColor="@android:color/black"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Герой -->
+            <ImageView
+                android:id="@+id/heroImage"
+                android:layout_width="250dp"
+                android:layout_height="330dp"
+                android:layout_below="@id/statsLayout"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
+                android:src="@drawable/ic_warrior_lightning"
+                android:contentDescription="@string/hero"
+                android:scaleType="fitCenter" />
+
+            <!-- Надпись "Różdżka" -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/heroImage"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="72dp"
+                android:text="@string/wand"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <!-- Надпись "Zbroja" -->
+            <TextView
+                android:id="@+id/armorTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/heroImage"
+                android:layout_alignParentStart="true"
+                android:layout_marginTop="12dp"
+                android:layout_marginStart="72dp"
+                android:text="@string/armor"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <!-- Licznik posiadanych zbroi -->
+            <TextView
+                android:id="@+id/armorCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/armorTitleText"
+                android:layout_alignParentStart="true"
+                android:layout_marginTop="2dp"
+                android:layout_marginStart="72dp"
+                android:text="0/10"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray" />
+
+            <!-- Przycisk zbroi z licznikiem postępu -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/heroImage"
+                android:layout_marginTop="32dp"
+                android:layout_marginStart="48dp">
+
+                <ImageButton
+                    android:id="@+id/armorButton"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:background="@drawable/staff_background"
+                    android:src="@drawable/ic_armor_bronze"
+                    android:contentDescription="@string/armor"
+                    android:scaleType="centerInside"
+                    android:padding="12dp" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/armorProgressIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:progress="0"
+                    app:indicatorSize="90dp"
+                    app:trackThickness="3dp"
+                    app:trackColor="#33FFFFFF"
+                    app:indicatorColor="@color/progress_bronze" />
+                    
+                <TextView
+                    android:id="@+id/armorLevelText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="-20dp"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/white"
+                    android:background="@drawable/level_text_background"
+                    android:padding="4dp"
+                    android:text="Poziom: 1/10" />
+            </FrameLayout>
+
+            <!-- Пpzycisk różdżki -->
+            <ImageButton
+                android:id="@+id/staffButton"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_below="@id/heroImage"
+                android:layout_marginTop="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="48dp"
+                android:background="@drawable/staff_background"
+                android:src="@drawable/ic_staff_lightning"
+                android:contentDescription="@string/wand"
+                android:scaleType="centerInside"
+                android:padding="12dp" />
+        </RelativeLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Dolna nawigacja z Material Design -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/purple_dark"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:elevation="8dp"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
+        app:itemIconSize="24dp"
+        app:itemIconTint="@android:color/white"
+        app:itemTextColor="@android:color/white"
+        app:itemTextAppearanceActive="@style/TextAppearance.App.Medium"
+        app:itemTextAppearanceInactive="@style/TextAppearance.App.Medium"/>
+
+    <ProgressBar
+        android:id="@+id/loadingIndicator"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

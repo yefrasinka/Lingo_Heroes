@@ -1,0 +1,121 @@
+{
+  "achievements": {
+    "first_win": {
+      "id": "first_win",
+      "name": "Pierwszy triumf",
+      "description": "Wygraj swój pierwszy pojedynek",
+      "icon": "achievements/first_win.png",
+      "rewards": {
+        "experience": 50,
+        "coins": 25,
+        "items": ["beginner_badge"]
+      },
+      "progress": {
+        "current": 0,
+        "required": 1
+      },
+      "isUnlocked": false
+    },
+    "vocabulary_master": {
+      "id": "vocabulary_master",
+      "name": "Mistrz słownictwa",
+      "description": "Naucz się 100 nowych słów",
+      "icon": "achievements/vocabulary.png",
+      "rewards": {
+        "experience": 200,
+        "coins": 100,
+        "items": ["vocabulary_master_badge"]
+      },
+      "progress": {
+        "current": 0,
+        "required": 100
+      },
+      "isUnlocked": false
+    },
+    "winning_streak": {
+      "id": "winning_streak",
+      "name": "Seria zwycięstw",
+      "description": "Wygraj 5 pojedynków pod rząd",
+      "icon": "achievements/streak.png",
+      "rewards": {
+        "experience": 150,
+        "coins": 75,
+        "items": ["streak_badge"]
+      },
+      "progress": {
+        "current": 0,
+        "required": 5
+      },
+      "isUnlocked": false
+    },
+    "grammar_expert": {
+      "id": "grammar_expert",
+      "name": "Ekspert gramatyki",
+      "description": "Odpowiedz poprawnie na 50 pytań gramatycznych",
+      "icon": "achievements/grammar.png",
+      "rewards": {
+        "experience": 300,
+        "coins": 150,
+        "items": ["grammar_expert_badge"]
+      },
+      "progress": {
+        "current": 0,
+        "required": 50
+      },
+      "isUnlocked": false
+    },
+    "daily_learner": {
+      "id": "daily_learner",
+      "name": "Codzienna nauka",
+      "description": "Ucz się przez 7 dni z rzędu",
+      "icon": "achievements/daily.png",
+      "rewards": {
+        "experience": 100,
+        "coins": 50,
+        "items": ["daily_badge"]
+      },
+      "progress": {
+        "current": 0,
+        "required": 7
+      },
+      "isUnlocked": false
+    }
+  },
+  "badges": {
+    "beginner_badge": {
+      "id": "beginner_badge",
+      "name": "Odznaka początkującego",
+      "description": "Twój pierwszy krok w nauce języka",
+      "icon": "badges/beginner.png",
+      "rarity": "COMMON"
+    },
+    "vocabulary_master_badge": {
+      "id": "vocabulary_master_badge",
+      "name": "Odznaka mistrza słownictwa",
+      "description": "Ekspert w nauce nowych słów",
+      "icon": "badges/vocabulary_master.png",
+      "rarity": "RARE"
+    },
+    "streak_badge": {
+      "id": "streak_badge",
+      "name": "Odznaka serii zwycięstw",
+      "description": "Niepokonany w pojedynkach",
+      "icon": "badges/streak.png",
+      "rarity": "RARE"
+    },
+    "grammar_expert_badge": {
+      "id": "grammar_expert_badge",
+      "name": "Odznaka eksperta gramatyki",
+      "description": "Mistrz reguł gramatycznych",
+      "icon": "badges/grammar_expert.png",
+      "rarity": "EPIC"
+    },
+    "daily_badge": {
+      "id": "daily_badge",
+      "name": "Odznaka systematyczności",
+      "description": "Codzienna dawka nauki",
+      "icon": "badges/daily.png",
+      "rarity": "UNCOMMON"
+    }
+  }
+} 

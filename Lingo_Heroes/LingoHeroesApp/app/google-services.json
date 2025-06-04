@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "671723055509",
+    "firebase_url": "https://lingoheroes1-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "lingoheroes1",
+    "storage_bucket": "lingoheroes1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671723055509:android:721cec5267ea00848aae9c",
+        "android_client_info": {
+          "package_name": "com.example.lingoheroesapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "671723055509-648lddsr0ptbp6s3pn0vepu4aulqbki4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lingoheroesapp",
+            "certificate_hash": "4cf92afe01a8d3920e2a33edf7e8541979cab774"
+          }
+        },
+        {
+          "client_id": "671723055509-pmdu5s5hoinud5jii9vr2f5u4qcoopgv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvu9w0TPLp0PIGTEOWEAd4Bb2kzui-j_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "671723055509-pmdu5s5hoinud5jii9vr2f5u4qcoopgv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:background="@drawable/dialog_background">
+
+    <!-- Tytuł dialogu -->
+    <TextView
+        android:id="@+id/dialogTitleTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Skrzynia Wojownika" />
+
+    <!-- Obrazek skrzynki -->
+    <ImageView
+        android:id="@+id/dialogCaseImageView"
+        android:layout_width="0dp"
+        android:layout_height="160dp"
+        android:layout_marginTop="16dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintTop_toBottomOf="@id/dialogTitleTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:src="@drawable/ic_launcher_background"
+        android:contentDescription="Case image" />
+
+    <!-- Opis skrzynki -->
+    <TextView
+        android:id="@+id/dialogDescriptionTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textColor="#333333"
+        app:layout_constraintTop_toBottomOf="@id/dialogCaseImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Ta skrzynia zawiera różnorodne przedmioty o różnych poziomach rzadkości. Zdobądź potężne przedmioty, które pomogą Ci w nauce." />
+
+    <!-- Nagłówek możliwych przedmiotów -->
+    <TextView
+        android:id="@+id/possibleItemsHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Możliwe przedmioty:"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toBottomOf="@id/dialogDescriptionTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Lista możliwych przedmiotów (RecyclerView) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/dialogItemsRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:maxHeight="200dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/possibleItemsHeader"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Przycisk zakupu z ceną -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buyNowButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/dialogItemsRecyclerView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:background="@drawable/button_background"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:paddingVertical="12dp"
+        tools:text="Kup teraz za 500 monet" />
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

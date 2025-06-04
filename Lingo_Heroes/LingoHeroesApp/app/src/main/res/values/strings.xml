@@ -1,0 +1,180 @@
+<resources>
+    <string name="app_name">Lingo Heroes</string>
+    <string name="app_logo">Logo</string>
+    <string name="hint_login">Wpisz swój login</string>
+    <string name="hint_email">Wpisz swój email</string>
+    <string name="hint_password">Wpisz swoje hasło</string>
+    <string name="hint_confirm_password">Potwierdź swoje hasło</string>
+    <string name="button_login">Zaloguj się</string>
+    <string name="button_register">Zarejestruj się</string>
+    <string name="register_link">Nie masz konta? Zarejestruj się</string>
+    <string name="login_link">Masz już konto? Zaloguj się</string>
+
+    <string name="title_learning">Nauka</string>
+    <string name="title_mini_games">Gry</string>
+    <string name="title_shop">Sklep</string>
+    <string name="main_title">Poziomy nauki</string>
+
+    <string-array name="main_topics">
+        <item>Zwierzęta</item>
+        <item>Jedzenie</item>
+        <item>Rodzina i Przyjaciele</item>
+    </string-array>
+
+    <!-- Achievement strings -->
+    <string name="achievement_icon">Ikona osiągnięcia</string>
+    <string name="completion_status">Status ukończenia</string>
+
+    <!-- Account strings -->
+    <string name="avatar">Avatar</string>
+    <string name="username">Nazwa użytkownika</string>
+    <string name="back_to_main">Wróć do głównego menu</string>
+    <string name="change_username">Zmień nazwę użytkownika</string>
+    <string name="change_email">Zmień email</string>
+    <string name="change_password">Zmień hasło</string>
+    <string name="change_language_level">Zmień poziom języka</string>
+    <string name="logout">Wyloguj się</string>
+
+    <!-- Battle strings -->
+    <string name="back">Powrót</string>
+    <string name="player_element">Element gracza</string>
+    <string name="player">Gracz</string>
+    <string name="hp">HP:</string>
+    <string name="hp_full">100/100</string>
+    <string name="zero">0</string>
+    <string name="opponent">Przeciwnik</string>
+    <string name="opponent_element">Element przeciwnika</string>
+    <string name="player_character">Postać gracza</string>
+    <string name="opponent_monster">Potwór przeciwnika</string>
+    <string name="player_attack_animation">Animacja ataku gracza</string>
+    <string name="monster_attack_animation">Animacja ataku potwora</string>
+    <string name="attacker_element">Element atakującego</string>
+    <string name="effectiveness_direction">Kierunek efektywności</string>
+    <string name="defender_element">Element obrońcy</string>
+    <string name="multiplier">x1.5</string>
+    <string name="correct_answer">Poprawna odpowiedź!</string>
+    <string name="question_placeholder">Pytanie pojawi się tutaj...</string>
+    <string name="answer_1">Odpowiedź 1</string>
+    <string name="answer_2">Odpowiedź 2</string>
+    <string name="answer_3">Odpowiedź 3</string>
+    <string name="answer_4">Odpowiedź 4</string>
+    <string name="time">Czas:</string>
+    <string name="special_ability">Specjalna zdolność (3)</string>
+    <string name="element_effect">Efekt elementu</string>
+    <string name="damage_25">-25</string>
+    <string name="victory">Zwycięstwo!</string>
+    <string name="continue_text">Kontynuuj</string>
+
+    <!-- Duels strings -->
+    <string name="duels">Pojedynki</string>
+    <string name="level_1">Level 1</string>
+    <string name="stage_1">Stage 1</string>
+    <string name="stage_2">Stage 2</string>
+    <string name="stage_3">Stage 3</string>
+    <string name="stage_4">Stage 4</string>
+    <string name="stage_5">Stage 5</string>
+    <string name="stage_6">Stage 6</string>
+    <string name="stage_7">Stage 7</string>
+    <string name="stage_8">Stage 8</string>
+    <string name="stage_9">Stage 9</string>
+    <string name="boss_level">Boss Level</string>
+    <string name="boss">BOSS</string>
+
+    <!-- Hero strings -->
+    <string name="currency">Waluta</string>
+    <string name="experience">Doświadczenie</string>
+    <string name="hero">Bohater</string>
+    <string name="wand">Różdżka</string>
+    <string name="armor">Zbroja</string>
+    <string name="armor_progress">0/10</string>
+
+    <!-- Language level strings -->
+    <string name="select_language_level">Wybierz swój poziom języka lub wykonaj test wstępny</string>
+    <string name="take_placement_test">Wykonaj test wstępny</string>
+    <string name="or_select_manually">lub wybierz poziom ręcznie:</string>
+    <string name="level_a1">A1 - Początkujący</string>
+    <string name="level_a2">A2 - Podstawowy</string>
+    <string name="level_b1">B1 - Średniozaawansowany</string>
+    <string name="level_b2">B2 - Wyższy średniozaawansowany</string>
+    <string name="return_text">Powrót</string>
+
+    <!-- Profile strings -->
+    <string name="profile">Profil</string>
+    <string name="level">Poziom:</string>
+    <string name="experience_label">Doświadczenie:</string>
+    <string name="streak_days">Seria dni:</string>
+    <string name="daily_challenges">Wyzwania dzienne:</string>
+    <string name="weekly_challenges">Wyzwania tygodniowe:</string>
+    <string name="challenges">Wyzwania</string>
+
+    <!-- Ranking strings -->
+    <string name="ranking">Ranking</string>
+
+    <!-- Result strings -->
+    <string name="your_text_here">Your Text Here</string>
+    <string name="back_to_menu">Wróć do menu</string>
+
+    <!-- Store strings -->
+    <string name="treasure_chests">Skrzynie skarbów</string>
+    <string name="more_products_soon">Wkrótce więcej produktów...</string>
+
+    <!-- Test strings -->
+    <string name="translate_word">Przetłumacz słowo</string>
+    <string name="option_1">Opcja 1</string>
+    <string name="option_2">Opcja 2</string>
+    <string name="option_3">Opcja 3</string>
+    <string name="option_4">Opcja 4</string>
+
+    <!-- Bottom navigation strings -->
+    <string name="nav_learning">Nauka</string>
+    <string name="nav_hero">Bohater</string>
+    <string name="nav_duels">Pojedynki</string>
+    <string name="nav_shop">Sklep</string>
+    <string name="nav_profile">Profil</string>
+
+    <!-- Case strings -->
+    <string name="item_image">Obraz przedmiotu</string>
+    <string name="case_image">Obraz skrzyni</string>
+    <string name="buy">Kup</string>
+    <string name="coins">Monety</string>
+
+    <!-- Challenge strings -->
+    <string name="reward">Nagroda:</string>
+
+    <!-- Dialog strings -->
+    <string name="possible_items">Możliwe przedmioty:</string>
+    <string name="opening_case">Otwieranie skrzyni</string>
+    <string name="close">Zamknij</string>
+    <string name="new_email">Nowy email</string>
+    <string name="new_password">Nowe hasło</string>
+    <string name="new_username">Nowa nazwa użytkownika</string>
+    <string name="confirm">Potwierdź</string>
+    <string name="confirmation_message">Czy na pewno chcesz wykonać tę akcję?</string>
+    <string name="no">Nie</string>
+    <string name="yes">Tak</string>
+    <string name="upgrade">Ulepszenie</string>
+    <string name="current_level">Aktualny poziom: 1</string>
+    <string name="currently">Aktualnie:</string>
+    <string name="after_upgrade">Po ulepszeniu:</string>
+    <string name="collected_armor">Zebrane zbroje: 0/10</string>
+    <string name="upgrade_cost">Koszt ulepszenia:</string>
+    <string name="cancel">Anuluj</string>
+    <string name="upgrade_button">Ulepsz</string>
+    <string name="select_superpower">Wybierz supermoc</string>
+    <string name="superpower_selection_message">Masz 3 poprawne odpowiedzi! Wybierz jedną z dostępnych supermocy:</string>
+    <string name="superpower_icon">Ikona supermocy</string>
+    <string name="superpower_name">Nazwa supermocy</string>
+    <string name="superpower_description">Opis supermocy</string>
+    <string name="select">Wybierz</string>
+    <string name="duel_report">Raport Pojedynku</string>
+    <string name="correct_answers">Poprawne odpowiedzi:</string>
+    <string name="time_label">Czas:</string>
+    <string name="earned_coins">Zdobyte monety:</string>
+    <string name="earned_stars">Zdobyte gwiazdki:</string>
+    <string name="errors">Błędy:</string>
+    <string name="atk">Atak</string>
+    <string name="result">Wynik</string>
+    <string name="cases">Skrzynie</string>
+    <string name="test">Test</string>
+    <string name="next">Dalej</string>
+</resources>
